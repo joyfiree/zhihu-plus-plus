@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GetApp
@@ -38,7 +37,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,8 +51,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -85,7 +83,7 @@ fun ExportDialogComponent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = ZhihuShapeTokens.Card,
             ) {
                 Column(
                     modifier = Modifier
@@ -95,7 +93,7 @@ fun ExportDialogComponent(
                 ) {
                     Text(
                         text = "导出文章",
-                        fontSize = 20.sp,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 24.dp),
                     )
@@ -106,8 +104,8 @@ fun ExportDialogComponent(
                             .fillMaxWidth()
                             .padding(vertical = 4.dp),
                         onClick = {},
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = ZhihuShapeTokens.Thumbnail,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
                         enabled = false,
                     ) {
                         Row(
@@ -155,7 +153,7 @@ fun ExportDialogComponent(
                                 }
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = ZhihuShapeTokens.Thumbnail,
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         enabled = isHtmlExportSupported && !isExporting,
                     ) {
@@ -205,7 +203,7 @@ fun ExportDialogComponent(
                                 }
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = ZhihuShapeTokens.Thumbnail,
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         enabled = isImageExportSupported && !isExporting,
                     ) {
@@ -239,7 +237,7 @@ fun ExportDialogComponent(
                             onExportMarkdown()
                             onDismiss()
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = ZhihuShapeTokens.Thumbnail,
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         enabled = !isExporting,
                     ) {
@@ -269,7 +267,7 @@ fun ExportDialogComponent(
 
                     Text(
                         text = "带评论导出",
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
@@ -285,7 +283,7 @@ fun ExportDialogComponent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
 
-                        Slider(
+                        ZhihuSlider(
                             value = commentCount.toFloat(),
                             onValueChange = { commentCount = it.roundToInt() },
                             valueRange = 0f..10f,
@@ -312,7 +310,7 @@ fun ExportDialogComponent(
                                 }
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = ZhihuShapeTokens.Thumbnail,
                         color = MaterialTheme.colorScheme.tertiaryContainer,
                         enabled = isImageExportSupported && !isExporting,
                     ) {

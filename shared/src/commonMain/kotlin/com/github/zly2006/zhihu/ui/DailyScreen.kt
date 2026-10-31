@@ -17,7 +17,6 @@
 
 package com.github.zly2006.zhihu.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,14 +26,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.DateRange
@@ -51,8 +48,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -71,10 +66,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.fleeksoft.ksoup.Ksoup
@@ -83,8 +76,14 @@ import com.github.zly2006.zhihu.data.DailyStory
 import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.navigation.resolveContent
 import com.github.zly2006.zhihu.platform.isLiteVariant
+import com.github.zly2006.zhihu.ui.components.SectionHeader
+import com.github.zly2006.zhihu.ui.components.ZhihuEmptyState
+import com.github.zly2006.zhihu.ui.components.ZhihuErrorState
+import com.github.zly2006.zhihu.ui.components.ZhihuLoadingState
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.util.formatDailyDate
 import com.github.zly2006.zhihu.util.jsonObject
 import com.github.zly2006.zhihu.util.twoDigitString
@@ -244,21 +243,19 @@ fun DailyScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            ZhihuTopAppBar(
                 title = {
                     Column {
                         Text(
                             "知乎日报",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                            ),
+                            style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.testTag(DAILY_SCREEN_TITLE_TAG),
                         )
                         if (currentViewingDate.isNotEmpty()) {
                             Text(
                                 currentViewingDate,
                                 style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
                                 modifier = Modifier.testTag(DAILY_SCREEN_CURRENT_DATE_TAG),
                             )
@@ -275,10 +272,6 @@ fun DailyScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
             )
         },
     ) { scaffoldPadding ->
@@ -297,48 +290,28 @@ fun DailyScreen(
                             .testTag(DAILY_SCREEN_LOADING_TAG),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                "正在加载...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            )
-                        }
+                        ZhihuLoadingState(message = "正在加载...")
                     }
                 }
 
                 viewModel.error != null -> {
-                    Box(
+                    ZhihuErrorState(
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag(DAILY_SCREEN_ERROR_TAG),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            viewModel.error.orEmpty(),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
+                        description = "网络连接或数据解析出现异常，请检查网络后重试。",
+                        onRetry = doRefresh,
+                    )
                 }
 
                 viewModel.sections.isEmpty() -> {
-                    Box(
+                    ZhihuEmptyState(
+                        title = "暂无内容",
+                        description = "日报更新后会显示在这里",
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag(DAILY_SCREEN_EMPTY_TAG),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            "暂无内容",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        )
-                    }
+                    )
                 }
 
                 else -> {
@@ -421,37 +394,7 @@ fun DateHeader(
     date: String,
     modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(1.dp)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)),
-            )
-            Text(
-                text = date,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                ),
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(1.dp)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)),
-            )
-        }
-    }
+    SectionHeader(title = date, modifier = modifier)
 }
 
 @Composable
@@ -465,10 +408,10 @@ fun DailyStoryCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = ZhihuShapeTokens.Card,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
     ) {
         Row(
@@ -484,7 +427,7 @@ fun DailyStoryCard(
                     contentDescription = story.title,
                     modifier = Modifier
                         .weight(0.3f, fill = true)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .clip(ZhihuShapeTokens.Thumbnail),
                     contentScale = ContentScale.Crop,
                 )
             }
@@ -497,10 +440,7 @@ fun DailyStoryCard(
                 // 标题
                 Text(
                     text = story.title,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                    ),
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -514,15 +454,13 @@ fun DailyStoryCard(
                         imageVector = Icons.Filled.AccessTime,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = story.hint,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }

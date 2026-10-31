@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.abs
 
@@ -114,7 +115,7 @@ internal fun rememberArticleBottomBarState(
             if (target != state.offset.value) {
                 try {
                     state.isSnapping = true
-                    state.offset.animateTo(target, tween(150))
+                    state.offset.animateTo(target, tween(Motion.DURATION_SHORT))
                 } finally {
                     state.isSnapping = false
                 }

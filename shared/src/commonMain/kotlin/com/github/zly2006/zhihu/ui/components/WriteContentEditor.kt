@@ -167,7 +167,7 @@ fun WriteContentFabColumn(
                 if (previewEnabled) {
                     MaterialTheme.colorScheme.primaryContainer
                 } else {
-                    MaterialTheme.colorScheme.surfaceVariant
+                    MaterialTheme.colorScheme.surfaceContainerHighest
                 },
             contentColor =
                 if (previewEnabled) {
@@ -190,7 +190,7 @@ fun WriteContentFabColumn(
                     if (imageEnabled) {
                         MaterialTheme.colorScheme.primaryContainer
                     } else {
-                        MaterialTheme.colorScheme.surfaceVariant
+                        MaterialTheme.colorScheme.surfaceContainerHighest
                     },
                 contentColor =
                     if (imageEnabled) {
@@ -220,7 +220,7 @@ fun WriteContentFabColumn(
                 if (saveEnabled) {
                     MaterialTheme.colorScheme.primaryContainer
                 } else {
-                    MaterialTheme.colorScheme.surfaceVariant
+                    MaterialTheme.colorScheme.surfaceContainerHighest
                 },
             contentColor =
                 if (saveEnabled) {

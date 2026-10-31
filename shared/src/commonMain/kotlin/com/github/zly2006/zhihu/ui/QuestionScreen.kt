@@ -19,7 +19,6 @@ package com.github.zly2006.zhihu.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -68,7 +67,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -115,11 +113,13 @@ import com.github.zly2006.zhihu.ui.components.FeedPullToRefresh
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ShareDialog
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.getShareText
 import com.github.zly2006.zhihu.ui.components.handleShareAction
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.rememberShareActionExecutor
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.viewmodel.ContentLoadEnvironment
 import com.github.zly2006.zhihu.viewmodel.addReadHistory
 import com.github.zly2006.zhihu.viewmodel.feed.QuestionFeedViewModel
@@ -361,7 +361,7 @@ private fun QuestionTopBar(
     onShare: () -> Unit,
     canShare: Boolean,
 ) {
-    TopAppBar(
+    ZhihuTopAppBar(
         title = {
             AnimatedContent(
                 targetState = showTitle,
@@ -465,7 +465,7 @@ private fun QuestionAnimatedBodyHeader(
     var fullViewportHeightPx by remember(questionId) { mutableIntStateOf(0) }
     var animationInitialized by remember(questionId) { mutableStateOf(false) }
     val animatedViewportHeightPx = remember(questionId) { Animatable(collapsedViewportHeightPx.toFloat()) }
-    val animationSpec = remember { tween<Float>(durationMillis = 420, easing = FastOutSlowInEasing) }
+    val animationSpec = remember { tween<Float>(durationMillis = Motion.DURATION_LONG, easing = Motion.EmphasizedDecelerateEasing) }
 
     LaunchedEffect(questionId) {
         animationInitialized = false

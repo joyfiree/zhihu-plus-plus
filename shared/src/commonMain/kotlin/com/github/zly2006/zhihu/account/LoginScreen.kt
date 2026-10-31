@@ -20,6 +20,7 @@ package com.github.zly2006.zhihu.account
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -147,19 +148,23 @@ private fun LoginMethodButton(
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
+    // 三档登录方式等宽平分一行，默认 24dp 内容边距会让 5~6 个汉字折行，这里压缩到 12dp。
+    val contentPadding = PaddingValues(horizontal = 12.dp)
     if (selected) {
         Button(
             onClick = onClick,
             modifier = modifier.testTag(method.tag),
+            contentPadding = contentPadding,
         ) {
-            Text(method.label)
+            Text(method.label, maxLines = 1)
         }
     } else {
         OutlinedButton(
             onClick = onClick,
             modifier = modifier.testTag(method.tag),
+            contentPadding = contentPadding,
         ) {
-            Text(method.label)
+            Text(method.label, maxLines = 1)
         }
     }
 }

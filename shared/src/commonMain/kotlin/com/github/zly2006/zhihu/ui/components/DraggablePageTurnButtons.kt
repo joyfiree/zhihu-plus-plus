@@ -64,22 +64,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollDispatcher
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.github.zly2006.zhihu.platform.isPageTurnSupported
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.rememberObservedSetting
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_FAB_OPACITY
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_PAGE_TURN_PERCENT
@@ -247,7 +245,7 @@ fun DraggablePageTurnButtons(
     LaunchedEffect(screenSize, density, preferenceName) {
         clampPositionToViewport()
     }
-    val hapticFeedback = LocalHapticFeedback.current
+    val haptics = rememberHapticController()
     val fabOpacityValue by rememberObservedSetting(settings, PREF_FAB_OPACITY) {
         getInt(PREF_FAB_OPACITY, DEFAULT_FAB_OPACITY)
     }
@@ -263,7 +261,7 @@ fun DraggablePageTurnButtons(
                 detectDragGestures(
                     onDragStart = {
                         dragging = true
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        haptics.longPress()
                     },
                     onDragEnd = {
                         dragging = false
@@ -367,7 +365,7 @@ fun ContentEndMarker(modifier: Modifier = Modifier) {
         Text(
             text = "— · —",
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
 }

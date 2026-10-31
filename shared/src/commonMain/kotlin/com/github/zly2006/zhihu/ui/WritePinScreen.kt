@@ -45,7 +45,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -97,6 +96,7 @@ import com.github.zly2006.zhihu.ui.components.MarkdownShortcut
 import com.github.zly2006.zhihu.ui.components.WriteContentFabColumn
 import com.github.zly2006.zhihu.ui.components.WriteContentMarkdownEditor
 import com.github.zly2006.zhihu.ui.components.WriteContentPreviewSheet
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.util.json
 import com.github.zly2006.zhihu.util.raiseForStatus
 import com.github.zly2006.zhihu.viewmodel.postSigned
@@ -418,7 +418,7 @@ fun WritePinScreen(destination: WritePin = WritePin()) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            ZhihuTopAppBar(
                 title = {
                     Text("发想法")
                 },

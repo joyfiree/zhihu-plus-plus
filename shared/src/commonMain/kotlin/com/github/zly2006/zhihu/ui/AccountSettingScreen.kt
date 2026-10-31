@@ -98,6 +98,7 @@ import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.subscreens.BOTTOM_BAR_ITEMS_PREFERENCE_KEY
 import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
 import com.github.zly2006.zhihu.ui.subscreens.defaultBottomBarSelectionKeys
@@ -288,16 +289,15 @@ fun AccountSettingScreen(
                 Row(
                     Modifier
                         .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp, bottom = 32.dp)
-                        .clip(RoundedCornerShape(24.dp)),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        .padding(top = 16.dp, bottom = 32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (data.login) {
                         Column(
                             Modifier
                                 .testTag(ACCOUNT_SETTINGS_SHORTCUT_COLLECTIONS_TAG)
                                 .weight(1f)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(ZhihuShapeTokens.Card)
                                 .background(MaterialTheme.colorScheme.primaryContainer)
                                 .clickable {
                                     data.urlToken?.let { navigator.onNavigate(Collections(it)) }
@@ -321,7 +321,7 @@ fun AccountSettingScreen(
                             Modifier
                                 .testTag(ACCOUNT_SETTINGS_SHORTCUT_SUBSCRIPTIONS_TAG)
                                 .weight(1f)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(ZhihuShapeTokens.Card)
                                 .background(MaterialTheme.colorScheme.primaryContainer)
                                 .clickable {
                                     navigator.onNavigate(
@@ -352,7 +352,7 @@ fun AccountSettingScreen(
                             Modifier
                                 .testTag(ACCOUNT_SETTINGS_SHORTCUT_NOTIFICATION_TAG)
                                 .weight(1f)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(ZhihuShapeTokens.Card)
                                 .background(MaterialTheme.colorScheme.primaryContainer)
                                 .clickable {
                                     onDismissRequest()
@@ -386,7 +386,7 @@ fun AccountSettingScreen(
                                 Modifier
                                     .testTag(ACCOUNT_SETTINGS_SHORTCUT_HISTORY_TAG)
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(ZhihuShapeTokens.Card)
                                     .background(MaterialTheme.colorScheme.primaryContainer)
                                     .clickable {
                                         onDismissRequest()
@@ -447,7 +447,7 @@ fun AccountSettingScreen(
                         .height(36.dp)
                         .testTag(ACCOUNT_SETTINGS_SEARCH_TAG),
                     shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
                     onClick = {
                         navigator.onNavigate(Account.SettingsSearch)
                     },

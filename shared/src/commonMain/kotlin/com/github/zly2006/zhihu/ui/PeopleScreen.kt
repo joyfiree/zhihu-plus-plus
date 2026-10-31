@@ -43,7 +43,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ButtonDefaults
@@ -111,6 +110,7 @@ import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.util.Log
 import com.github.zly2006.zhihu.util.jsonObject
 import com.github.zly2006.zhihu.util.raiseForStatus
@@ -1153,7 +1153,7 @@ private fun FollowingSubscriptionsPage(
                 OutlinedButton(
                     onClick = { selectedPage = index },
                     modifier = Modifier.testTag("people_screen_subscription_tab_$index"),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = ZhihuShapeTokens.Badge,
                     colors = if (selectedPage == index) {
                         ButtonDefaults.outlinedButtonColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -1523,7 +1523,7 @@ private fun StatItem(label: String, value: Int, onClick: () -> Unit = {}, tag: S
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .then(if (tag != null) Modifier.testTag(tag) else Modifier)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(ZhihuShapeTokens.Badge)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp),
     ) {
@@ -1599,7 +1599,7 @@ private fun SortBar(
             modifier = Modifier
                 .weight(1f)
                 .then(if (hotTag != null) Modifier.testTag(hotTag) else Modifier),
-            shape = RoundedCornerShape(8.dp),
+            shape = ZhihuShapeTokens.Badge,
             colors = if (currentSort == "voteups") {
                 ButtonDefaults.outlinedButtonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -1616,7 +1616,7 @@ private fun SortBar(
             modifier = Modifier
                 .weight(1f)
                 .then(if (timeTag != null) Modifier.testTag(timeTag) else Modifier),
-            shape = RoundedCornerShape(8.dp),
+            shape = ZhihuShapeTokens.Badge,
             colors = if (currentSort == "created") {
                 ButtonDefaults.outlinedButtonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,

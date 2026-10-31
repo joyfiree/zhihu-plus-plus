@@ -92,17 +92,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil3.compose.AsyncImage
 import com.github.zly2006.zhihu.data.DataHolder
@@ -151,6 +148,9 @@ import com.github.zly2006.zhihu.ui.components.normalizedAnswerSwitchSensitivity
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.rememberPreferCollapsedExitUntilCollapsedScrollBehavior
+import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.extendedColors
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_PAGE_TURN_SWITCH_ANSWER
 import com.github.zly2006.zhihu.ui.subscreens.DUO3_TIQIAN_MARKDOWN_PREFERENCE_KEY
 import com.github.zly2006.zhihu.ui.subscreens.PREF_PAGE_TURN_SWITCH_ANSWER
@@ -161,7 +161,6 @@ import com.github.zly2006.zhihu.viewmodel.ArticleViewModel
 import com.github.zly2006.zhihu.viewmodel.addReadHistory
 import com.github.zly2006.zhihu.viewmodel.rememberPaginationEnvironment
 import com.github.zly2006.zhihu.viewmodel.sharedArticleAnswerSwitchState
-import com.materialkolor.ktx.harmonize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -311,7 +310,7 @@ fun ArticleScreen(
         onPageDownAtEnd = (answerNavigationState::navigateToNext)
             .takeIf { article.type == ArticleType.Answer && pageTurnSwitchAnswer },
     )
-    val hapticFeedback = LocalHapticFeedback.current
+    val haptics = rememberHapticController()
     val readingPlayerOverlayRouteId = articleNavController?.currentBackStackEntry?.id
         ?: article.readingQueueSourceId
         ?: "${article.type}:${article.id}"
@@ -345,7 +344,7 @@ fun ArticleScreen(
     }
 
     fun upVoteFromDoubleTap() {
-        hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+        haptics.confirm()
         if (viewModel.voteUpState != VoteUpState.Up) {
             viewModel.toggleVoteUp(environment, VoteUpState.Up)
         }
@@ -357,7 +356,7 @@ fun ArticleScreen(
             AnswerDoubleTapAction.Ask -> showDoubleTapActionDialog = true
             AnswerDoubleTapAction.VoteUp -> upVoteFromDoubleTap()
             AnswerDoubleTapAction.OpenComments -> {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                haptics.confirm()
                 showComments = true
             }
             AnswerDoubleTapAction.ToggleImmersive -> {
@@ -472,10 +471,6 @@ fun ArticleScreen(
                                             navigator.onNavigateBack()
                                         }
                                     },
-                                    colors = IconButtonDefaults.iconButtonColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    ),
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                                 }
@@ -540,7 +535,7 @@ fun ArticleScreen(
                                             modifier = Modifier
                                                 .size(if (expanded) 40.dp else 20.dp)
                                                 .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                                         )
                                     }
 
@@ -677,7 +672,7 @@ fun ArticleScreen(
                                     IconButton(
                                         onClick = { showCollectionDialog = true },
                                         colors = IconButtonDefaults.iconButtonColors(
-                                            containerColor = if (viewModel.isFavorited) Color(0xFFF57C00) else MaterialTheme.colorScheme.secondaryContainer,
+                                            containerColor = if (viewModel.isFavorited) extendedColors.favorite else MaterialTheme.colorScheme.secondaryContainer,
                                             contentColor = if (viewModel.isFavorited) Color.White else MaterialTheme.colorScheme.onSecondaryContainer,
                                         ),
                                     ) {
@@ -695,10 +690,6 @@ fun ArticleScreen(
 
                                     IconButton(
                                         onClick = { showActionsMenu = true },
-                                        colors = IconButtonDefaults.iconButtonColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        ),
                                     ) {
                                         Icon(
                                             Icons.Filled.MoreVert,
@@ -818,7 +809,7 @@ fun ArticleScreen(
                                         onClick = { showCollectionDialog = true },
                                         colors = IconButtonDefaults.iconButtonColors(
                                             containerColor = if (viewModel.isFavorited) {
-                                                Color(0xFFF57C00).harmonize(MaterialTheme.colorScheme.primary)
+                                                extendedColors.favorite
                                             } else {
                                                 MaterialTheme.colorScheme.surfaceContainer
                                             },
@@ -845,7 +836,7 @@ fun ArticleScreen(
                                             },
                                             enabled = ttsState !in listOf(TtsState.Error, TtsState.Uninitialized, TtsState.Initializing),
                                             colors = IconButtonDefaults.iconButtonColors(
-                                                containerColor = Color(0xFF4CAF50).harmonize(MaterialTheme.colorScheme.primary),
+                                                containerColor = extendedColors.tts,
                                                 contentColor = Color.White,
                                             ),
                                         ) {
@@ -929,7 +920,7 @@ fun ArticleScreen(
                                         modifier = Modifier
                                             .size(24.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -949,14 +940,14 @@ fun ArticleScreen(
                         fun ColumnScope.DateTexts() {
                             Text(
                                 "发布于 " + formatFullDateTime(viewModel.createdAt),
-                                color = Color.Gray,
-                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelSmall,
                             )
                             if (viewModel.createdAt != viewModel.updatedAt) {
                                 Text(
                                     "编辑于 " + formatFullDateTime(viewModel.updatedAt),
-                                    color = Color.Gray,
-                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelSmall,
                                 )
                             }
                         }
@@ -1070,8 +1061,8 @@ fun ArticleScreen(
                                     if (viewModel.ipInfo != null) {
                                         Text(
                                             "IP属地：${viewModel.ipInfo}",
-                                            color = Color.Gray,
-                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.labelSmall,
                                         )
                                     }
                                 }
@@ -1099,8 +1090,8 @@ fun ArticleScreen(
                                             if (viewModel.ipInfo != null) {
                                                 Text(
                                                     "IP属地：${viewModel.ipInfo}",
-                                                    color = Color.Gray,
-                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    style = MaterialTheme.typography.labelSmall,
                                                 )
                                             }
                                         }
@@ -1197,7 +1188,7 @@ fun ArticleScreen(
             val showSkipButton = !autoHideSkipAnswerButton || bottomBarState.isScrollingUp || isAtTop
             val skipButtonAlpha by animateFloatAsState(
                 targetValue = if (showSkipButton) 1f else 0f,
-                animationSpec = tween(200),
+                animationSpec = tween(Motion.DURATION_SHORT),
                 label = "skipButtonAlpha",
             )
             var fabClickCount by remember { mutableIntStateOf(0) }

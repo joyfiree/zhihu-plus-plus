@@ -46,7 +46,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.SentimentSatisfied
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -89,6 +88,9 @@ import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.platform.rememberZhihuWebUrlOpener
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
+import com.github.zly2006.zhihu.ui.components.ZhihuCenterAlignedTopAppBar
+import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.util.formatFullDateTime
 import com.github.zly2006.zhihu.util.formatRelativeTime
 import com.github.zly2006.zhihu.viewmodel.PrivateMessageViewModel
@@ -149,7 +151,7 @@ fun PrivateMessageScreen(destination: Notification.Message) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            CenterAlignedTopAppBar(
+            ZhihuCenterAlignedTopAppBar(
                 title = {
                     Text(
                         text = peerName.ifBlank { "私信" },
@@ -188,7 +190,7 @@ fun PrivateMessageScreen(destination: Notification.Message) {
                         placeholder = { Text("发私信") },
                         enabled = !viewModel.isSending,
                         maxLines = 4,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = ZhihuShapeTokens.Thumbnail,
                     )
                     IconButton(onClick = {}, enabled = false) {
                         Icon(
@@ -247,8 +249,8 @@ fun PrivateMessageScreen(destination: Notification.Message) {
                 AnimatedVisibility(
                     visibleState = visibility,
                     modifier = Modifier.clipToBounds(),
-                    enter = slideInVertically(tween(240)) { it } +
-                        expandVertically(tween(240), expandFrom = Alignment.Bottom, clip = true),
+                    enter = slideInVertically(tween(Motion.DURATION_SHORT)) { it } +
+                        expandVertically(tween(Motion.DURATION_SHORT), expandFrom = Alignment.Bottom, clip = true),
                 ) {
                     PrivateMessageBubble(
                         message = message,
@@ -296,7 +298,7 @@ private fun PrivateMessageBubble(
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             )
             Spacer(Modifier.width(8.dp))
         }
@@ -356,7 +358,7 @@ private fun PrivateMessageBubble(
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             )
         }
     }

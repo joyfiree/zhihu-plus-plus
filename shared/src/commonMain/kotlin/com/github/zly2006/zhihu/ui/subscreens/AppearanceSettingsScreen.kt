@@ -18,8 +18,6 @@
 package com.github.zly2006.zhihu.ui.subscreens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,18 +45,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -116,9 +108,15 @@ import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
 import com.github.zly2006.zhihu.ui.components.SettingItemOverall
 import com.github.zly2006.zhihu.ui.components.SettingItemWithSwitch
+import com.github.zly2006.zhihu.ui.components.ZhihuDropdownAnchor
+import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
+import com.github.zly2006.zhihu.ui.components.ZhihuSlider
 import com.github.zly2006.zhihu.ui.components.normalizedAnswerSwitchSensitivity
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
+import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
+import com.github.zly2006.zhihu.ui.designsystem.HAPTIC_FEEDBACK_ENABLED_PREFERENCE_KEY
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.isLegacyWebViewSupported
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -132,6 +130,7 @@ const val PREF_FONT_SIZE = "contentFontSize"
 const val PREF_LINE_HEIGHT = "contentLineHeight"
 const val PREF_BLOCK_SPACING = "contentBlockSpacing"
 const val PREF_FAB_OPACITY = "fabOpacity"
+const val APPEARANCE_SETTINGS_HAPTIC_FEEDBACK_TAG = "appearanceSettings:hapticFeedback"
 const val DEFAULT_FAB_OPACITY = 100
 const val PREF_PAGE_TURN_PERCENT = "pageTurnPercent"
 const val DEFAULT_PAGE_TURN_PERCENT = 90
@@ -364,26 +363,19 @@ fun AppearanceSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
-            LargeTopAppBar(
+            ZhihuLargeTopAppBar(
                 title = { Text("外观与阅读体验") },
                 navigationIcon = {
                     IconButton(
                         onClick = navigator.onNavigateBack,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
                     ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors().copy(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ),
+                colors = zhihuTopAppBarColors(),
             )
         },
     ) { innerPadding ->
@@ -602,7 +594,7 @@ fun AppearanceSettingsScreen(
                     title = { Text("悬浮按钮透明度") },
                     description = { Text("控制所有悬浮按钮的透明度 ($fabOpacity%)。") },
                     bottomAction = {
-                        Slider(
+                        ZhihuSlider(
                             value = fabOpacity.toFloat(),
                             onValueChange = {
                                 val v = (it / 5).roundToInt() * 5
@@ -656,7 +648,7 @@ fun AppearanceSettingsScreen(
                     highlightedKey = settingKey,
                     bringIntoViewRequester = requesterFor("fontScale"),
                     bottomAction = {
-                        Slider(
+                        ZhihuSlider(
                             value = contentFontSizeLevels.indexOf(fontSize).toFloat(),
                             onValueChange = {
                                 val levelIndex = it.roundToInt().coerceIn(0, contentFontSizeLevels.lastIndex)
@@ -675,7 +667,7 @@ fun AppearanceSettingsScreen(
                     title = { Text("行高") },
                     description = { Text("调整内容行间距 (${lineHeight / 100f})") },
                     bottomAction = {
-                        Slider(
+                        ZhihuSlider(
                             value = lineHeight.toFloat(),
                             onValueChange = {
                                 lineHeight = it.toInt()
@@ -696,7 +688,7 @@ fun AppearanceSettingsScreen(
                     highlightedKey = settingKey,
                     bringIntoViewRequester = requesterFor(PREF_BLOCK_SPACING),
                     bottomAction = {
-                        Slider(
+                        ZhihuSlider(
                             value = blockSpacing.toFloat(),
                             onValueChange = {
                                 val spacing = (it / 10).roundToInt() * 10
@@ -769,15 +761,9 @@ fun AppearanceSettingsScreen(
                             expanded = feedCardStyleExpanded,
                             onExpandedChange = { feedCardStyleExpanded = it },
                         ) {
-                            OutlinedTextField(
+                            ZhihuDropdownAnchor(
                                 value = feedCardStyleOptions.find { it.first == feedCardStyle.value }?.second ?: "卡片样式",
-                                onValueChange = {},
-                                readOnly = true,
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = feedCardStyleExpanded) },
-                                modifier = Modifier
-                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                                    .width(160.dp),
-                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier.width(160.dp),
                             )
                             ExposedDropdownMenu(
                                 expanded = feedCardStyleExpanded,
@@ -961,15 +947,9 @@ fun AppearanceSettingsScreen(
                                 expanded = answerSwitchExpanded,
                                 onExpandedChange = { answerSwitchExpanded = it },
                             ) {
-                                OutlinedTextField(
+                                ZhihuDropdownAnchor(
                                     value = answerSwitchOptions.find { it.first == answerSwitchMode.value }?.second ?: "上下滑动切换",
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = answerSwitchExpanded) },
-                                    modifier = Modifier
-                                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                                        .width(160.dp),
-                                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                    modifier = Modifier.width(160.dp),
                                 )
                                 ExposedDropdownMenu(
                                     expanded = answerSwitchExpanded,
@@ -1012,7 +992,7 @@ fun AppearanceSettingsScreen(
                         highlightedKey = settingKey,
                         bringIntoViewRequester = requesterFor(ANSWER_SWITCH_SENSITIVITY_PREFERENCE_KEY),
                         bottomAction = {
-                            Slider(
+                            ZhihuSlider(
                                 value = answerSwitchSensitivity,
                                 onValueChange = {
                                     val sensitivity = (it * 10).roundToInt() / 10f
@@ -1052,16 +1032,11 @@ fun AppearanceSettingsScreen(
                             expanded = answerDoubleTapExpanded,
                             onExpandedChange = { answerDoubleTapExpanded = it },
                         ) {
-                            OutlinedTextField(
+                            ZhihuDropdownAnchor(
                                 value = answerDoubleTapAction.value.label,
-                                onValueChange = {},
-                                readOnly = true,
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = answerDoubleTapExpanded) },
                                 modifier = Modifier
-                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                                     .width(160.dp)
                                     .testTag(APPEARANCE_SETTINGS_ANSWER_DOUBLE_TAP_TAG),
-                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                             )
                             ExposedDropdownMenu(
                                 expanded = answerDoubleTapExpanded,
@@ -1170,17 +1145,12 @@ fun AppearanceSettingsScreen(
                                 }
                             },
                         ) {
-                            OutlinedTextField(
+                            ZhihuDropdownAnchor(
                                 value = startDestinationItems.find { it.first == startDestinationKey }?.second ?: "主页",
-                                onValueChange = {},
-                                readOnly = true,
                                 enabled = startDestinationItems.isNotEmpty(),
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = startDestinationExpanded) },
                                 modifier = Modifier
-                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                                     .width(160.dp)
                                     .testTag(APPEARANCE_SETTINGS_START_DESTINATION_TAG),
-                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                             )
                             ExposedDropdownMenu(
                                 expanded = startDestinationExpanded,
@@ -1236,9 +1206,9 @@ fun AppearanceSettingsScreen(
                                 Row(
                                     modifier = Modifier
                                         .animateItem(
-                                            fadeInSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                                            fadeOutSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                                            placementSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                            fadeInSpec = Motion.springMedium(),
+                                            fadeOutSpec = Motion.springMedium(),
+                                            placementSpec = Motion.springMedium(),
                                         ).testTag("appearanceSettings:bottomBar:item:$key")
                                         .fillMaxWidth()
                                         .height(bottomBarSettingItemHeight)
@@ -1419,7 +1389,7 @@ fun AppearanceSettingsScreen(
                         title = { Text("翻页距离") },
                         description = { Text("每次滚动可见区域的 $pageTurnPercent%。") },
                         bottomAction = {
-                            Slider(
+                            ZhihuSlider(
                                 value = pageTurnPercent.toFloat(),
                                 onValueChange = {
                                     pageTurnPercent = (it / 5).roundToInt() * 5
@@ -1498,15 +1468,9 @@ fun AppearanceSettingsScreen(
                             expanded = shareActionExpanded,
                             onExpandedChange = { shareActionExpanded = it },
                         ) {
-                            OutlinedTextField(
+                            ZhihuDropdownAnchor(
                                 value = shareActionOptions.find { it.first == shareActionMode.value }?.second ?: "询问",
-                                onValueChange = {},
-                                readOnly = true,
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = shareActionExpanded) },
-                                modifier = Modifier
-                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                                    .width(160.dp),
-                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier.width(160.dp),
                             )
                             ExposedDropdownMenu(
                                 expanded = shareActionExpanded,
@@ -1583,7 +1547,7 @@ fun AppearanceSettingsScreen(
                 val enablePredictiveBack = remember { mutableStateOf(settings.getBoolean("enable_predictive_back", true)) }
                 SettingItemWithSwitch(
                     title = { Text("启用预测性返回") },
-                    description = { Text("开启 Android 14+ 的预测性返回手势动画。") },
+                    description = { Text("底部弹层会跟随返回手势预览收起；系统级返回动画由 Android 版本决定。") },
                     checked = enablePredictiveBack.value,
                     onCheckedChange = {
                         enablePredictiveBack.value = it
@@ -1796,6 +1760,28 @@ fun AppearanceSettingsScreen(
                         },
                     )
                 }
+            }
+            // ── 交互反馈 ────────────────────────────────────────────────────────
+            SettingItemGroup(
+                title = "交互反馈",
+                footer = { Text("关闭后所有震动反馈静音，图片查看器长按菜单不受影响。") },
+            ) {
+                val hapticEnabled = remember {
+                    mutableStateOf(settings.getBoolean(HAPTIC_FEEDBACK_ENABLED_PREFERENCE_KEY, true))
+                }
+                SettingItemWithSwitch(
+                    modifier = Modifier.testTag(APPEARANCE_SETTINGS_HAPTIC_FEEDBACK_TAG),
+                    title = { Text("触觉反馈") },
+                    description = { Text("切换开关、切换底栏标签、下拉刷新和长按时提供轻微震动。") },
+                    checked = hapticEnabled.value,
+                    onCheckedChange = {
+                        hapticEnabled.value = it
+                        settings.putBoolean(HAPTIC_FEEDBACK_ENABLED_PREFERENCE_KEY, it)
+                    },
+                    settingKey = HAPTIC_FEEDBACK_ENABLED_PREFERENCE_KEY,
+                    highlightedKey = settingKey,
+                    bringIntoViewRequester = requesterFor(HAPTIC_FEEDBACK_ENABLED_PREFERENCE_KEY),
+                )
             }
         }
     }

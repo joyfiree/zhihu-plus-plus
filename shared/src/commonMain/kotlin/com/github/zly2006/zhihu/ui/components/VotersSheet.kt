@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
@@ -48,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.navigation.Person
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -178,7 +178,7 @@ private fun VoterRow(
     ListItem(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(ZhihuShapeTokens.Thumbnail)
             .clickable(onClick = onClick),
         leadingContent = {
             AsyncImage(

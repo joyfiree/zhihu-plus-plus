@@ -18,7 +18,6 @@
 package com.github.zly2006.zhihu.ui
 
 import androidx.activity.compose.LocalActivity
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,6 +34,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.github.zly2006.zhihu.MainActivity
 import com.github.zly2006.zhihu.platform.androidUserMessageSink
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.viewmodel.ArticleViewModel
 import com.github.zly2006.zhihu.viewmodel.sharedArticleAnswerSwitchState
 
@@ -62,27 +62,29 @@ fun AndroidZhihuMain(navController: NavHostController) {
         articleEnterTransition = {
             when (sharedArticleAnswerSwitchState.answerTransitionDirection) {
                 ArticleAnswerTransitionDirection.VERTICAL_NEXT ->
-                    slideInVertically(tween(300)) { it } + fadeIn(tween(300))
+                    slideInVertically(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { it } + fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
                 ArticleAnswerTransitionDirection.VERTICAL_PREVIOUS ->
-                    slideInVertically(tween(300)) { -it } + fadeIn(tween(300))
+                    slideInVertically(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { -it } + fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
                 ArticleAnswerTransitionDirection.HORIZONTAL_NEXT ->
-                    slideInHorizontally(tween(300)) { it } + fadeIn(tween(300))
+                    slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { it } + fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
                 ArticleAnswerTransitionDirection.HORIZONTAL_PREVIOUS ->
-                    slideInHorizontally(tween(300)) { -it } + fadeIn(tween(300))
-                else -> slideInHorizontally(tween(300)) { it }
+                    slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { -it } + fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
+                else ->
+                    slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { it } +
+                        fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
             }
         },
         articleExitTransition = {
             when (sharedArticleAnswerSwitchState.answerTransitionDirection) {
                 ArticleAnswerTransitionDirection.VERTICAL_NEXT ->
-                    slideOutVertically(tween(300)) { -it } + fadeOut(tween(300))
+                    slideOutVertically(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { -it } + fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
                 ArticleAnswerTransitionDirection.VERTICAL_PREVIOUS ->
-                    slideOutVertically(tween(300)) { it } + fadeOut(tween(300))
+                    slideOutVertically(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { it } + fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
                 ArticleAnswerTransitionDirection.HORIZONTAL_NEXT ->
-                    slideOutHorizontally(tween(300)) { -it } + fadeOut(tween(300))
+                    slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { -it } + fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
                 ArticleAnswerTransitionDirection.HORIZONTAL_PREVIOUS ->
-                    slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300))
-                else -> ExitTransition.None
+                    slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { it } + fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
+                else -> fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
             }
         },
         articleContent = { article, navEntry ->

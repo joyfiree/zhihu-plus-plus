@@ -23,29 +23,53 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
+/**
+ * Material Design 3 排版体系。
+ *
+ * 这里保留 M3 的 15 个语义角色（display/headline/title/body/label × 大中小），
+ * 但与 Google 的拉丁字母默认值相比做了两点针对中文阅读的调整：
+ *
+ * 1. **行高更大**。汉字没有西文的下伸部，M3 默认行高在中文段落里会显得拥挤；
+ *    这里把正文行高按 1.55～1.6 倍字号取值，标题按 1.35 倍取值。
+ * 2. **字距归零**。M3 默认的正字距是为拉丁字母设计的，中文逐字等宽，额外的字距只会让文字散开。
+ *
+ * 页面不要再直接写 `fontSize = 14.sp` 这类硬编码，应该选一个语义角色，
+ * 让字号、行高、字重和字距在全局保持一致。
+ */
+private val Default = FontFamily.Default
+
+private fun style(
+    size: Int,
+    lineHeight: Int,
+    weight: FontWeight = FontWeight.Normal,
+    letterSpacing: Float = 0f,
+) = TextStyle(
+    fontFamily = Default,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = lineHeight.sp,
+    letterSpacing = letterSpacing.sp,
+)
+
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp,
-    ),
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-     */
+    // 展示级：仅用于空状态标题、引导页等大字号场景。
+    displayLarge = style(57, 64),
+    displayMedium = style(45, 52),
+    displaySmall = style(36, 44),
+    // 标题级：页面大标题、设置分组首页。
+    headlineLarge = style(32, 40),
+    headlineMedium = style(28, 38),
+    headlineSmall = style(24, 34),
+    // 小标题：AppBar 标题、卡片标题、设置分组标题。
+    titleLarge = style(22, 30, FontWeight.Medium),
+    titleMedium = style(16, 24, FontWeight.Medium),
+    titleSmall = style(14, 22, FontWeight.Medium),
+    // 正文：内容主体。
+    bodyLarge = style(16, 26),
+    bodyMedium = style(14, 22),
+    bodySmall = style(12, 18),
+    // 标签：按钮、导航栏、辅助信息。
+    labelLarge = style(14, 20, FontWeight.Medium),
+    labelMedium = style(12, 18, FontWeight.Medium),
+    labelSmall = style(11, 16, FontWeight.Medium),
 )

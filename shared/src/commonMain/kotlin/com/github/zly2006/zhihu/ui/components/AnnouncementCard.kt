@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 
 @Composable
 fun AnnouncementCard(
@@ -115,10 +116,10 @@ fun AnnouncementCard(
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn() + expandVertically(
-            animationSpec = tween(durationMillis = 300),
+            animationSpec = tween(Motion.DURATION_MEDIUM),
         ),
         exit = shrinkVertically(
-            animationSpec = tween(durationMillis = 300),
+            animationSpec = tween(Motion.DURATION_MEDIUM),
         ) + fadeOut(),
     ) {
         Card(

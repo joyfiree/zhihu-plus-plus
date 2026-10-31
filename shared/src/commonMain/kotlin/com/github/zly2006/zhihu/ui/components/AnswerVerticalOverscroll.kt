@@ -18,8 +18,6 @@
 package com.github.zly2006.zhihu.ui.components
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -38,7 +36,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -61,7 +58,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -69,13 +65,15 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.viewmodel.ArticleViewModel.CachedAnswerContent
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -103,7 +101,7 @@ fun AnswerVerticalOverscroll(
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
-    val hapticFeedback = LocalHapticFeedback.current
+    val haptics = rememberHapticController()
     val coroutineScope = rememberCoroutineScope()
 
     val maxOverscrollPx = with(density) { MAX_OVERSCROLL_DP.dp.toPx() }
@@ -186,7 +184,7 @@ fun AnswerVerticalOverscroll(
                     coroutineScope.launch { overscrollOffset.snapTo(newOffset) }
                     if (!hasTriggeredHaptic && abs(newOffset) >= currentTriggerThresholdPx) {
                         hasTriggeredHaptic = true
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        haptics.gestureThreshold()
                     }
                     return Offset(0f, delta)
                 }
@@ -211,10 +209,7 @@ fun AnswerVerticalOverscroll(
                     if (!didNavigate) {
                         overscrollOffset.animateTo(
                             0f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMedium,
-                            ),
+                            animationSpec = Motion.overscrollSettle(),
                         )
                     }
                     return available
@@ -279,7 +274,7 @@ fun AnswerVerticalOverscroll(
                                         coroutineScope.launch { overscrollOffset.snapTo(newOffset) }
                                         if (!hasTriggeredHaptic && abs(newOffset) >= currentTriggerThresholdPx) {
                                             hasTriggeredHaptic = true
-                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            haptics.gestureThreshold()
                                         }
                                         if (hasTriggeredHaptic && abs(newOffset) < currentTriggerThresholdPx) {
                                             hasTriggeredHaptic = false
@@ -304,10 +299,7 @@ fun AnswerVerticalOverscroll(
                                     coroutineScope.launch {
                                         overscrollOffset.animateTo(
                                             0f,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessMedium,
-                                            ),
+                                            animationSpec = Motion.overscrollSettle(),
                                         )
                                     }
                                 }
@@ -384,7 +376,7 @@ private fun AnswerPreviewCard(
     val bgColor = if (isTriggered) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHighest
     }
     val contentColor = if (isTriggered) {
         MaterialTheme.colorScheme.onPrimaryContainer
@@ -395,7 +387,7 @@ private fun AnswerPreviewCard(
     Box(
         modifier = modifier
             .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(ZhihuShapeTokens.Card)
             .background(bgColor)
             .alpha((progress).coerceIn(0f, 1f))
             .padding(12.dp),
@@ -465,8 +457,13 @@ private fun AnswerPreviewCard(
     }
 }
 
+/** 单次手势的最大可视位移（dp）；tanh 会继续压缩更大的拖动，避免整页被拖走。 */
 private const val MAX_OVERSCROLL_DP = 200f
+
+/** 触发「松手切换回答」的位移阈值（dp），实际阈值再按 answerSwitchSensitivity 线性缩放。 */
 private const val TRIGGER_THRESHOLD_DP = 80f
+
+/** tanh 阻尼系数：越大位移增长越慢、手感越「拉不动」。 */
 private const val DAMPING_FACTOR = 1.2f
 
 internal fun dampedOverscrollOffset(

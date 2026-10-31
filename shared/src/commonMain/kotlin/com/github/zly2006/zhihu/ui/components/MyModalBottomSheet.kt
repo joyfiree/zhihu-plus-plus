@@ -86,6 +86,7 @@ import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
+import com.github.zly2006.zhihu.platform.PlatformBackHandler
 import com.github.zly2006.zhihu.platform.PlatformPredictiveBackHandler
 import com.github.zly2006.zhihu.platform.exportTestTagsForUiAutomation
 import com.github.zly2006.zhihu.platform.platformName
@@ -141,6 +142,8 @@ fun MyModalBottomSheet(
             .invokeOnCompletion { if (!sheetState.isVisible) onDismissRequest() }
     }
     val predictiveBackProgress = remember { Animatable(initialValue = 0f) }
+    // 预测性返回的系统 peek 由 manifest 的 enableOnBackInvokedCallback 控制，运行时只能控制本应用自绘的弹层预览。
+    val predictiveBackAnimationEnabled = settings.getBoolean("enable_predictive_back", true)
 
     @Composable
     fun SheetContent() {
@@ -203,16 +206,23 @@ fun MyModalBottomSheet(
             )
         }
     } else {
-        PlatformPredictiveBackHandler(
-            enabled = properties.shouldDismissOnBackPress && sheetState.targetValue != Hidden,
-            onProgress = { progress ->
-                scope.launch { predictiveBackProgress.snapTo(progress) }
-            },
-            onCancel = {
-                scope.launch { predictiveBackProgress.animateTo(0f) }
-            },
-            onBack = animateToDismiss,
-        )
+        if (predictiveBackAnimationEnabled) {
+            PlatformPredictiveBackHandler(
+                enabled = properties.shouldDismissOnBackPress && sheetState.targetValue != Hidden,
+                onProgress = { progress ->
+                    scope.launch { predictiveBackProgress.snapTo(progress) }
+                },
+                onCancel = {
+                    scope.launch { predictiveBackProgress.animateTo(0f) }
+                },
+                onBack = animateToDismiss,
+            )
+        } else {
+            PlatformBackHandler(
+                enabled = properties.shouldDismissOnBackPress && sheetState.targetValue != Hidden,
+                onBack = animateToDismiss,
+            )
+        }
         SheetContent()
     }
     if (sheetState.hasExpandedState) {

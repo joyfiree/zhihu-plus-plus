@@ -42,7 +42,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -90,6 +89,7 @@ import com.github.zly2006.zhihu.ui.components.SettingItemWithSwitch
 import com.github.zly2006.zhihu.ui.components.WriteContentFabColumn
 import com.github.zly2006.zhihu.ui.components.WriteContentMarkdownEditor
 import com.github.zly2006.zhihu.ui.components.WriteContentPreviewSheet
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.replaceSelection
 import com.github.zly2006.zhihu.util.json
 import com.github.zly2006.zhihu.util.raiseForStatus
@@ -344,7 +344,7 @@ fun WriteAnswerScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            ZhihuTopAppBar(
                 title = {
                     Text(
                         text =

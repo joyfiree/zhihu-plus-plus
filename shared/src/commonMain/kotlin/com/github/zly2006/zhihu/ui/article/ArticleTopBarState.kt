@@ -30,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.abs
 
@@ -86,7 +87,7 @@ internal fun rememberArticleTopBarState(
                     // This collector observes ScrollState.isScrollInProgress. Mutating that same
                     // ScrollState while settling would restart the flow and trap input dispatch
                     // in a cancellation loop, so snapping is limited to the app bar itself.
-                    state.offset.animateTo(target, tween(150))
+                    state.offset.animateTo(target, tween(Motion.DURATION_SHORT))
                 } finally {
                     state.isSnapping = false
                 }

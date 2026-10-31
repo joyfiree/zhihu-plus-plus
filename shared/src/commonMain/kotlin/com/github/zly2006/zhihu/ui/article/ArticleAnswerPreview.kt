@@ -84,7 +84,7 @@ internal fun CachedAnswerPreview(cached: CachedAnswerContent, useTiqianMarkdown:
             ) {
                 Text(
                     text = cached.title,
-                    fontSize = 24.sp,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     lineHeight = 32.sp,
                     modifier = Modifier.padding(bottom = 8.dp),
@@ -102,13 +102,13 @@ internal fun CachedAnswerPreview(cached: CachedAnswerContent, useTiqianMarkdown:
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
-                            .background(color = Color(0xFF40B6F6)),
+                            .background(color = MaterialTheme.colorScheme.primary),
                         horizontalArrangement = Arrangement.Start,
                     ) {
                         Button(
                             onClick = {},
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF40B6F6),
+                                containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = Color.Black,
                             ),
                             shape = RectangleShape,
@@ -172,7 +172,7 @@ internal fun CachedAnswerPreview(cached: CachedAnswerContent, useTiqianMarkdown:
                         Text(
                             text = cached.authorName,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false),
@@ -185,7 +185,7 @@ internal fun CachedAnswerPreview(cached: CachedAnswerContent, useTiqianMarkdown:
                     if (cached.authorBio.isNotEmpty()) {
                         Text(
                             text = cached.authorBio,
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelMedium,
                             color = Color.Gray,
                         )
                     }

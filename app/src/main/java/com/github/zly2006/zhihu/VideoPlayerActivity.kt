@@ -105,6 +105,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.github.zly2006.zhihu.platform.androidSettingsStore
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.util.enableEdgeToEdgeCompat
 import kotlinx.coroutines.delay
 import kotlin.math.abs
@@ -159,8 +160,8 @@ class VideoPlayerActivity : ComponentActivity() {
 
                 AnimatedVisibility(
                     visible = isFastForwardingState.value,
-                    enter = fadeIn(tween(150)),
-                    exit = fadeOut(tween(300)),
+                    enter = fadeIn(tween(Motion.DURATION_SHORT)),
+                    exit = fadeOut(tween(Motion.DURATION_MEDIUM)),
                     modifier = Modifier.align(Alignment.TopCenter),
                 ) {
                     Surface(

@@ -33,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.viewmodel.PaginationEnvironment
 import com.github.zly2006.zhihu.viewmodel.feed.BaseFeedViewModel
 import com.github.zly2006.zhihu.viewmodel.rememberPaginationEnvironment
@@ -67,9 +68,12 @@ fun FeedPullToRefresh(
 ) {
     val state = rememberPullToRefreshState()
     val scope = rememberCoroutineScope()
+    val haptics = rememberHapticController()
     PullToRefreshBox(
         isRefreshing = viewModel.isPullToRefresh && viewModel.isLoading,
         onRefresh = {
+            // 触发瞬间的越阈反馈；松手回弹与动画同帧，避免二次震动。
+            haptics.gestureThreshold()
             scope.launch {
                 viewModel.pullToRefresh(environment)
             }

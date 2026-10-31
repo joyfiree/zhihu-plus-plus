@@ -35,15 +35,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_FAB_OPACITY
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FAB_OPACITY
 import kotlin.math.roundToInt
@@ -109,7 +108,7 @@ fun DraggableRefreshButton(
     )
     val displayedOffsetX = if (pressing) offsetX else animatedOffsetX
     val displayedOffsetY = if (pressing) visibleOffsetY else animatedOffsetY
-    val hapticFeedback = LocalHapticFeedback.current
+    val haptics = rememberHapticController()
 
     val opacityFraction = remember(settings) {
         settings.getInt(PREF_FAB_OPACITY, DEFAULT_FAB_OPACITY).coerceIn(10, 100) / 100f
@@ -132,7 +131,7 @@ fun DraggableRefreshButton(
                         offsetX = animatedOffsetX
                         offsetY = animatedOffsetY
                         pressing = true
-                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                        haptics.longPress()
                     },
                     onDragEnd = {
                         pressing = false

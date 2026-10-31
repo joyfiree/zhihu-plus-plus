@@ -49,6 +49,8 @@ URL 解析集中在 `resolveContent()`。支持知乎问题、回答、文章、
 
 当前主线 UI 以 Material 3 为默认实现。改共同行为时优先放在 common runtime、状态或 shared component；改视觉时先确认影响的是共享组件、单个页面还是平台 adapter，避免只改入口而漏掉复用路径。
 
+视觉 token 集中在 `shared/.../ui/designsystem/`：`Motion.kt`（时长/缓动/弹簧/手势常量）、`Shape.kt`（M3 五档 + `ZhihuShapeTokens`）、`Dimens.kt`（间距/尺寸/高度/动效秒数）、`Haptics.kt`（`rememberHapticController()`）、`ExtendedColors.kt`（点赞/收藏/朗读语义色）。页面不得直写 `tween(数字)`、`RoundedCornerShape(N.dp)` 或 `Color(0xFF…)`；白名单与收敛进度见 `docs/md3-refactor/audit.md`。
+
 主题状态集中在 `ThemeManager` 和平台 `ThemeSettingsRuntime`。`themeMode` 控制明暗，`useDynamicColor` 控制 Material You 动态取色，`customThemeColor` 在动态取色关闭后生效，`backgroundColorLight` / `backgroundColorDark` 控制背景色，`luotianyi_color` 控制应用内浏览器工具栏色。
 
 信息流卡片由 `FeedCard` 读取 `showFeedThumbnail`、`feedCardStyle`、`duo3_card_appearance`、`duo3_card_layout`、`duo3_card_large_title`。改这些 key 的语义时要同时查主页、关注、热榜、历史和搜索结果等复用卡片的页面。
@@ -65,6 +67,7 @@ URL 解析集中在 `resolveContent()`。支持知乎问题、回答、文章、
 | `useDynamicColor` | Material You 动态取色 | Android 12+ 取系统壁纸色 | 关闭后自定义主题色才明显生效 |
 | `customThemeColor` | 自定义主题色 | Material 3 主色 | 不要和动态取色同时假设生效 |
 | `backgroundColorLight`, `backgroundColorDark` | 自定义背景颜色 | 明暗模式背景 | 按当前明暗模式写入不同 key |
+| `hapticFeedbackEnabled` | 触觉反馈 | 所有经 `HapticController` 的震动 | 默认开启；关闭后 tab/开关/下拉刷新/长按全部静音，图片查看器屏蔽点除外 |
 | `disableBottomSheetRoundedCorners` | 禁用 popup 圆角 | `MyModalBottomSheet` 顶部改为直角 | 默认关闭，统一影响评论等复用 popup |
 | `contentFontSize`, `contentLineHeight`, `contentBlockSpacing` | 字号、行高、段间距 | 正文字号/行高、分段文本样式和 Markdown 正文块间距 | 查 `SegmentedText` 和 Markdown 渲染路径 |
 | `showFeedThumbnail` | Feed 卡片缩略图 | 信息流卡片是否显示图 | 由复用 `FeedCard` 的页面读取 |
@@ -97,7 +100,7 @@ URL 解析集中在 `resolveContent()`。支持知乎问题、回答、文章、
 | `showSearchHotSearch` | 搜索界面显示热搜 | 空搜索页内容 | 搜索页空查询状态读取 |
 | `showSearchHistory` | 搜索历史 | 是否记录和展示新搜索 | 关闭后不再记录新的搜索 |
 | `use_custom_nav_host` | 自定义导航 | 持久化的技术性导航开关 | 当前主要在设置页读写；实现效果前先 `rg` 运行时读取点 |
-| `enable_predictive_back` | 预测性返回 | 持久化的 Android 14+ 返回动画开关 | 当前主要在设置页读写；实现效果前先 `rg` 运行时读取点 |
+| `enable_predictive_back` | 预测性返回 | 应用内底部弹层是否跟随返回手势预览收起 | manifest 已开启 `enableOnBackInvokedCallback`；系统级返回动画由 Android 版本决定，运行时不可关 |
 
 ### 推荐系统与内容过滤
 
@@ -169,3 +172,21 @@ rg "Account\\.AppearanceSettings|Account\\.RecommendSettings|NavDestination|Main
 rg "rememberSettingsStore|putBoolean|putString|putInt|getBoolean|getString|getInt" shared app
 rg "testTag\\(|nav_tab_|ACCOUNT_SETTINGS_|APPEARANCE_SETTINGS_" shared app
 ```
+
+## MD3 Token 契约（2026-10-31 起）
+
+| 场景 | 唯一出口 | 不要写 |
+| --- | --- | --- |
+| 顶栏 | `ZhihuTopAppBar` / `ZhihuCenterAlignedTopAppBar` / `ZhihuLargeTopAppBar` | 直接 `TopAppBar` + 自定义 `colors` |
+| 设置分组 | `SettingItemGroup` + `SettingItemWithSwitch` / `SettingItem` | 自绘 `Surface` 行 |
+| 空/错/加载态 | `ZhihuEmptyState` / `ZhihuErrorState` / `ZhihuLoadingState` | 居中一行 `Text("暂无内容")` |
+| 列表分组标题 | `SectionHeader` | 两侧横线夹文字 |
+| 分隔线 | `ZhihuListDivider` | 任意 `Divider(thickness = 0.x.dp)` |
+| 动效 | `Motion.DURATION_*` / `Motion.*Easing` / `Motion.springMedium()` | `tween(200)`、自定义 CubicBezier |
+| 触觉 | `rememberHapticController()` 的 `confirm/tick/gestureThreshold/longPress` | `performHapticFeedback(...)` |
+| 圆角 | `ZhihuShapeTokens.*` 或 `MaterialTheme.shapes` | `RoundedCornerShape(12.dp)` |
+| 滑块 | `ZhihuSlider` | 直接 `Slider(...)`（默认 Expressive 竖条 thumb 与全局形态不一致） |
+| 设置内下拉 | `ZhihuDropdownAnchor`（配合 `ExposedDropdownMenuBox`） | `OutlinedTextField` 直接塞进设置行（行内出现第二个带边框方块） |
+| 功能强调色 | `extendedColors.like/favorite/tts` | `Color(0xFFF57C00)` 等字面量 |
+
+`enable_predictive_back` 已在 `MyModalBottomSheet` 接通运行时读取（控制自绘弹层的跟手预览）；manifest 级系统动画无法运行时切换，改动前先看 `docs/md3-refactor/status.md` 的偏差说明。

@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -48,11 +47,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.unit.DpOffset
@@ -74,6 +71,8 @@ import com.github.zly2006.zhihu.ui.components.LocalSegmentCommentHost
 import com.github.zly2006.zhihu.ui.components.SegmentActionSheet
 import com.github.zly2006.zhihu.ui.components.SegmentActionSheetState
 import com.github.zly2006.zhihu.ui.components.SegmentHighlightInteractionHost
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.subscreens.DUO3_TIQIAN_MATH_FONT_PREFERENCE_KEY
 import com.github.zly2006.zhihu.ui.subscreens.PREF_BLOCK_SPACING
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FONT_SIZE
@@ -96,7 +95,7 @@ fun RenderImage(
     var expanded by remember { mutableStateOf(false) }
     var pressOffset by remember { mutableStateOf(DpOffset.Zero) }
     val density = LocalDensity.current
-    val hapticFeedback = LocalHapticFeedback.current
+    val haptics = rememberHapticController()
     val previewUrls = remember(imageUrls, data.url) {
         imageUrls.ifEmpty { listOf(data.url) }
     }
@@ -135,7 +134,7 @@ fun RenderImage(
                             openGallery()
                         },
                         onLongPress = { offset ->
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptics.longPress()
                             pressOffset = with(density) {
                                 DpOffset(offset.x.toDp(), offset.y.toDp() - 20.dp)
                             }
@@ -194,14 +193,14 @@ fun RenderVideoBox(
     modifier: Modifier = Modifier,
 ) {
     val navigator = LocalNavigator.current
-    val shape = RoundedCornerShape(8.dp)
+    val shape = ZhihuShapeTokens.Badge
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(16f / 9f)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .clickable {
                 navigator.onNavigate(Video(videoId))
             },

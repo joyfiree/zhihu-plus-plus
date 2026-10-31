@@ -19,9 +19,12 @@ package com.github.zly2006.zhihu.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheetProperties
@@ -37,12 +40,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.data.ZhihuJson
 import com.github.zly2006.zhihu.navigation.Article
@@ -50,7 +53,6 @@ import com.github.zly2006.zhihu.navigation.CommentHolder
 import com.github.zly2006.zhihu.navigation.NavDestination
 import com.github.zly2006.zhihu.navigation.Pin
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
-import com.github.zly2006.zhihu.theme.Typography
 import com.github.zly2006.zhihu.ui.CommentScreen
 import com.github.zly2006.zhihu.ui.commentThreadKey
 import com.github.zly2006.zhihu.ui.consumePendingCommentId
@@ -112,18 +114,20 @@ fun CommentScreenComponent(
 
     @Composable
     fun DragHandleTitle(text: String) {
-        Column {
-            Spacer(modifier = Modifier.height(16.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // 明确的拖拽指示条：全屏高度的弹层也能一眼看出可以下滑关闭。
+            BottomSheetDefaults.DragHandle()
             Text(
                 text,
-                style = Typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                ),
+                style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
-                fontSize = 18.sp,
-                lineHeight = 26.sp,
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
             )
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 

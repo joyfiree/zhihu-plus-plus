@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
@@ -67,36 +66,36 @@ import com.github.zly2006.zhihu.reading.isReadingPlayerSupported
 import com.github.zly2006.zhihu.reading.loadReadingPlaybackSpeed
 import com.github.zly2006.zhihu.reading.loadReadingPreferences
 import com.github.zly2006.zhihu.reading.rememberReadingPlayerController
-import com.github.zly2006.zhihu.theme.ThemeManager
 import com.github.zly2006.zhihu.ui.TtsState
 import com.github.zly2006.zhihu.ui.articleActionText
 import com.github.zly2006.zhihu.ui.articleSpeechText
 import com.github.zly2006.zhihu.ui.components.MyModalBottomSheet
 import com.github.zly2006.zhihu.ui.components.ShareAction
 import com.github.zly2006.zhihu.ui.components.rememberShareActionExecutor
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.extendedColors
 import com.github.zly2006.zhihu.ui.rememberArticleBrowserOpener
 import com.github.zly2006.zhihu.ui.rememberArticleSpeechToggler
 import com.github.zly2006.zhihu.ui.rememberArticleTtsState
 import com.github.zly2006.zhihu.util.Log
 import com.github.zly2006.zhihu.viewmodel.ArticleViewModel
-import com.materialkolor.ktx.harmonize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private val VoteUpNeutralContent = Color(0xFF3671EE)
-private val VoteUpNeutralContentDark = Color(0xFF628DF7)
+/**
+ * 赞同态的强调色。
+ *
+ * 以前这里区分 master / duo3 两套（duo3 额外 harmonize 一次），
+ * 现在 harmonize 与深色提亮统一在 [com.github.zly2006.zhihu.ui.designsystem.ExtendedColors] 里完成，
+ * 两个入口保留是因为调用点语义不同，取值已经收敛到同一个来源。
+ */
+@Composable
+internal fun voteUpNeutralContent() = extendedColors.like
 
 @Composable
-internal fun voteUpNeutralContent() = if (ThemeManager.isDarkTheme()) VoteUpNeutralContentDark else VoteUpNeutralContent
-
-@Composable
-internal fun voteUpNeutralContentDuo3() = if (ThemeManager.isDarkTheme()) {
-    VoteUpNeutralContentDark.harmonize(MaterialTheme.colorScheme.primary)
-} else {
-    VoteUpNeutralContent.harmonize(MaterialTheme.colorScheme.primary)
-}
+internal fun voteUpNeutralContentDuo3() = extendedColors.like
 
 @Composable
 internal fun voteUpActiveButtonColors() = ButtonDefaults.buttonColors(
@@ -156,7 +155,7 @@ fun ArticleActionsMenu(
         icon: @Composable () -> Unit,
         text: String,
         enabled: Boolean = true,
-        backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+        backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
         contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
         onClick: () -> Unit,
     ) {
@@ -164,7 +163,7 @@ fun ArticleActionsMenu(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(enabled = enabled) { onClick() },
-            shape = RoundedCornerShape(12.dp),
+            shape = ZhihuShapeTokens.Thumbnail,
             color = if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.5f),
         ) {
             androidx.compose.foundation.layout.Row(
@@ -191,7 +190,7 @@ fun ArticleActionsMenu(
         icon: ImageVector,
         text: String,
         enabled: Boolean = true,
-        backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+        backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
         contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
         onClick: () -> Unit,
     ) {

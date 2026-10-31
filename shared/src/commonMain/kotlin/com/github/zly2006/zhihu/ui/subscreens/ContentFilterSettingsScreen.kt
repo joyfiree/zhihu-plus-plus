@@ -37,13 +37,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -74,8 +70,11 @@ import com.github.zly2006.zhihu.ui.AUTO_REFRESH_HOME_ON_STARTUP_PREFERENCE_KEY
 import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
 import com.github.zly2006.zhihu.ui.components.SettingItemWithSwitch
+import com.github.zly2006.zhihu.ui.components.ZhihuDropdownAnchor
+import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
+import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
 import com.github.zly2006.zhihu.util.Log
 import com.github.zly2006.zhihu.viewmodel.ANSWER_VOTEUP_THRESHOLD_PREFERENCE_KEY
 import com.github.zly2006.zhihu.viewmodel.ARTICLE_FOLLOWERS_THRESHOLD_PREFERENCE_KEY
@@ -125,26 +124,19 @@ fun ContentFilterSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
-            LargeTopAppBar(
+            ZhihuLargeTopAppBar(
                 title = { Text("推荐系统与内容过滤") },
                 navigationIcon = {
                     IconButton(
                         onClick = navigator.onNavigateBack,
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
                     ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors().copy(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                ),
+                colors = zhihuTopAppBarColors(),
             )
         },
     ) { innerPadding ->
@@ -178,14 +170,9 @@ fun ContentFilterSettingsScreen(
                             onExpandedChange = { expanded = !expanded },
                             modifier = Modifier.width(256.dp),
                         ) {
-                            OutlinedTextField(
+                            ZhihuDropdownAnchor(
                                 value = currentRecommendationMode.value.displayName,
-                                onValueChange = { },
-                                readOnly = true,
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                modifier = Modifier
-                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
-                                    .testTag("contentFilterSettings:recommendationModeField"),
+                                modifier = Modifier.testTag("contentFilterSettings:recommendationModeField"),
                             )
                             ExposedDropdownMenu(
                                 expanded = expanded,
@@ -269,17 +256,9 @@ fun ContentFilterSettingsScreen(
                             expanded = qualityFilterModeExpanded,
                             onExpandedChange = { qualityFilterModeExpanded = it },
                         ) {
-                            OutlinedTextField(
+                            ZhihuDropdownAnchor(
                                 value = qualityFilterModeOptions.first { it.first == qualityFilterMode.value }.second,
-                                onValueChange = {},
-                                readOnly = true,
-                                trailingIcon = {
-                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = qualityFilterModeExpanded)
-                                },
-                                modifier = Modifier
-                                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                                    .width(160.dp),
-                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                                modifier = Modifier.width(160.dp),
                             )
                             ExposedDropdownMenu(
                                 expanded = qualityFilterModeExpanded,

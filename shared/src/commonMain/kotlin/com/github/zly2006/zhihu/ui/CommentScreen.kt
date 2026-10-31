@@ -106,12 +106,10 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
@@ -119,7 +117,6 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -157,6 +154,9 @@ import com.github.zly2006.zhihu.ui.components.pageTurnContentEndMarker
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.replaceSelection
+import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FONT_SIZE
 import com.github.zly2006.zhihu.ui.subscreens.PREF_LINE_HEIGHT
 import com.github.zly2006.zhihu.util.twoDigitString
@@ -218,7 +218,7 @@ fun SwipeToReplyContainer(
     val scope = rememberCoroutineScope()
 
     val density = LocalDensity.current
-    val hapticFeedback = LocalHapticFeedback.current
+    val haptics = rememberHapticController()
 
     // 触发阈值 (60dp)
     val triggerThreshold = with(density) { 60.dp.toPx() }
@@ -304,7 +304,7 @@ fun SwipeToReplyContainer(
                             // 绝对值超过阈值
                             if (abs(newOffset) >= triggerThreshold) {
                                 if (!hasVibrated) {
-                                    hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    haptics.longPress()
                                     hasVibrated = true
                                 }
                             } else {
@@ -817,7 +817,7 @@ fun CommentScreen(
                                                 )
                                                 Text(
                                                     "查看 ${commentItem.item.childCommentCount} 条子评论",
-                                                    fontSize = 12.sp,
+                                                    style = MaterialTheme.typography.labelMedium,
                                                     modifier = Modifier.padding(vertical = 1.dp, horizontal = 4.dp),
                                                 )
                                             }
@@ -840,8 +840,8 @@ fun CommentScreen(
                                     ) {
                                         Column(
                                             modifier = Modifier.animateItem(
-                                                fadeInSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                                                fadeOutSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                                fadeInSpec = Motion.springMedium(),
+                                                fadeOutSpec = Motion.springMedium(),
                                                 placementSpec = spring(
                                                     stiffness = Spring.StiffnessMediumLow,
                                                     dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -960,8 +960,8 @@ fun CommentScreen(
                                         Comment(
                                             commentItem,
                                             modifier = Modifier.animateItem(
-                                                fadeInSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                                                fadeOutSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                                fadeInSpec = Motion.springMedium(),
+                                                fadeOutSpec = Motion.springMedium(),
                                                 placementSpec = spring(
                                                     stiffness = Spring.StiffnessMediumLow,
                                                     dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -1122,14 +1122,13 @@ fun CommentScreen(
                                                 } else {
                                                     "写下你的评论..."
                                                 },
-                                                fontSize = 16.sp,
+                                                style = MaterialTheme.typography.bodyLarge,
                                             )
                                         }
                                         inner()
                                     }
                                 },
-                                textStyle = TextStyle.Default.copy(
-                                    fontSize = 16.sp,
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
                                     lineHeight = 18.sp,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 ),
@@ -1291,7 +1290,7 @@ private fun CommentItem(
                     Text(
                         text = commentData.author.name,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
+                        style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier
                             .testTag("comment_author_${commentData.id}")
                             .clickable { navigator.onNavigate(authorPerson) },
@@ -1313,14 +1312,14 @@ private fun CommentItem(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             "回复",
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = replyToAuthor.name,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
+                            style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier
                                 .testTag("comment_reply_to_author_${commentData.id}")
                                 .clickable {
@@ -1372,7 +1371,7 @@ private fun CommentItem(
                     ) {
                         Text(
                             text = string,
-                            fontSize = 16.sp * fontSizePercent / 100,
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize * fontSizePercent / 100,
                             lineHeight = 16.sp * fontSizePercent / 100 * lineHeightPercent / 100,
                             inlineContent = inlineContent,
                         )
@@ -1384,7 +1383,7 @@ private fun CommentItem(
                                 .testTag("comment_image_${commentData.id}")
                                 .padding(top = 8.dp)
                                 .sizeIn(maxHeight = 100.dp, maxWidth = 240.dp)
-                                .clip(RoundedCornerShape(12.dp)),
+                                .clip(ZhihuShapeTokens.Thumbnail),
                             contentDescription = "评论图片",
                             onAction = onImageMenuAction,
                         )
@@ -1407,7 +1406,7 @@ private fun CommentItem(
 
             Text(
                 text = formattedTime,
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
@@ -1420,7 +1419,7 @@ private fun CommentItem(
 
                 Text(
                     text = ipInfo,
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -1490,7 +1489,7 @@ private fun CommentItem(
                     Text(
                         text = comment.item.childCommentCount.toString(),
                         modifier = Modifier.testTag("comment_reply_count_${commentData.id}"),
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -1525,7 +1524,7 @@ private fun CommentItem(
                 Text(
                     text = likeCount.toString(),
                     modifier = Modifier.testTag("comment_like_count_${commentData.id}"),
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelMedium,
                     color = if (isLiked) {
                         MaterialTheme.colorScheme.primary
                     } else {
@@ -1651,7 +1650,7 @@ fun AuthorTag(authorTag: String) {
     ) {
         Text(
             text = authorTag,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelMedium,
             lineHeight = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

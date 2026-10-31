@@ -37,7 +37,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.theme.ThemeManager
 
@@ -153,7 +152,7 @@ internal fun AnswerEndorsementChip(
             }
             Text(
                 text = endorsement.text,
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

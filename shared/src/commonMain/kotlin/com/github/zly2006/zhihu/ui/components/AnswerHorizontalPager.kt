@@ -18,8 +18,6 @@
 package com.github.zly2006.zhihu.ui.components
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,13 +31,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -62,7 +60,7 @@ fun AnswerHorizontalOverscroll(
     content: @Composable () -> Unit,
 ) {
     val density = LocalDensity.current
-    val hapticFeedback = LocalHapticFeedback.current
+    val haptics = rememberHapticController()
     val coroutineScope = rememberCoroutineScope()
 
     val maxOverscrollPx = with(density) { MAX_HORIZONTAL_OVERSCROLL_DP.dp.toPx() }
@@ -104,10 +102,7 @@ fun AnswerHorizontalOverscroll(
                             coroutineScope.launch {
                                 overscrollOffset.animateTo(
                                     0f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMedium,
-                                    ),
+                                    animationSpec = Motion.overscrollSettle(),
                                 )
                             }
                         }
@@ -140,7 +135,7 @@ fun AnswerHorizontalOverscroll(
                         coroutineScope.launch { overscrollOffset.snapTo(newOffset) }
                         if (!hasTriggeredHaptic && abs(newOffset) >= triggerThresholdPx) {
                             hasTriggeredHaptic = true
-                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            haptics.gestureThreshold()
                         }
                         if (hasTriggeredHaptic && abs(newOffset) < triggerThresholdPx) {
                             hasTriggeredHaptic = false
@@ -192,6 +187,11 @@ fun AnswerHorizontalOverscroll(
     }
 }
 
+/** 横向手势的最大可视位移（dp）；水平可拖动空间更大，取比纵向更宽的档位。 */
 private const val MAX_HORIZONTAL_OVERSCROLL_DP = 300f
+
+/** 横向触发切换的位移阈值（dp），实际阈值再按 answerSwitchSensitivity 线性缩放。 */
 private const val HORIZONTAL_TRIGGER_THRESHOLD_DP = 46f
+
+/** tanh 阻尼系数：越大位移增长越慢、手感越「拉不动」。 */
 private const val HORIZONTAL_DAMPING_FACTOR = 1.2f

@@ -33,17 +33,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,17 +53,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.data.Feed
@@ -84,6 +78,9 @@ import com.github.zly2006.zhihu.platform.UserMessageDuration
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.ui.LocalSelectedContentDestination
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FONT_SIZE
 import com.github.zly2006.zhihu.ui.subscreens.PREF_LINE_HEIGHT
 import com.github.zly2006.zhihu.util.parseEmphasizedHtmlTextWithTheme
@@ -94,6 +91,11 @@ import com.github.zly2006.zhihu.viewmodel.QUALITY_FILTER_MODE_PREFERENCE_KEY
  *
  * 卡片负责展示标题、摘要、作者、徽章、缩略图和更多菜单，并根据设置支持卡片/分割线两种外观、Duo3 排版和缩略图开关。
  * 默认点击会解析 [FeedDisplayItem] 的导航目标并进入详情页；页面可以通过 [menuItems] 直接声明自己的业务菜单项。
+ *
+ * 两种外观的视觉规则：
+ * - **分割线样式**：一个标准的 M3 list item——标题 `titleMedium`、摘要 `bodyMedium`、元信息 `labelMedium`，
+ *   底部 1dp `outlineVariant` 分割线并从内容起点缩进（而不是贯穿整屏的 0.3dp 细线）。
+ * - **卡片样式**：M3 filled card——`surfaceContainerLow` 容器色、16dp 圆角、0 投影，靠「比页面底色高一层」表达层级。
  *
  * 修改这个组件时要同步复核 `showFeedThumbnail`、`feedCardStyle`、`duo3_card_appearance`、
  * `duo3_card_layout` 和 `duo3_card_large_title` 对各信息流入口的影响。
@@ -106,7 +108,7 @@ fun FeedCard(
     readingQueueSourceId: String? = null,
     maxHeight: Dp = 240.dp,
     thumbnailUrl: String? = null,
-    horizontalPadding: Dp = 16.dp,
+    horizontalPadding: Dp = ZhihuSpacing.ScreenGutter,
     menuItems: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit = { _ -> },
     showSourceLabel: Boolean = false,
     /**
@@ -135,7 +137,7 @@ fun FeedCard(
         .orEmpty()
     val showPinImages = showFeedThumbnail && pinImages.isNotEmpty() && !item.isFiltered
     val isSelected = item.navDestination != null && item.navDestination == selectedDestination
-    val selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
+    val selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
     val performClick: (FeedDisplayItem) -> Unit = { clickedItem ->
         val destination = clickedItem.navDestination?.withReadingQueueSource(readingQueueSourceId)
         if (onClick != null) {
@@ -162,7 +164,7 @@ fun FeedCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { performClick(item) }
-                    .padding(horizontal = horizontalPadding, vertical = 12.dp),
+                    .padding(horizontal = horizontalPadding, vertical = ZhihuSpacing.Medium),
             ) {
                 FeedCardContent(
                     item = item,
@@ -177,7 +179,7 @@ fun FeedCard(
                     showSourceLabel = showSourceLabel,
                 )
             }
-            HorizontalDivider(thickness = 0.3.dp)
+            ZhihuListDivider(startIndent = horizontalPadding)
         }
     } else {
         Box(
@@ -185,34 +187,29 @@ fun FeedCard(
                 .fillMaxWidth()
                 .semantics { selected = isSelected }
                 .then(if (showPinImages || duo3CardLayout) Modifier else Modifier.heightIn(max = maxHeight))
-                .padding(horizontal = horizontalPadding, vertical = 8.dp),
+                .padding(horizontal = horizontalPadding, vertical = ZhihuSpacing.Small),
         ) {
             Card(
-                colors = if (isSelected) {
-                    CardDefaults.cardColors(containerColor = selectedContainerColor)
-                } else if (duo3CardAppearance) {
-                    CardDefaults.cardColors().copy(
-                        containerColor = MaterialTheme.colorScheme.surfaceBright,
-                    )
-                } else {
-                    CardDefaults.cardColors()
-                },
-                shape = if (duo3CardAppearance) RoundedCornerShape(24.dp) else CardDefaults.shape,
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isSelected) {
+                        selectedContainerColor
+                    } else if (duo3CardAppearance) {
+                        MaterialTheme.colorScheme.surfaceContainerHigh
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerLow
+                    },
+                ),
+                shape = if (duo3CardAppearance) ZhihuShapeTokens.CardExpressive else ZhihuShapeTokens.Card,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .let { if (duo3CardAppearance) it.clip(RoundedCornerShape(24.dp)) else it }
                     .clickable { performClick(item) },
-                elevation = if (duo3CardAppearance) {
-                    CardDefaults.cardElevation()
-                } else {
-                    CardDefaults.cardElevation(defaultElevation = 2.dp)
-                },
+                elevation = CardDefaults.cardElevation(defaultElevation = ZhihuSpacing.None),
             ) {
                 Column(
                     modifier = if (duo3CardAppearance) {
-                        Modifier.padding(16.dp, 12.dp, 16.dp, 16.dp)
+                        Modifier.padding(ZhihuSpacing.Large)
                     } else {
-                        Modifier.padding(8.dp)
+                        Modifier.padding(ZhihuSpacing.Medium)
                     },
                 ) {
                     FeedCardContent(
@@ -249,13 +246,13 @@ private fun FeedCardMenuBox(
     Box {
         IconButton(
             onClick = { onShowMenuChange(true) },
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(ZhihuSizes.MinTouchTarget),
         ) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
                 contentDescription = "更多选项",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(ZhihuSizes.IconSmall),
             )
         }
         DropdownMenu(
@@ -288,6 +285,9 @@ private fun FeedCardMenuBox(
  *
  * 这里决定标题、摘要、缩略图、作者信息和操作菜单在卡片内的排列方式。标准排版强调兼容既有 Material 3 卡片，
  * Duo3 排版则把作者移到底部、调整图片和摘要结构，并可使用更大的标题字号。
+ *
+ * 两种排版的字号都来自 `MaterialTheme.typography`，只把「用户字号偏好」作为缩放系数叠加上去，
+ * 因此信息流、详情页、设置页的标题层级始终对得上。
  */
 @Composable
 private fun FeedCardContent(
@@ -329,7 +329,7 @@ private fun FeedCardContent(
                     maxLines = 2,
                     color = MaterialTheme.colorScheme.onSurface,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(bottom = 8.dp),
+                    modifier = Modifier.padding(bottom = ZhihuSpacing.Small),
                 )
             }
         }
@@ -339,8 +339,9 @@ private fun FeedCardContent(
                 Text(
                     text = parseEmphasizedHtmlTextWithTheme(item.summary ?: ""),
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 14.sp * fontSizePercent / 100,
-                        lineHeight = 14.sp * fontSizePercent / 100 * lineHeightPercent / 100,
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize * fontSizePercent / 100,
+                        lineHeight = MaterialTheme.typography.bodyMedium.fontSize *
+                            fontSizePercent / 100 * lineHeightPercent / 100,
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 4,
@@ -348,27 +349,27 @@ private fun FeedCardContent(
                     modifier = Modifier.weight(1f),
                 )
                 if (!thumbnailUrl.isNullOrEmpty() && showFeedThumbnail && !item.isFiltered) {
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(ZhihuSpacing.Small))
                     AsyncImage(
                         model = thumbnailUrl,
                         contentDescription = "Thumbnail",
                         modifier = Modifier
-                            .padding(top = 8.dp)
-                            .sizeIn(maxHeight = 80.dp, maxWidth = 128.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.FillHeight,
+                            .padding(top = ZhihuSpacing.Small)
+                            .size(width = 112.dp, height = 84.dp)
+                            .clip(ZhihuShapeTokens.Thumbnail),
+                        contentScale = ContentScale.Crop,
                     )
                 }
             }
             PinFeedImages(
                 images = visiblePinImages,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = ZhihuSpacing.Small),
             )
             if (item.details.isNotEmpty() || (item.avatarSrc != null && item.authorName != null)) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(top = ZhihuSpacing.Small),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Row(
@@ -389,12 +390,12 @@ private fun FeedCardContent(
                                     contentDescription = "Avatar",
                                     modifier = Modifier
                                         .clip(CircleShape)
-                                        .size(24.dp),
+                                        .size(ZhihuSizes.AvatarSmall),
                                 )
-                                Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(ZhihuSpacing.Small))
                                 Text(
                                     text = authorName,
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelLarge,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -402,11 +403,11 @@ private fun FeedCardContent(
                                 )
                                 val authorBadge = item.authorBadgeV2.officialBadge()
                                 if (authorBadge?.isUsefulInList == true) {
-                                    Spacer(Modifier.width(4.dp))
+                                    Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
                                     AuthorBadge(authorBadge, compact = true)
                                 }
                             }
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(ZhihuSpacing.ExtraSmall + 2.dp))
                         }
                         if (item.details.isNotEmpty()) {
                             Text(
@@ -434,9 +435,12 @@ private fun FeedCardContent(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = parseEmphasizedHtmlTextWithTheme(item.title),
-                    fontSize = 16.sp * fontSizePercent / 100,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = MaterialTheme.typography.titleMedium.fontSize * fontSizePercent / 100,
+                        lineHeight = MaterialTheme.typography.titleMedium.lineHeight * fontSizePercent / 100,
+                    ),
                     maxLines = 2,
+                    color = MaterialTheme.colorScheme.onSurface,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -444,7 +448,7 @@ private fun FeedCardContent(
         val avatarSrc = item.avatarSrc
         val authorName = item.authorName
         if (avatarSrc != null && authorName != null) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(ZhihuSpacing.ExtraSmall))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable {},
@@ -454,12 +458,12 @@ private fun FeedCardContent(
                     contentDescription = "Avatar",
                     modifier = Modifier
                         .clip(CircleShape)
-                        .size(20.dp),
+                        .size(ZhihuSizes.AvatarSmall),
                 )
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(ZhihuSpacing.Small))
                 Text(
                     text = authorName,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -467,7 +471,7 @@ private fun FeedCardContent(
                 )
                 val authorBadge = item.authorBadgeV2.officialBadge()
                 if (authorBadge?.isUsefulInList == true) {
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
                     AuthorBadge(authorBadge, compact = true)
                 }
             }
@@ -476,15 +480,21 @@ private fun FeedCardContent(
             Column(modifier = Modifier.weight(2f)) {
                 Text(
                     text = parseEmphasizedHtmlTextWithTheme(item.summary ?: ""),
-                    fontSize = 14.sp * fontSizePercent / 100,
-                    lineHeight = 14.sp * fontSizePercent / 100 * lineHeightPercent / 100,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize * fontSizePercent / 100,
+                        lineHeight = MaterialTheme.typography.bodyMedium.fontSize *
+                            fontSizePercent / 100 * lineHeightPercent / 100,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = if (item.isFiltered) 0.dp else 3.dp),
+                    modifier = Modifier.padding(
+                        top = if (item.isFiltered) ZhihuSpacing.None else ZhihuSpacing.ExtraSmall,
+                    ),
                 )
                 PinFeedImages(
                     images = visiblePinImages,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = ZhihuSpacing.Small),
                 )
                 if (item.details.isNotEmpty()) {
                     Row(
@@ -493,9 +503,10 @@ private fun FeedCardContent(
                     ) {
                         Text(
                             text = item.details,
-                            fontSize = 12.sp,
-                            lineHeight = 12.sp,
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f),
                         )
                         FeedCardMenuBox(item, showMenu, onShowMenuChange, menuItems, navigator)
@@ -503,14 +514,15 @@ private fun FeedCardContent(
                 }
             }
             if (!thumbnailUrl.isNullOrEmpty() && showFeedThumbnail) {
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(ZhihuSpacing.Medium))
                 AsyncImage(
                     model = thumbnailUrl,
                     contentDescription = "Thumbnail",
                     modifier = Modifier
-                        .weight(1f)
-                        .sizeIn(maxWidth = 60.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .padding(top = ZhihuSpacing.ExtraSmall)
+                        .size(width = 88.dp, height = 66.dp)
+                        .clip(ZhihuShapeTokens.Thumbnail),
+                    contentScale = ContentScale.Crop,
                 )
             }
         }
@@ -532,7 +544,7 @@ private fun PinFeedImages(
                 modifier = modifier
                     .fillMaxWidth(1f / 3f)
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(ZhihuShapeTokens.Thumbnail)
                     .testTag("pin_feed_image_0"),
                 contentScale = ContentScale.Crop,
             )
@@ -542,7 +554,7 @@ private fun PinFeedImages(
                 modifier = modifier
                     .fillMaxWidth()
                     .testTag("pin_feed_images"),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.ExtraSmall),
             ) {
                 images.forEachIndexed { index, image ->
                     PinFeedImage(
@@ -569,12 +581,12 @@ private fun PinFeedImages(
                 modifier = modifier
                     .fillMaxWidth()
                     .testTag("pin_feed_images"),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalArrangement = Arrangement.spacedBy(ZhihuSpacing.ExtraSmall),
             ) {
                 visibleImages.chunked(3).forEachIndexed { rowIndex, rowImages ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.ExtraSmall),
                     ) {
                         rowImages.forEachIndexed { columnIndex, image ->
                             val index = rowIndex * 3 + columnIndex
@@ -612,7 +624,7 @@ private fun PinFeedImage(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(ZhihuShapeTokens.Thumbnail)
             .testTag("pin_feed_image_$index"),
     ) {
         AsyncImage(
@@ -625,12 +637,12 @@ private fun PinFeedImage(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.55f)),
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "+$remainingCount",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.inverseOnSurface,
                     style = MaterialTheme.typography.titleLarge,
                 )
             }
@@ -650,6 +662,6 @@ private fun FeedCardSourceLabel(sourceLabel: String?) {
         color = MaterialTheme.colorScheme.primary,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.padding(bottom = 6.dp),
+        modifier = Modifier.padding(bottom = ZhihuSpacing.ExtraSmall + 2.dp),
     )
 }

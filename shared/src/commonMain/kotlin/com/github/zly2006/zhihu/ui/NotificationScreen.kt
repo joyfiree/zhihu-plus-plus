@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Comment
@@ -44,7 +43,6 @@ import androidx.compose.material.icons.outlined.ContactPage
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -69,7 +67,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -89,6 +86,8 @@ import com.github.zly2006.zhihu.platform.rememberExternalUrlOpener
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
+import com.github.zly2006.zhihu.ui.components.ZhihuCenterAlignedTopAppBar
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.util.formatRelativeTime
 import com.github.zly2006.zhihu.viewmodel.MobileNotificationCategory
 import com.github.zly2006.zhihu.viewmodel.NotificationEnvironment
@@ -129,7 +128,7 @@ fun NotificationScreen() {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            CenterAlignedTopAppBar(
+            ZhihuCenterAlignedTopAppBar(
                 title = { Text("消息") },
                 navigationIcon = {
                     IconButton(onClick = navigator.onNavigateBack) {
@@ -231,7 +230,7 @@ private fun NotificationCategoryRow(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(ZhihuShapeTokens.Thumbnail)
                     .testTag("notification_category_${category.entryName}")
                     .clickable { onCategoryClick(category) }
                     .padding(vertical = 4.dp),
@@ -248,11 +247,21 @@ private fun NotificationCategoryRow(
                         }
                     },
                 ) {
-                    Icon(
-                        imageVector = category.homeIcon(),
-                        contentDescription = category.detailTitle,
-                        modifier = Modifier.size(36.dp),
-                    )
+                    // 分类入口使用 M3 药丸容器承载图标，让 4 个入口在页面上有稳定的视觉落点。
+                    Surface(
+                        modifier = Modifier.size(56.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = category.homeIcon(),
+                                contentDescription = category.detailTitle,
+                                modifier = Modifier.size(26.dp),
+                            )
+                        }
+                    }
                 }
                 Text(
                     text = category.detailTitle,
@@ -338,7 +347,7 @@ private fun NotificationConversationRow(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             )
         } else {
             Surface(
@@ -438,7 +447,7 @@ fun NotificationItemView(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                 }
@@ -496,7 +505,7 @@ fun NotificationItemView(
                         Text(
                             text = displayText,
                             inlineContent = inlineContent,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
@@ -515,8 +524,8 @@ fun NotificationItemView(
             notification.sourceText().takeIf { it.isNotBlank() }?.let { sourceText ->
                 Spacer(modifier = Modifier.height(10.dp))
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = ZhihuShapeTokens.Badge,
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(

@@ -30,10 +30,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -47,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import kotlin.math.roundToInt
 
 @Composable
@@ -79,9 +78,9 @@ fun ColorPickerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(80.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(ZhihuShapeTokens.Badge)
                         .background(currentColor)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
+                        .border(1.dp, MaterialTheme.colorScheme.outline, ZhihuShapeTokens.Badge),
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -163,10 +162,11 @@ private fun ColorSlider(
             modifier = Modifier.width(50.dp),
             style = MaterialTheme.typography.bodyMedium,
         )
-        Slider(
+        ZhihuSlider(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.weight(1f),
+            accentColor = color,
         )
         Text(
             "${(value * 255).roundToInt()}",

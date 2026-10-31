@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmark
@@ -47,10 +46,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.data.Collection
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.extendedColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,7 +102,7 @@ fun CollectionDialogComponent(
                                 .clickable {
                                     showCreateDialog = true
                                 },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = ZhihuShapeTokens.Thumbnail,
                             color = MaterialTheme.colorScheme.primaryContainer,
                         ) {
                             Row(
@@ -162,8 +162,8 @@ private fun CollectionItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onToggle() },
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = ZhihuShapeTokens.Thumbnail,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
         Row(
             modifier = Modifier
@@ -198,7 +198,7 @@ private fun CollectionItem(
             Icon(
                 imageVector = if (collection.isFavorited) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
                 contentDescription = if (collection.isFavorited) "已收藏" else "未收藏",
-                tint = if (collection.isFavorited) Color(0xFFF57C00) else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (collection.isFavorited) extendedColors.favorite else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(24.dp),
             )
         }

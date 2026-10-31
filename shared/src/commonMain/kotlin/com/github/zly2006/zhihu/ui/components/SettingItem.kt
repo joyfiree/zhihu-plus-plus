@@ -27,17 +27,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.CardColors
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -45,6 +46,7 @@ import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -59,6 +61,10 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.dp
+import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.util.ProvideContentColorTextStyle
 import kotlinx.coroutines.delay
 
@@ -104,14 +110,14 @@ fun Modifier.highlightSetting(
                 }
                 // 闪烁两次：亮、暗、亮、暗、亮。
                 repeat(2) {
-                    highlightAlpha.animateTo(0.4f, tween(200, easing = LinearEasing))
-                    highlightAlpha.animateTo(0.1f, tween(200, easing = LinearEasing))
+                    highlightAlpha.animateTo(0.4f, tween(Motion.DURATION_SHORT, easing = LinearEasing))
+                    highlightAlpha.animateTo(0.1f, tween(Motion.DURATION_SHORT, easing = LinearEasing))
                 }
-                highlightAlpha.animateTo(0.4f, tween(200))
+                highlightAlpha.animateTo(0.4f, tween(Motion.DURATION_SHORT))
                 delay(2000)
-                highlightAlpha.animateTo(0f, tween(1000, easing = FastOutSlowInEasing))
+                highlightAlpha.animateTo(0f, tween(Motion.DURATION_LONG, easing = FastOutSlowInEasing))
             } else {
-                highlightAlpha.animateTo(0f, tween(500))
+                highlightAlpha.animateTo(0f, tween(Motion.DURATION_LONG))
             }
         }
 
@@ -129,8 +135,11 @@ fun Modifier.highlightSetting(
 /**
  * 设置页的分组容器。
  *
- * 每组可以包含标题、顶部总控件、底部说明和多个设置项。内部使用自定义 Layout 压缩动画隐藏项之间的间距，
- * 让 `AnimatedVisibility` 展开/收起时不会留下突兀空白。视觉上它是设置页的主要节奏单位，新增设置页时优先用它组织内容。
+ * 一组设置 = 一个分组标题 + 若干等高的圆角行 + 可选的说明文字。组内行之间用 6dp 间隙分隔，
+ * 行本身带 12dp 圆角和 `surfaceContainerLow` 底色，形成 M3 的「分组列表」观感；
+ * 间隙会在展开/收起动画中随行高一起收缩，不会留下突兀空白。
+ *
+ * 视觉上它是设置页的主要节奏单位，新增设置页时优先用它组织内容。
  */
 @Composable
 fun SettingItemGroup(
@@ -151,15 +160,15 @@ fun SettingItemGroup(
                 highlightedKey = highlightedKey,
                 onPositioned = onPositioned,
                 bringIntoViewRequester = bringIntoViewRequester,
-            ).padding(horizontal = 16.dp)
-            .padding(bottom = 16.dp)
+            ).padding(horizontal = ZhihuSpacing.ScreenGutter)
+            .padding(bottom = ZhihuSpacing.ExtraLarge)
             .then(modifier),
     ) {
         title?.let {
             Text(
-                text = title,
-                modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 8.dp),
-                style = MaterialTheme.typography.labelLarge,
+                text = it,
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
         }
@@ -168,11 +177,11 @@ fun SettingItemGroup(
 
         Layout(
             content = content,
-            modifier = modifier.clip(RoundedCornerShape(16.dp)),
+            modifier = Modifier.fillMaxWidth(),
         ) { measurables, constraints ->
             val placeables = measurables.map { it.measure(constraints) }
-            val spacing = 2.dp.roundToPx()
-            val baseItemHeight = 48.dp.toPx()
+            val spacing = 6.dp.roundToPx()
+            val baseItemHeight = 56.dp.toPx()
 
             var yPosition = 0
             val positions = mutableListOf<Int>()
@@ -204,10 +213,10 @@ fun SettingItemGroup(
 
         footer?.let {
             Column(
-                modifier = Modifier.padding(8.dp, 16.dp, 8.dp, 8.dp),
+                modifier = Modifier.padding(start = 4.dp, top = ZhihuSpacing.Small, end = 4.dp),
             ) {
                 ProvideContentColorTextStyle(
-                    textStyle = MaterialTheme.typography.bodyMedium,
+                    textStyle = MaterialTheme.typography.bodySmall,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ) {
                     it()
@@ -220,8 +229,8 @@ fun SettingItemGroup(
 /**
  * 分组顶部的强调型总开关。
  *
- * 适合“启用全部”“开发者模式”这类会影响一组子设置的主控制。它用更强的背景色和圆角药丸形态区别于普通行，
- * 点击整行即可切换，具体批量写入哪些 preference key 由调用方负责。
+ * 适合“启用全部”“开发者模式”这类会影响一组子设置的主控制。它用 `primaryContainer` 药丸形态
+ * 区别于普通行，点击整行即可切换，具体批量写入哪些 preference key 由调用方负责。
  */
 @Composable
 fun SettingItemOverall(
@@ -238,13 +247,17 @@ fun SettingItemOverall(
     onPositioned: ((rootY: Int) -> Unit)? = null,
     bringIntoViewRequester: BringIntoViewRequester? = null,
 ) {
+    val haptics = rememberHapticController()
     SettingItem(
-        modifier = modifier.padding(bottom = 16.dp),
+        modifier = modifier.padding(bottom = ZhihuSpacing.Medium),
         contentModifier = contentModifier.padding(horizontal = 8.dp),
         title = title,
         description = description,
         icon = icon,
-        onClick = { onCheckedChange(!checked) },
+        onClick = {
+            haptics.confirm()
+            onCheckedChange(!checked)
+        },
         endAction = {
             SwitchWithIcon(
                 checked = checked,
@@ -252,12 +265,12 @@ fun SettingItemOverall(
                 enabled = enabled,
             )
         },
-        shape = RoundedCornerShape(50),
-        colors = CardColors(
+        shape = ZhihuShapeTokens.Pill,
+        colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            disabledContentColor = MaterialTheme.colorScheme.outlineVariant,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         ),
         enabled = enabled,
         settingKey = settingKey,
@@ -270,7 +283,7 @@ fun SettingItemOverall(
 /**
  * 标准开关设置行。
  *
- * 标题、说明、可选图标和右侧带图标 Switch 组成一行，整行点击与直接点开关等价。大多数布尔设置都应使用这个组件，
+ * 标题、说明、可选图标和右侧 Switch 组成一行，整行点击与直接点开关等价。大多数布尔设置都应使用这个组件，
  * 以保持触控区域、禁用态、高亮跳转和测试定位行为一致。
  */
 @Composable
@@ -287,12 +300,16 @@ fun SettingItemWithSwitch(
     onPositioned: ((rootY: Int) -> Unit)? = null,
     bringIntoViewRequester: BringIntoViewRequester? = null,
 ) {
+    val haptics = rememberHapticController()
     SettingItem(
         modifier = modifier,
         title = title,
         description = description,
         icon = icon,
-        onClick = { onCheckedChange(!checked) },
+        onClick = {
+            haptics.confirm()
+            onCheckedChange(!checked)
+        },
         endAction = {
             SwitchWithIcon(
                 checked = checked,
@@ -309,10 +326,10 @@ fun SettingItemWithSwitch(
 }
 
 /**
- * 带选中/未选中图标的开关。
+ * 带勾选图标的开关。
  *
- * 这是设置页统一使用的 Switch 视觉样式：开启时显示对勾，关闭时显示叉号。调用方通常不直接使用它，而是通过
- * [SettingItemWithSwitch] 或 [SettingItemOverall] 获得完整的设置行语义。
+ * 开启时拇指上显示对勾（M3 允许的可选拇指图标），关闭时保持空白——
+ * 旧实现还会在关闭态画一个叉号，视觉上过于嘈杂。
  */
 @Composable
 fun SwitchWithIcon(
@@ -333,17 +350,6 @@ fun SwitchWithIcon(
                     imageVector = Icons.Filled.Check,
                     contentDescription = null,
                     modifier = Modifier.size(SwitchDefaults.IconSize),
-                    tint = if (enabled) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant
-                    },
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Filled.Clear,
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize),
                 )
             }
         },
@@ -358,6 +364,9 @@ fun SwitchWithIcon(
  *
  * 一行由左侧可选图标、标题/说明、右侧动作和底部扩展内容组成，可表示普通导航入口、数值配置、下拉选择或开关行的底层布局。
  * 它同时接入高亮跳转、禁用态和统一圆角/背景色，是所有设置项视觉一致性的基础。
+ *
+ * 排版遵循 M3 list item：标题 `bodyLarge`，说明 `bodyMedium` + `onSurfaceVariant`，
+ * 图标 24dp 并继承 `onSurfaceVariant` 内容色，右侧动作与文字垂直居中。
  */
 @Composable
 fun SettingItem(
@@ -369,12 +378,12 @@ fun SettingItem(
     onClick: (() -> Unit)? = null,
     endAction: (@Composable () -> Unit)? = null,
     bottomAction: (@Composable () -> Unit)? = null,
-    shape: Shape = RoundedCornerShape(4.dp),
-    colors: CardColors = CardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceBright,
+    shape: Shape = ZhihuShapeTokens.Thumbnail,
+    colors: CardColors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceBright,
-        disabledContentColor = MaterialTheme.colorScheme.outlineVariant,
+        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
     ),
     enabled: Boolean = true,
     settingKey: String? = null,
@@ -382,72 +391,63 @@ fun SettingItem(
     onPositioned: ((rootY: Int) -> Unit)? = null,
     bringIntoViewRequester: BringIntoViewRequester? = null,
 ) {
+    val contentColor = if (enabled) colors.contentColor else colors.disabledContentColor
     Surface(
-        modifier = if (onClick != null) {
-            modifier
-                .clip(shape)
-                .highlightSetting(
-                    settingKey = settingKey,
-                    highlightedKey = highlightedKey,
-                    onPositioned = onPositioned,
-                    bringIntoViewRequester = bringIntoViewRequester,
-                    shape = shape,
-                ).clickable(
-                    enabled = enabled,
-                    onClick = onClick,
-                )
-        } else {
-            modifier
-                .clip(shape)
-                .highlightSetting(
-                    settingKey = settingKey,
-                    highlightedKey = highlightedKey,
-                    onPositioned = onPositioned,
-                    bringIntoViewRequester = bringIntoViewRequester,
-                    shape = shape,
-                )
-        },
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .highlightSetting(
+                settingKey = settingKey,
+                highlightedKey = highlightedKey,
+                onPositioned = onPositioned,
+                bringIntoViewRequester = bringIntoViewRequester,
+                shape = shape,
+            ).then(
+                if (onClick != null) {
+                    Modifier.clickable(enabled = enabled, onClick = onClick)
+                } else {
+                    Modifier
+                },
+            ),
         shape = shape,
-        color = colors.containerColor,
-        contentColor = if (enabled) {
-            colors.contentColor
-        } else {
-            colors.disabledContentColor
-        },
+        color = if (enabled) colors.containerColor else colors.disabledContainerColor,
+        contentColor = contentColor,
     ) {
-        Column(contentModifier.padding(16.dp, 12.dp)) {
+        Column(
+            contentModifier.padding(
+                horizontal = ZhihuSpacing.Large,
+                vertical = ZhihuSpacing.Medium,
+            ),
+        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.Large),
             ) {
                 icon?.let {
                     Box(
-                        Modifier.size(40.dp),
+                        modifier = Modifier.size(24.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Surface(
-                            color = Color.Transparent,
-                            contentColor = if (enabled) {
+                        CompositionLocalProvider(
+                            LocalContentColor provides if (enabled) {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             } else {
-                                MaterialTheme.colorScheme.outlineVariant
+                                colors.disabledContentColor
                             },
-                        ) { icon() }
+                        ) {
+                            it()
+                        }
                     }
                 }
                 Column(
                     modifier = Modifier
-                        .heightIn(min = 48.dp)
+                        .heightIn(min = 28.dp)
                         .weight(1f),
                     verticalArrangement = Arrangement.Center,
                 ) {
                     ProvideContentColorTextStyle(
-                        textStyle = MaterialTheme.typography.titleMedium,
-                        contentColor = if (enabled) {
-                            colors.contentColor
-                        } else {
-                            colors.disabledContentColor
-                        },
+                        textStyle = MaterialTheme.typography.bodyLarge,
+                        contentColor = contentColor,
                     ) {
                         title()
                     }
@@ -460,7 +460,7 @@ fun SettingItem(
                                 colors.disabledContentColor
                             },
                         ) {
-                            description()
+                            it()
                         }
                     }
                 }

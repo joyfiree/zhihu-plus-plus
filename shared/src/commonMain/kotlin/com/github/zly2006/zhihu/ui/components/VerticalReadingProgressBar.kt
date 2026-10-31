@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -124,7 +125,7 @@ fun VerticalReadingProgressBar(
 
     val alpha by animateFloatAsState(
         targetValue = if (shouldKeepVisible) 1f else 0f,
-        animationSpec = tween(durationMillis = if (shouldKeepVisible) 120 else 260),
+        animationSpec = tween(durationMillis = if (shouldKeepVisible) Motion.DURATION_SHORT else Motion.DURATION_MEDIUM),
         label = "readingProgressBarAlpha",
     )
     if (alpha <= 0f && !isDragging) return

@@ -34,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -42,6 +43,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -72,6 +74,8 @@ import com.github.zly2006.zhihu.navigation.Person
 import com.github.zly2006.zhihu.platform.isBlocklistNlpSupported
 import com.github.zly2006.zhihu.platform.platformName
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
+import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
+import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
 import com.github.zly2006.zhihu.util.Log
 import com.github.zly2006.zhihu.viewmodel.filter.BlockedKeyword
 import com.github.zly2006.zhihu.viewmodel.filter.BlockedQuestionAuthor
@@ -120,6 +124,7 @@ object BlocklistSettingsTestTags {
  * 页面用 tab 管理关键词、NLP 智能屏蔽短语、用户和主题四类规则，并展示统计、添加、删除和清空操作。新增屏蔽类型时要同步
  * 数据管理、设置页入口和 Feed 卡片菜单。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BlocklistSettingsScreen(
     nlpContent: @Composable (onNavigateBack: () -> Unit) -> Unit = {
@@ -199,6 +204,18 @@ fun BlocklistSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.surface,
+        topBar = {
+            ZhihuLargeTopAppBar(
+                title = { Text("屏蔽管理") },
+                navigationIcon = {
+                    IconButton(onClick = navigator.onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    }
+                },
+                colors = zhihuTopAppBarColors(),
+            )
+        },
         floatingActionButton = {
             // 只在传统关键词、用户屏蔽、提问者屏蔽和主题屏蔽标签页显示添加按钮
             if (

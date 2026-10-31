@@ -18,8 +18,6 @@
 package com.github.zly2006.zhihu.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.EaseInCubic
-import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -63,6 +61,8 @@ import com.github.zly2006.zhihu.navigation.Topic
 import com.github.zly2006.zhihu.platform.PlainTextClipboard
 import com.github.zly2006.zhihu.platform.SettingsStore
 import com.github.zly2006.zhihu.platform.UserMessageSink
+import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 
 /**
  * 通用分享弹窗内容。
@@ -80,8 +80,8 @@ fun ShareDialogContent(
 ) {
     AnimatedVisibility(
         visible = showDialog,
-        enter = fadeIn(animationSpec = tween(300)),
-        exit = fadeOut(animationSpec = tween(300)),
+        enter = fadeIn(animationSpec = tween(Motion.DURATION_MEDIUM)),
+        exit = fadeOut(animationSpec = tween(Motion.DURATION_MEDIUM)),
     ) {
         Box(
             modifier = Modifier
@@ -93,11 +93,11 @@ fun ShareDialogContent(
                 visible = showDialog,
                 enter = slideInVertically(
                     initialOffsetY = { it },
-                    animationSpec = tween(300, easing = EaseOutCubic),
+                    animationSpec = tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing),
                 ),
                 exit = slideOutVertically(
                     targetOffsetY = { it },
-                    animationSpec = tween(300, easing = EaseInCubic),
+                    animationSpec = tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing),
                 ),
                 modifier = Modifier.align(Alignment.BottomCenter),
             ) {
@@ -165,7 +165,7 @@ private fun MenuActionButton(
     icon: ImageVector,
     text: String,
     enabled: Boolean = true,
-    backgroundColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     onClick: () -> Unit,
 ) {
@@ -173,7 +173,7 @@ private fun MenuActionButton(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = enabled) { onClick() },
-        shape = RoundedCornerShape(12.dp),
+        shape = ZhihuShapeTokens.Thumbnail,
         color = if (enabled) backgroundColor else backgroundColor.copy(alpha = 0.5f),
     ) {
         Row(

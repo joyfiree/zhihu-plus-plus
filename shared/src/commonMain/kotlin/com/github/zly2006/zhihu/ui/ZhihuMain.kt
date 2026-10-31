@@ -82,7 +82,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -149,6 +148,9 @@ import com.github.zly2006.zhihu.ui.components.CompactReadingPlayerButton
 import com.github.zly2006.zhihu.ui.components.NoOpPagerNestedScrollConnection
 import com.github.zly2006.zhihu.ui.components.ReadingPlayerBar
 import com.github.zly2006.zhihu.ui.components.ReadingQueueSheet
+import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.subscreens.AppearanceSettingsScreen
 import com.github.zly2006.zhihu.ui.subscreens.BlockedFeedHistoryScreen
 import com.github.zly2006.zhihu.ui.subscreens.ColorSchemeScreen
@@ -247,6 +249,7 @@ fun ZhihuMain(
     val selectedBottomBarItemKeys = preferenceState.selectedBottomBarItemKeys
     val startDestination = preferenceState.startDestination
     val reloadBottomBarPreferences = preferenceState::reload
+    val haptics = rememberHapticController()
     val readingPlayer = rememberReadingPlayerController()
     val readingPlayerState by readingPlayer.state
     val settings = rememberSettingsStore()
@@ -535,10 +538,23 @@ fun ZhihuMain(
                 navController = detailNavController,
                 startDestination = EmptyDetail,
                 modifier = modifier.testTag("detail_pane"),
-                enterTransition = { slideInHorizontally(tween(300)) { it } },
-                exitTransition = { ExitTransition.None },
-                popEnterTransition = { EnterTransition.None },
-                popExitTransition = { slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300)) },
+                // 共享轴式转场：新页面从右侧滑入，旧页面同时左移 1/4 并淡出，形成层叠纵深。
+                enterTransition = {
+                    slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { it } +
+                        fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
+                },
+                exitTransition = {
+                    slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { -it / 4 } +
+                        fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
+                },
+                popEnterTransition = {
+                    slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { -it / 4 } +
+                        fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
+                },
+                popExitTransition = {
+                    slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { it } +
+                        fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
+                },
             ) {
                 composable<EmptyDetail> {
                     EmptyDetailPane()
@@ -595,13 +611,13 @@ fun ZhihuMain(
                                 ?.bottomDestination
                             AnimatedVisibility(
                                 visible = showMainNavigation && (!autoHideBottomBar || isBottomBarVisible),
-                                enter = slideInVertically(tween(200)) { it },
-                                exit = slideOutVertically(tween(200)) { it },
+                                enter = slideInVertically(tween(Motion.DURATION_SHORT)) { it },
+                                exit = slideOutVertically(tween(Motion.DURATION_SHORT)) { it },
                             ) {
                                 NavigationBar(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
                                     modifier = Modifier.height(
-                                        64.dp + bottomPadding,
+                                        ZhihuSizes.NavigationBarHeight + bottomPadding,
                                     ),
                                 ) {
                                     @Composable
@@ -614,6 +630,7 @@ fun ZhihuMain(
                                         NavigationBarItem(
                                             currentBottomDestination?.let { it::class == destination::class } == true,
                                             onClick = {
+                                                haptics.tick()
                                                 isReadingPlayerExpandedByUser = false
                                                 if (currentBottomDestination?.let { it::class == destination::class } != true) {
                                                     navigateTopLevel(destination)
@@ -623,20 +640,11 @@ fun ZhihuMain(
                                             },
                                             label = { Text(label) },
                                             alwaysShowLabel = true,
-                                            colors = if (!isDarkTheme) {
-                                                NavigationBarItemDefaults.colors().copy(
-                                                    selectedIndicatorColor =
-                                                        MaterialTheme.colorScheme.secondaryContainer
-                                                            .copy(alpha = 0.92f)
-                                                            .compositeOver(MaterialTheme.colorScheme.secondary),
-                                                )
-                                            } else {
-                                                NavigationBarItemDefaults.colors()
-                                            },
+                                            colors = NavigationBarItemDefaults.colors(),
                                             icon = {
                                                 Icon(icon, contentDescription = label)
                                             },
-                                            modifier = Modifier.padding(top = 4.dp).testTag(tag),
+                                            modifier = Modifier.testTag(tag),
                                         )
                                     }
 
@@ -696,17 +704,22 @@ fun ZhihuMain(
                                 }
                             },
                             startDestination = MainTabs,
+                            // 与详情 NavHost 共用同一套共享轴参数，保证前进/返回两个方向手感一致。
                             enterTransition = {
-                                slideInHorizontally(tween(300)) { it }
+                                slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { it } +
+                                    fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
                             },
                             exitTransition = {
-                                ExitTransition.None
+                                slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { -it / 4 } +
+                                    fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
                             },
                             popEnterTransition = {
-                                EnterTransition.None
+                                slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { -it / 4 } +
+                                    fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
                             },
                             popExitTransition = {
-                                slideOutHorizontally(tween(300)) { it } + fadeOut(tween(300))
+                                slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { it } +
+                                    fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
                             },
                         ) {
                             composable<MainTabs> {
@@ -777,10 +790,10 @@ fun ZhihuMain(
                                     if (initialState.destination.hasRoute<Search>()) {
                                         EnterTransition.None
                                     } else {
-                                        fadeIn(animationSpec = tween(durationMillis = 240)) +
-                                            slideInVertically(animationSpec = tween(durationMillis = 280)) { it / 16 } +
+                                        fadeIn(animationSpec = tween(Motion.DURATION_SHORT)) +
+                                            slideInVertically(animationSpec = tween(Motion.DURATION_MEDIUM)) { it / 16 } +
                                             scaleIn(
-                                                animationSpec = tween(durationMillis = 280),
+                                                animationSpec = tween(Motion.DURATION_MEDIUM),
                                                 initialScale = 0.985f,
                                             )
                                     }
@@ -789,10 +802,10 @@ fun ZhihuMain(
                                     if (targetState.destination.hasRoute<Search>()) {
                                         ExitTransition.None
                                     } else {
-                                        fadeOut(animationSpec = tween(durationMillis = 180)) +
-                                            slideOutVertically(animationSpec = tween(durationMillis = 220)) { it / 20 } +
+                                        fadeOut(animationSpec = tween(Motion.DURATION_SHORT)) +
+                                            slideOutVertically(animationSpec = tween(Motion.DURATION_SHORT)) { it / 20 } +
                                             scaleOut(
-                                                animationSpec = tween(durationMillis = 220),
+                                                animationSpec = tween(Motion.DURATION_SHORT),
                                                 targetScale = 0.985f,
                                             )
                                     }
@@ -893,8 +906,8 @@ fun ZhihuMain(
                     },
                 ).fillMaxWidth(),
             visible = isReadingPlayerExpanded,
-            enter = fadeIn(tween(220)) + scaleIn(tween(220), initialScale = 0.92f),
-            exit = fadeOut(tween(160)) + scaleOut(tween(160), targetScale = 0.92f),
+            enter = fadeIn(tween(Motion.DURATION_SHORT)) + scaleIn(tween(Motion.DURATION_SHORT), initialScale = 0.92f),
+            exit = fadeOut(tween(Motion.DURATION_SHORT)) + scaleOut(tween(Motion.DURATION_SHORT), targetScale = 0.92f),
         ) {
             ReadingPlayerBar(
                 state = readingPlayerState,
@@ -920,8 +933,8 @@ fun ZhihuMain(
 
         AnimatedVisibility(
             visible = readingPlayerState.hasSession && !isReadingPlayerExpanded,
-            enter = fadeIn(tween(220)),
-            exit = fadeOut(tween(160)),
+            enter = fadeIn(tween(Motion.DURATION_SHORT)),
+            exit = fadeOut(tween(Motion.DURATION_SHORT)),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 CompactReadingPlayerButton(

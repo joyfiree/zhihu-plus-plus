@@ -17,8 +17,6 @@
 
 package com.github.zly2006.zhihu.ui.components
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,7 +29,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -39,9 +36,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.rememberObservedSetting
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_SHOW_CONTENT_END_MARKER
 import com.github.zly2006.zhihu.ui.subscreens.PREF_SHOW_CONTENT_END_MARKER
@@ -107,9 +104,9 @@ private fun <T> LazyItemScope.PaginatedListItem(
 ) {
     Box(
         modifier = Modifier.animateItem(
-            fadeInSpec = spring(stiffness = Spring.StiffnessMediumLow),
-            fadeOutSpec = spring(stiffness = Spring.StiffnessMediumLow),
-            placementSpec = if (animateItemPlacement) spring(stiffness = Spring.StiffnessMediumLow) else null,
+            fadeInSpec = Motion.springMedium(),
+            fadeOutSpec = Motion.springMedium(),
+            placementSpec = if (animateItemPlacement) Motion.springMedium() else null,
         ),
     ) {
         itemContent(item)
@@ -181,17 +178,7 @@ fun <T> PaginatedList(
         item {
             if (isEnd()) {
                 if (!showContentEndMarker) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "已经到底啦",
-                            textAlign = TextAlign.Center,
-                        )
-                    }
+                    ZhihuListFooter(text = "已经到底啦")
                 }
             } else {
                 footer?.invoke(listState)

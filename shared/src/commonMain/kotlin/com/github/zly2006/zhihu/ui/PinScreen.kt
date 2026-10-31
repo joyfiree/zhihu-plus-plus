@@ -53,7 +53,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -104,11 +103,13 @@ import com.github.zly2006.zhihu.ui.components.ContentEndMarker
 import com.github.zly2006.zhihu.ui.components.PageTurnTarget
 import com.github.zly2006.zhihu.ui.components.ShareDialog
 import com.github.zly2006.zhihu.ui.components.VotersSheet
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.getShareText
 import com.github.zly2006.zhihu.ui.components.handleShareAction
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.rememberShareActionExecutor
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.util.formatCompactCount
 import com.github.zly2006.zhihu.util.jsonObject
 import com.github.zly2006.zhihu.util.twoDigitString
@@ -282,7 +283,7 @@ fun PinScreen(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            ZhihuTopAppBar(
                 title = {
                     val titleAuthor = pinContent?.author?.name
                     Text(
@@ -573,7 +574,7 @@ private fun PinContent(
                 Surface(
                     shape = RoundedCornerShape(18.dp),
                     color = if (pin.author.isFollowing) {
-                        MaterialTheme.colorScheme.surfaceVariant
+                        MaterialTheme.colorScheme.surfaceContainerHighest
                     } else {
                         MaterialTheme.colorScheme.primaryContainer
                     },
@@ -680,7 +681,7 @@ private fun PinContent(
                         }
                     },
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
                 ),
             ) {
                 Column(
@@ -819,7 +820,7 @@ private fun PinPollCard(
             .fillMaxWidth()
             .testTag(PIN_SCREEN_POLL_CARD_TAG),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
         ),
     ) {
         Column(
@@ -884,11 +885,11 @@ private fun PinPollResultRow(
     } else {
         0f
     }
-    val rowShape = RoundedCornerShape(12.dp)
+    val rowShape = ZhihuShapeTokens.Thumbnail
     val indicatorColor = if (option.isSelected) {
         MaterialTheme.colorScheme.primaryContainer
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.surfaceContainerHighest
     }
     Surface(
         modifier = Modifier
@@ -898,7 +899,7 @@ private fun PinPollResultRow(
         color = if (option.isSelected) {
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
         } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+            MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.35f)
         },
     ) {
         Row(

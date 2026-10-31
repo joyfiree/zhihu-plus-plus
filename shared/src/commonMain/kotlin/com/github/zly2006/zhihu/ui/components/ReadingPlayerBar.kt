@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Check
@@ -79,6 +78,7 @@ import com.github.zly2006.zhihu.platform.exportTestTagsForUiAutomation
 import com.github.zly2006.zhihu.reading.ReadingPlaybackStatus
 import com.github.zly2006.zhihu.reading.ReadingPlayerState
 import com.github.zly2006.zhihu.reading.ReadingQueueItem
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -128,7 +128,7 @@ fun ReadingPlayerBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(READING_PLAYER_BAR_TAG),
-            shape = RoundedCornerShape(28.dp),
+            shape = ZhihuShapeTokens.Dialog,
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
             tonalElevation = 3.dp,
             shadowElevation = 4.dp,

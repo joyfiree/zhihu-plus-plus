@@ -17,6 +17,7 @@
 
 package com.github.zly2006.zhihu.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -39,7 +40,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +50,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.zly2006.zhihu.data.Collection
@@ -59,8 +60,11 @@ import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.ui.components.CreateCollectionDialog
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 import com.github.zly2006.zhihu.viewmodel.CollectionsViewModel
 import com.github.zly2006.zhihu.viewmodel.rememberPaginationEnvironment
 import kotlinx.coroutines.launch
@@ -102,7 +106,7 @@ fun CollectionScreen(
             .fillMaxSize()
             .padding(contentPadding),
         topBar = {
-            TopAppBar(
+            ZhihuTopAppBar(
                 title = {
                     Text(
                         text = "我的收藏夹",
@@ -154,9 +158,13 @@ fun CollectionScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
+                    .padding(horizontal = ZhihuSpacing.ScreenGutter, vertical = ZhihuSpacing.Small)
                     .testTag("collection_screen_item_${collection.id}"),
-                elevation = CardDefaults.cardElevation(4.dp),
+                shape = ZhihuShapeTokens.Card,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = ZhihuSpacing.None),
                 onClick = {
                     navigator.onNavigate(CollectionContent(collection.id))
                 },
@@ -164,14 +172,37 @@ fun CollectionScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = ZhihuSpacing.Large, vertical = ZhihuSpacing.Medium),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = collection.title,
-                        style = MaterialTheme.typography.titleMedium,
+                    Column(
                         modifier = Modifier.weight(1f),
-                    )
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            text = collection.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        if (collection.description.isNotBlank()) {
+                            Text(
+                                text = collection.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Text(
+                            text = buildString {
+                                append("${collection.itemCount} 条内容")
+                                if (collection.followerCount > 0) append(" · ${collection.followerCount} 人关注")
+                                if (collection.likeCount > 0) append(" · ${collection.likeCount} 赞")
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     if (!collection.isDefault) {
                         IconButton(
                             onClick = {

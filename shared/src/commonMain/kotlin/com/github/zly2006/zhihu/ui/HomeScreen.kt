@@ -46,7 +46,6 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.AccountCircle
@@ -149,6 +148,8 @@ import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.feedKeywordExtractionAvailable
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
+import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_FAB_OPACITY
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FAB_OPACITY
 import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
@@ -258,7 +259,7 @@ fun HomeScreen(
     var showCreateMenu by remember { mutableStateOf(false) }
     val createMenuBlurRadius by animateDpAsState(
         targetValue = if (showCreateMenu) 8.dp else 0.dp,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = tween(Motion.DURATION_SHORT),
         label = "createMenuBlurRadius",
     )
 
@@ -531,9 +532,9 @@ fun HomeScreen(
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(64.dp)
+                                    .height(56.dp)
                                     .testTag(HOME_SEARCH_BUTTON_TAG),
-                                shape = RoundedCornerShape(32.dp),
+                                shape = ZhihuShapeTokens.Pill,
                                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                 onClick = {
                                     navigator.onNavigate(
@@ -604,7 +605,7 @@ fun HomeScreen(
                         }
                     }
                 } else {
-                    Surface(shadowElevation = 4.dp) {
+                    Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 1.dp) {
                         Row(
                             modifier = Modifier
                                 .testTag(HOME_TOP_ACTIONS_TAG)
@@ -615,10 +616,10 @@ fun HomeScreen(
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(36.dp)
+                                    .height(48.dp)
                                     .testTag(HOME_SEARCH_BUTTON_TAG),
-                                shape = RoundedCornerShape(24.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = ZhihuShapeTokens.Pill,
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
                                 onClick = {
                                     navigator.onNavigate(
                                         Search(query = ""),
@@ -969,8 +970,8 @@ fun HomeScreen(
 
         AnimatedVisibility(
             visible = showCreateMenu,
-            enter = fadeIn(animationSpec = tween(durationMillis = 120)),
-            exit = fadeOut(animationSpec = tween(durationMillis = 120)),
+            enter = fadeIn(animationSpec = tween(Motion.DURATION_SHORT)),
+            exit = fadeOut(animationSpec = tween(Motion.DURATION_SHORT)),
         ) {
             Box(
                 modifier = Modifier
@@ -996,27 +997,27 @@ fun HomeScreen(
         ) {
             AnimatedVisibility(
                 visible = showCreateMenu,
-                enter = fadeIn(animationSpec = tween(durationMillis = 120)) +
+                enter = fadeIn(animationSpec = tween(Motion.DURATION_SHORT)) +
                     scaleIn(
                         initialScale = 0.92f,
                         transformOrigin = TransformOrigin(1f, 1f),
-                        animationSpec = tween(durationMillis = 180),
+                        animationSpec = tween(Motion.DURATION_SHORT),
                     ) +
-                    slideInVertically(animationSpec = tween(durationMillis = 180)) { it / 8 },
-                exit = fadeOut(animationSpec = tween(durationMillis = 90)) +
+                    slideInVertically(animationSpec = tween(Motion.DURATION_SHORT)) { it / 8 },
+                exit = fadeOut(animationSpec = tween(Motion.DURATION_SHORT)) +
                     scaleOut(
                         targetScale = 0.96f,
                         transformOrigin = TransformOrigin(1f, 1f),
-                        animationSpec = tween(durationMillis = 120),
+                        animationSpec = tween(Motion.DURATION_SHORT),
                     ) +
-                    slideOutVertically(animationSpec = tween(durationMillis = 120)) { it / 8 },
+                    slideOutVertically(animationSpec = tween(Motion.DURATION_SHORT)) { it / 8 },
             ) {
                 Column(horizontalAlignment = Alignment.End) {
                     Surface(
                         modifier = Modifier
                             .width(180.dp)
                             .testTag(HOME_CREATE_MENU_TAG),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = ZhihuShapeTokens.Card,
                         color = MaterialTheme.colorScheme.surfaceContainer,
                         tonalElevation = 6.dp,
                         shadowElevation = 6.dp,

@@ -273,7 +273,7 @@ fun KeywordDetailDialog(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     ),
                 ) {
                     Column(
@@ -389,7 +389,7 @@ fun KeywordInfoItem(
                 progress = { normalizedWeight },
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             )
         }
     }
