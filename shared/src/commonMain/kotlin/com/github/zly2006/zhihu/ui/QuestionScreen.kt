@@ -18,7 +18,9 @@
 package com.github.zly2006.zhihu.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,7 +50,6 @@ import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Share
@@ -59,7 +60,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -79,7 +79,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -107,12 +106,14 @@ import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.platform.rememberZhihuWebUrlOpener
 import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
+import com.github.zly2006.zhihu.ui.components.BounceOnChange
 import com.github.zly2006.zhihu.ui.components.CommentScreenComponent
 import com.github.zly2006.zhihu.ui.components.FeedCard
 import com.github.zly2006.zhihu.ui.components.FeedPullToRefresh
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ShareDialog
+import com.github.zly2006.zhihu.ui.components.ZhihuFilterChip
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.getShareText
 import com.github.zly2006.zhihu.ui.components.handleShareAction
@@ -120,6 +121,7 @@ import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.rememberShareActionExecutor
 import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.viewmodel.ContentLoadEnvironment
 import com.github.zly2006.zhihu.viewmodel.addReadHistory
 import com.github.zly2006.zhihu.viewmodel.feed.QuestionFeedViewModel
@@ -196,6 +198,7 @@ fun QuestionScreen(
     var showComments by rememberSaveable(question.questionId) { mutableStateOf(false) }
     var showShareDialog by remember { mutableStateOf(false) }
     val userMessages = rememberUserMessageSink()
+    val haptics = rememberHapticController()
     var isQuestionDetailExpanded by rememberSaveable(question.questionId) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val questionContentPlainText = remember(viewModel.questionDetail?.detail.orEmpty()) {
@@ -297,9 +300,11 @@ fun QuestionScreen(
                                         scope.launch {
                                             val nextFollowing = !isFollowing
                                             viewModel.followQuestion(paginationEnvironment, nextFollowing)
+                                            // 触觉在状态翻转的同一帧内发出：用户按下与「已关注」的视觉确认同时到达。
+                                            haptics.confirm()
                                             isFollowing = nextFollowing
-                                            followerCount = (followerCount + if (isFollowing) 1 else -1).coerceAtLeast(0)
-                                            userMessages.showShortMessage(if (isFollowing) "已关注问题" else "已取消关注问题")
+                                            followerCount = (followerCount + if (nextFollowing) 1 else -1).coerceAtLeast(0)
+                                            userMessages.showShortMessage(if (nextFollowing) "已关注问题" else "已取消关注问题")
                                         }
                                     },
                                     onWriteAnswerClick = {
@@ -555,7 +560,7 @@ private fun QuestionAnimatedBodyHeader(
                             fontWeight = FontWeight.Medium,
                         )
                         Spacer(Modifier.weight(1f))
-                        FilterChip(
+                        ZhihuFilterChip(
                             selected = currentSort == "default",
                             onClick = { onSortChange("default") },
                             modifier =
@@ -564,7 +569,7 @@ private fun QuestionAnimatedBodyHeader(
                                 },
                             label = { Text("默认") },
                         )
-                        FilterChip(
+                        ZhihuFilterChip(
                             selected = currentSort == "updated",
                             onClick = { onSortChange("updated") },
                             modifier =
@@ -718,7 +723,7 @@ private fun QuestionDetailWithTopics(
         if (topics.isNotEmpty()) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 topics.forEach { topic ->
-                    FilterChip(
+                    ZhihuFilterChip(
                         selected = false,
                         onClick = { onTopicClick(topic) },
                         label = { Text("# ${topic.name}") },
@@ -737,13 +742,17 @@ private fun QuestionDetailOverlayMask(alpha: Float, modifier: Modifier = Modifie
             modifier
                 .height(QUESTION_DETAIL_MASK_HEIGHT)
                 .graphicsLayer { this.alpha = alpha }
-                .blur(12.dp)
+                // 这里原先叠了一层 blur(12dp) 去「柔化」渐变。垂直渐变本身已经是连续过渡，
+                // 再叠一层实时模糊只会让这个遮罩每帧付一次 GPU 模糊开销（在低端机上直接掉帧），
+                // 视觉上几乎没有差别，因此移除；需要更柔的话应该增加渐变 stop，而不是加模糊。
                 .background(
                     brush =
                         Brush.verticalGradient(
+                            // 四档 stop：末尾多一档 0.92 → 1.0，替代原来模糊带来的收边过渡。
                             listOf(
                                 Color.Transparent,
-                                surfaceColor.copy(alpha = 0.7f),
+                                surfaceColor.copy(alpha = 0.55f),
+                                surfaceColor.copy(alpha = 0.92f),
                                 surfaceColor,
                             ),
                         ),
@@ -756,6 +765,12 @@ private fun QuestionDetailToggleButton(
     isExpanded: Boolean,
     onClick: () -> Unit,
 ) {
+    // 展开/收起时箭头旋转 180°：位置不跳（同一个图标原地转），用户能顺着箭头判断「刚才是哪个方向的变化」。
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = Motion.springSnappy(),
+        label = "question_detail_arrow",
+    )
     TextButton(
         onClick = onClick,
         modifier =
@@ -765,8 +780,9 @@ private fun QuestionDetailToggleButton(
                 .testTag(QUESTION_DETAIL_TOGGLE_TAG),
     ) {
         Icon(
-            imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+            imageVector = Icons.Filled.ExpandMore,
             contentDescription = null,
+            modifier = Modifier.graphicsLayer { rotationZ = arrowRotation },
         )
         Spacer(Modifier.width(4.dp))
         Text(if (isExpanded) "收起详情" else "展开详情")
@@ -793,6 +809,26 @@ private fun QuestionPrimaryActions(
             Spacer(Modifier.width(8.dp))
             Text("写回答")
         }
+        // 关注按钮：颜色从 tonal 过渡到 tertiary 容器，图标在「已关注」瞬间回弹一次。
+        // 宽度不做动画：按钮本身是 weight(1f)，宽度由行布局决定，动它只会产生一个无效动画。
+        val followContainerColor by animateColorAsState(
+            targetValue = if (isFollowing) {
+                MaterialTheme.colorScheme.tertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            },
+            animationSpec = Motion.fadeTween(),
+            label = "follow_container",
+        )
+        val followContentColor by animateColorAsState(
+            targetValue = if (isFollowing) {
+                MaterialTheme.colorScheme.onTertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSecondaryContainer
+            },
+            animationSpec = Motion.fadeTween(),
+            label = "follow_content",
+        )
         FilledTonalButton(
             onClick = onFollowClick,
             modifier =
@@ -800,19 +836,17 @@ private fun QuestionPrimaryActions(
                     selected = isFollowing
                 },
             colors =
-                if (isFollowing) {
-                    ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                } else {
-                    ButtonDefaults.filledTonalButtonColors()
-                },
+                ButtonDefaults.filledTonalButtonColors(
+                    containerColor = followContainerColor,
+                    contentColor = followContentColor,
+                ),
         ) {
-            Icon(
-                imageVector = if (isFollowing) Icons.Filled.Check else Icons.Filled.Add,
-                contentDescription = if (isFollowing) "取消关注" else "关注问题",
-            )
+            BounceOnChange(trigger = isFollowing) {
+                Icon(
+                    imageVector = if (isFollowing) Icons.Filled.Check else Icons.Filled.Add,
+                    contentDescription = if (isFollowing) "取消关注" else "关注问题",
+                )
+            }
             Spacer(Modifier.width(8.dp))
             Text(if (isFollowing) "已关注" else "关注问题")
         }

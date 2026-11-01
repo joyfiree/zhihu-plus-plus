@@ -38,7 +38,6 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwitchAccount
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -82,6 +81,7 @@ import com.github.zly2006.zhihu.navigation.requestLoginNavigation
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
@@ -253,7 +253,7 @@ fun IdentityManagementScreen() {
             .fillMaxSize()
             .testTag(IDENTITY_MANAGEMENT_SCREEN_TAG)
             .nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ZhihuLargeTopAppBar(
                 title = { Text("身份管理") },
@@ -424,7 +424,7 @@ fun IdentityManagementScreen() {
     }
 
     switchTarget?.let { account ->
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = {
                 if (!state.busy) switchTarget = null
             },
@@ -490,7 +490,7 @@ fun IdentityManagementScreen() {
     }
 
     if (showCreateDialog) {
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = {
                 if (!state.busy) showCreateDialog = false
             },
@@ -576,7 +576,7 @@ fun IdentityManagementScreen() {
     }
 
     switchLoginAccount?.let { account ->
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = { switchLoginAccount = null },
             title = { Text("切换登录账号") },
             text = { Text("将切换到“${account.session.profile?.name ?: account.session.username}”。") },
@@ -609,7 +609,7 @@ fun IdentityManagementScreen() {
     }
 
     removeLoginAccount?.let { account ->
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = { removeLoginAccount = null },
             title = { Text("移除登录账号") },
             text = { Text("将从本机删除“${account.session.profile?.name ?: account.session.username}”的登录凭据，不会注销知乎账号。") },

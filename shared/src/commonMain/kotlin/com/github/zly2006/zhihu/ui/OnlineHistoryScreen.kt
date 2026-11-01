@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,6 +50,7 @@ import com.github.zly2006.zhihu.ui.TopLevelReselectAction
 import com.github.zly2006.zhihu.ui.components.FeedCard
 import com.github.zly2006.zhihu.ui.components.FeedPullToRefresh
 import com.github.zly2006.zhihu.ui.components.PaginatedList
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
@@ -163,7 +163,7 @@ fun OnlineHistoryScreen(
         },
     ) { innerPadding ->
         if (showClearHistoryDialog) {
-            AlertDialog(
+            ZhihuAlertDialog(
                 onDismissRequest = { showClearHistoryDialog = false },
                 title = { Text("确认清除历史记录") },
                 text = { Text("此操作会清除当前账号的在线和本地的全部历史记录。") },

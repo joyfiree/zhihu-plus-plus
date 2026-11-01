@@ -60,7 +60,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.buildAnnotatedString
@@ -88,6 +87,7 @@ import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ZhihuCenterAlignedTopAppBar
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.util.formatRelativeTime
 import com.github.zly2006.zhihu.viewmodel.MobileNotificationCategory
 import com.github.zly2006.zhihu.viewmodel.NotificationEnvironment
@@ -154,7 +154,7 @@ fun NotificationScreen() {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.background,
                 ),
             )
         },
@@ -196,7 +196,7 @@ fun NotificationScreen() {
                     item(key = "notification_messages_divider") {
                         HorizontalDivider(
                             thickness = 8.dp,
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
+                            color = zhihuSurfaces.card,
                         )
                     }
                 },
@@ -405,15 +405,18 @@ fun NotificationItemView(
 ) {
     val navigator = LocalNavigator.current
     val backgroundColor = if (notification.isRead) {
-        Color.Transparent
+        zhihuSurfaces.card
     } else {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
     }
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(ZhihuShapeTokens.Card)
             .clickable(onClick = onClick),
+        shape = ZhihuShapeTokens.Card,
         color = backgroundColor,
     ) {
         Column(

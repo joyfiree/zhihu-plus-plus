@@ -39,7 +39,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -64,6 +63,7 @@ import androidx.core.content.ContextCompat
 import com.github.zly2006.zhihu.QRCodeScanActivity.Companion.LOGIN_PREFIX
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.theme.ZhihuTheme
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.util.clipboardManager
 import com.github.zly2006.zhihu.util.enableEdgeToEdgeCompat
 import com.journeyapps.barcodescanner.ScanContract
@@ -248,7 +248,7 @@ private fun QRResultDialog(
     onCopy: (String) -> Unit,
     onConfirm: (String) -> Unit,
 ) {
-    AlertDialog(
+    ZhihuAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text("扫描结果")

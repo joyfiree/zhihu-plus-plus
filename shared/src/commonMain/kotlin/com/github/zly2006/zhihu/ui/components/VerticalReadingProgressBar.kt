@@ -123,12 +123,17 @@ fun VerticalReadingProgressBar(
         }
     }
 
-    val alpha by animateFloatAsState(
+    val alphaState = animateFloatAsState(
         targetValue = if (shouldKeepVisible) 1f else 0f,
         animationSpec = tween(durationMillis = if (shouldKeepVisible) Motion.DURATION_SHORT else Motion.DURATION_MEDIUM),
         label = "readingProgressBarAlpha",
     )
-    if (alpha <= 0f && !isDragging) return
+    val alpha by alphaState
+    // 可见性只在真正翻转时重组：把淡出期间每帧变化的 float 收敛成一个布尔，避免按帧重组整条进度条。
+    val barVisible by remember {
+        derivedStateOf { alphaState.value > 0.001f || isDragging }
+    }
+    if (!barVisible) return
 
     val resolvedTrackColor = if (trackColor == Color.Unspecified) {
         MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)

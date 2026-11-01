@@ -69,7 +69,7 @@ object AndroidThemeSettings {
             ThemeMode.SYSTEM
         }
         return ThemeSnapshot(
-            useDynamicColor = settings.getBoolean("useDynamicColor", true),
+            useDynamicColor = settings.getBoolean("useDynamicColor", false),
             customColor = settings.getInt("customThemeColor", 0xFF2196F3.toInt()),
             backgroundColorLight = settings.getInt("backgroundColorLight", 0xFFFFFFFF.toInt()),
             backgroundColorDark = settings.getInt("backgroundColorDark", 0xFF121212.toInt()),

@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -67,6 +66,7 @@ import com.github.zly2006.zhihu.data.FeedDisplayItem
 import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.ui.components.DraggableRefreshButton
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.viewmodel.CollectionContentEnvironment
 import com.github.zly2006.zhihu.viewmodel.CollectionContentViewModel
@@ -380,7 +380,7 @@ fun CollectionBrowseScreen(
 
     collectionPendingDeletion?.let { collection ->
         val isDeleting = collectionsViewModel.deletingCollectionId != null
-        AlertDialog(
+        ZhihuAlertDialog(
             modifier = Modifier.testTag("collection_browse_delete_dialog_${collection.id}"),
             onDismissRequest = {
                 if (!isDeleting) {

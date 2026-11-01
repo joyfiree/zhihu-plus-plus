@@ -33,7 +33,7 @@ data class ThemeSnapshot(
 )
 
 object ThemeManager {
-    private val useDynamicColor = mutableStateOf(true)
+    private val useDynamicColor = mutableStateOf(false)
     private val customColorInt = mutableIntStateOf(ZhihuSeedColor.toArgb())
     private val backgroundColorLight = mutableIntStateOf(0xFFFFFFFF.toInt())
     private val backgroundColorDark = mutableIntStateOf(0xFF121212.toInt())

@@ -93,6 +93,7 @@ import com.github.zly2006.zhihu.ui.components.FeedCard
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ShareDialog
+import com.github.zly2006.zhihu.ui.components.ZhihuFilterChip
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.getShareText
 import com.github.zly2006.zhihu.ui.components.handleShareAction
@@ -532,7 +533,7 @@ fun TopicScreen(topic: Topic) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             TopicDiscussionSort.entries.forEach { sort ->
-                                androidx.compose.material3.FilterChip(
+                                ZhihuFilterChip(
                                     selected = viewModel.discussionSort == sort,
                                     onClick = { viewModel.selectDiscussionSort(environment, sort) },
                                     label = { Text(sort.title) },
@@ -547,7 +548,7 @@ fun TopicScreen(topic: Topic) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             TopicIdeasSort.entries.forEach { sort ->
-                                androidx.compose.material3.FilterChip(
+                                ZhihuFilterChip(
                                     selected = viewModel.ideasSort == sort,
                                     onClick = { viewModel.selectIdeasSort(environment, sort) },
                                     label = { Text(sort.title) },

@@ -37,7 +37,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -74,6 +73,7 @@ import com.github.zly2006.zhihu.navigation.Person
 import com.github.zly2006.zhihu.platform.isBlocklistNlpSupported
 import com.github.zly2006.zhihu.platform.platformName
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
 import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
 import com.github.zly2006.zhihu.util.Log
@@ -204,7 +204,7 @@ fun BlocklistSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ZhihuLargeTopAppBar(
                 title = { Text("屏蔽管理") },
@@ -788,7 +788,7 @@ fun AddKeywordDialog(
     var caseSensitive by remember { mutableStateOf(false) }
     var isRegex by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    ZhihuAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("添加屏蔽关键词") },
         text = {
@@ -873,7 +873,7 @@ fun AddUserDialog(
     var userId by remember { mutableStateOf("") }
     var userName by remember { mutableStateOf("") }
 
-    AlertDialog(
+    ZhihuAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -1004,7 +1004,7 @@ fun BlockedTopicsList(
     }
 
     if (showClearConfirmDialog) {
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = { showClearConfirmDialog = false },
             title = { Text("确认清空") },
             text = { Text("确定要清空所有屏蔽主题吗？此操作不可撤销。") },
@@ -1042,7 +1042,7 @@ fun AddTopicDialog(
     var topicId by remember { mutableStateOf("") }
     var topicName by remember { mutableStateOf("") }
 
-    AlertDialog(
+    ZhihuAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("添加屏蔽主题") },
         text = {

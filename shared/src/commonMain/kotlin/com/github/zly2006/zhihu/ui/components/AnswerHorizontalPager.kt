@@ -63,9 +63,14 @@ fun AnswerHorizontalOverscroll(
     val haptics = rememberHapticController()
     val coroutineScope = rememberCoroutineScope()
 
-    val maxOverscrollPx = with(density) { MAX_HORIZONTAL_OVERSCROLL_DP.dp.toPx() }
+    val maxOverscrollPx = with(density) {
+        Motion.Gesture.HORIZONTAL_OVERSCROLL_MAX_DP.dp
+            .toPx()
+    }
     val triggerThresholdPx = with(density) {
-        (HORIZONTAL_TRIGGER_THRESHOLD_DP / normalizedAnswerSwitchSensitivity(answerSwitchSensitivity)).dp.toPx()
+        (Motion.Gesture.HORIZONTAL_OVERSCROLL_TRIGGER_DP / normalizedAnswerSwitchSensitivity(answerSwitchSensitivity))
+            .dp
+            .toPx()
     }
 
     val overscrollOffset = remember { Animatable(0f) }
@@ -130,7 +135,7 @@ fun AnswerHorizontalOverscroll(
                         val newOffset = dampedOverscrollOffset(
                             rawDelta = rawDragAccumulator,
                             maxOverscrollPx = maxOverscrollPx,
-                            dampingFactor = HORIZONTAL_DAMPING_FACTOR,
+                            dampingFactor = Motion.Gesture.HORIZONTAL_OVERSCROLL_DAMPING,
                         )
                         coroutineScope.launch { overscrollOffset.snapTo(newOffset) }
                         if (!hasTriggeredHaptic && abs(newOffset) >= triggerThresholdPx) {
@@ -187,11 +192,4 @@ fun AnswerHorizontalOverscroll(
     }
 }
 
-/** 横向手势的最大可视位移（dp）；水平可拖动空间更大，取比纵向更宽的档位。 */
-private const val MAX_HORIZONTAL_OVERSCROLL_DP = 300f
-
-/** 横向触发切换的位移阈值（dp），实际阈值再按 answerSwitchSensitivity 线性缩放。 */
-private const val HORIZONTAL_TRIGGER_THRESHOLD_DP = 46f
-
-/** tanh 阻尼系数：越大位移增长越慢、手感越「拉不动」。 */
-private const val HORIZONTAL_DAMPING_FACTOR = 1.2f
+/** 横向手势的物理常量已上收到 `Motion.Gesture`，此处不再保留本地副本，避免两个方向手感分叉。 */

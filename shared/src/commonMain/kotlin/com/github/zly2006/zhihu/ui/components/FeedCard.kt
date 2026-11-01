@@ -18,8 +18,10 @@
 package com.github.zly2006.zhihu.ui.components
 
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +61,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -81,6 +85,8 @@ import com.github.zly2006.zhihu.ui.LocalSelectedContentDestination
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
+import com.github.zly2006.zhihu.ui.designsystem.pressScale
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FONT_SIZE
 import com.github.zly2006.zhihu.ui.subscreens.PREF_LINE_HEIGHT
 import com.github.zly2006.zhihu.util.parseEmphasizedHtmlTextWithTheme
@@ -100,7 +106,7 @@ import com.github.zly2006.zhihu.viewmodel.QUALITY_FILTER_MODE_PREFERENCE_KEY
  * 修改这个组件时要同步复核 `showFeedThumbnail`、`feedCardStyle`、`duo3_card_appearance`、
  * `duo3_card_layout` 和 `duo3_card_large_title` 对各信息流入口的影响。
  */
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun FeedCard(
     item: FeedDisplayItem,
@@ -126,7 +132,7 @@ fun FeedCard(
         settings.getBoolean("showFeedThumbnail", true)
     }
     val feedCardStyle = remember {
-        settings.getString("feedCardStyle", "divider")
+        settings.getString("feedCardStyle", "card")
     }
     val duo3CardAppearance = remember { settings.getBoolean("duo3_card_appearance", false) }
     val duo3CardLayout = remember { settings.getBoolean("duo3_card_layout", false) }
@@ -137,6 +143,10 @@ fun FeedCard(
         .orEmpty()
     val showPinImages = showFeedThumbnail && pinImages.isNotEmpty() && !item.isFiltered
     val isSelected = item.navDestination != null && item.navDestination == selectedDestination
+    val cardInteraction = remember {
+        androidx.compose.foundation.interaction
+            .MutableInteractionSource()
+    }
     val selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
     val performClick: (FeedDisplayItem) -> Unit = { clickedItem ->
         val destination = clickedItem.navDestination?.withReadingQueueSource(readingQueueSourceId)
@@ -153,6 +163,13 @@ fun FeedCard(
         }
     }
     if (feedCardStyle == "divider") {
+        // 分割线样式没有卡片容器，按压反馈只能作用在内容区本身：
+        // 与卡片样式共用同一套参数（0.975x + springSnappy），保证两种外观的手感一致；
+        // interactionSource 必须与 combinedClickable 共用，否则 pressScale 收不到按下事件。
+        val dividerInteraction = remember {
+            androidx.compose.foundation.interaction
+                .MutableInteractionSource()
+        }
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -163,8 +180,13 @@ fun FeedCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { performClick(item) }
-                    .padding(horizontal = horizontalPadding, vertical = ZhihuSpacing.Medium),
+                    .pressScale(dividerInteraction)
+                    .combinedClickable(
+                        interactionSource = dividerInteraction,
+                        indication = ripple(),
+                        onClick = { performClick(item) },
+                        onLongClick = { showMenu = true },
+                    ).padding(horizontal = horizontalPadding, vertical = ZhihuSpacing.Medium),
             ) {
                 FeedCardContent(
                     item = item,
@@ -186,46 +208,190 @@ fun FeedCard(
             modifier = modifier
                 .fillMaxWidth()
                 .semantics { selected = isSelected }
-                .then(if (showPinImages || duo3CardLayout) Modifier else Modifier.heightIn(max = maxHeight))
-                .padding(horizontal = horizontalPadding, vertical = ZhihuSpacing.Small),
+                .padding(horizontal = horizontalPadding, vertical = 5.dp),
         ) {
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = if (isSelected) {
                         selectedContainerColor
                     } else if (duo3CardAppearance) {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
+                        zhihuSurfaces.card
                     } else {
-                        MaterialTheme.colorScheme.surfaceContainerLow
+                        zhihuSurfaces.card
                     },
                 ),
-                shape = if (duo3CardAppearance) ZhihuShapeTokens.CardExpressive else ZhihuShapeTokens.Card,
+                shape = ZhihuShapeTokens.FeedCard,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { performClick(item) },
+                    .pressScale(cardInteraction)
+                    .combinedClickable(
+                        interactionSource = cardInteraction,
+                        indication = ripple(),
+                        onClick = { performClick(item) },
+                        onLongClick = { showMenu = true },
+                    ),
                 elevation = CardDefaults.cardElevation(defaultElevation = ZhihuSpacing.None),
             ) {
-                Column(
-                    modifier = if (duo3CardAppearance) {
-                        Modifier.padding(ZhihuSpacing.Large)
-                    } else {
-                        Modifier.padding(ZhihuSpacing.Medium)
-                    },
-                ) {
-                    FeedCardContent(
-                        item = item,
-                        showFeedThumbnail = showFeedThumbnail,
-                        thumbnailUrl = thumbnailUrl,
-                        pinImages = pinImages,
-                        showMenu = showMenu,
-                        onShowMenuChange = { showMenu = it },
-                        menuItems = menuItems,
-                        duo3CardLayout = duo3CardLayout,
-                        duo3CardLargeTitle = duo3CardLargeTitle,
-                        showSourceLabel = showSourceLabel,
+                FeedCardCardContent(
+                    item = item,
+                    showFeedThumbnail = showFeedThumbnail,
+                    thumbnailUrl = thumbnailUrl,
+                    pinImages = pinImages,
+                    showMenu = showMenu,
+                    onShowMenuChange = { showMenu = it },
+                    menuItems = menuItems,
+                    duo3CardLayout = duo3CardLayout,
+                    duo3CardLargeTitle = duo3CardLargeTitle,
+                    showSourceLabel = showSourceLabel,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 卡片样式的信息流内容（M3 expressive 取向）。
+ *
+ * 与分割线样式刻意做出差异：封面通栏 16:9、标题 22sp、正文三行、
+ * 作者与来源收到最底部。分割线样式继续服务偏好「紧凑列表」的用户。
+ */
+@Composable
+private fun FeedCardCardContent(
+    item: FeedDisplayItem,
+    showFeedThumbnail: Boolean,
+    thumbnailUrl: String?,
+    pinImages: List<DataHolder.Pin.ContentImage>,
+    showMenu: Boolean,
+    onShowMenuChange: (Boolean) -> Unit,
+    menuItems: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit,
+    duo3CardLayout: Boolean,
+    duo3CardLargeTitle: Boolean,
+    showSourceLabel: Boolean,
+) {
+    val settings = rememberSettingsStore()
+    val fontSizePercent = remember { settings.getInt(PREF_FONT_SIZE, 100) }
+    val lineHeightPercent = remember { settings.getInt(PREF_LINE_HEIGHT, 160) }
+    val navigator = LocalNavigator.current
+    val visiblePinImages = pinImages.takeIf { showFeedThumbnail && !item.isFiltered }.orEmpty()
+    val thumb = thumbnailUrl?.takeIf { it.isNotEmpty() && showFeedThumbnail && !item.isFiltered }
+    val sourceLabel = item.feed?.sourceLabel.takeUnless { item.isFiltered }
+
+    Column(modifier = Modifier.fillMaxWidth().padding(ZhihuSpacing.Large)) {
+        if (showSourceLabel && !sourceLabel.isNullOrBlank()) {
+            Text(
+                text = sourceLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(bottom = ZhihuSpacing.Small),
+            )
+        }
+
+        if (item.title.isNotEmpty() && !item.isFiltered) {
+            Text(
+                text = parseEmphasizedHtmlTextWithTheme(item.title),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = MaterialTheme.typography.titleMedium.fontSize * fontSizePercent / 100,
+                    lineHeight = MaterialTheme.typography.titleMedium.lineHeight * fontSizePercent / 100,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        if (!item.summary.isNullOrBlank()) {
+            Spacer(Modifier.height(ZhihuSpacing.Small))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = parseEmphasizedHtmlTextWithTheme(item.summary),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize * fontSizePercent / 100,
+                        lineHeight = MaterialTheme.typography.bodyMedium.fontSize *
+                            fontSizePercent / 100 * lineHeightPercent / 100,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                if (thumb != null) {
+                    Spacer(Modifier.width(ZhihuSpacing.Medium))
+                    ZhihuNetworkImage(
+                        model = thumb,
+                        contentDescription = "缩略图",
+                        modifier = Modifier
+                            .width(104.dp)
+                            .height(78.dp)
+                            .clip(ZhihuShapeTokens.Thumbnail),
                     )
                 }
             }
+        } else if (thumb != null) {
+            // 没有摘要（图片类内容）时才让图铺满宽度，避免小图孤零零挂在左边。
+            Spacer(Modifier.height(ZhihuSpacing.Small))
+            AsyncImage(
+                model = thumb,
+                contentDescription = "配图",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .clip(ZhihuShapeTokens.Thumbnail),
+                contentScale = ContentScale.Crop,
+            )
+        }
+
+        PinFeedImages(
+            images = visiblePinImages,
+            modifier = Modifier.padding(top = ZhihuSpacing.Medium),
+        )
+
+        Spacer(Modifier.height(ZhihuSpacing.Medium))
+
+        // 元信息行：头像 + 作者 + 赞同/评论数（知乎官方的底部行）
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val avatarSrc = item.avatarSrc
+            val authorName = item.authorName
+            if (avatarSrc != null && authorName != null) {
+                ZhihuNetworkImage(
+                    model = avatarSrc,
+                    contentDescription = "作者头像",
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = authorName,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                val authorBadge = item.authorBadgeV2.officialBadge()
+                if (authorBadge?.isUsefulInList == true) {
+                    Spacer(Modifier.width(4.dp))
+                    AuthorBadge(authorBadge, compact = true)
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            if (item.details.isNotEmpty()) {
+                Text(
+                    text = item.details,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+            }
+            FeedCardMenuBox(item, showMenu, onShowMenuChange, menuItems, navigator)
         }
     }
 }
@@ -538,7 +704,7 @@ private fun PinFeedImages(
         0 -> return
         1 -> {
             val image = images.single()
-            AsyncImage(
+            ZhihuNetworkImage(
                 model = image.feedThumbnailUrl,
                 contentDescription = "想法图片 1/1",
                 modifier = modifier
@@ -546,7 +712,6 @@ private fun PinFeedImages(
                     .aspectRatio(1f)
                     .clip(ZhihuShapeTokens.Thumbnail)
                     .testTag("pin_feed_image_0"),
-                contentScale = ContentScale.Crop,
             )
         }
         in 2..4 -> {
@@ -627,11 +792,13 @@ private fun PinFeedImage(
             .clip(ZhihuShapeTokens.Thumbnail)
             .testTag("pin_feed_image_$index"),
     ) {
-        AsyncImage(
+        // 图片墙逐张淡入：每张比前一张晚 40ms 开始淡入，最多拉开 9 张（360ms）。
+        // 40ms 的间隔刚好能被眼睛读成「依次出现」，再大就会让一侧已经读完、另一侧还在等。
+        ZhihuNetworkImage(
             model = image.feedThumbnailUrl,
             contentDescription = "想法图片 ${index + 1}/$totalCount",
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop,
+            fadeInDelayMillis = (index * 40).coerceAtMost(360),
         )
         if (remainingCount != null) {
             Box(

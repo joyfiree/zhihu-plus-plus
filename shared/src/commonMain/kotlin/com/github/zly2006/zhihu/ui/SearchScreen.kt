@@ -344,9 +344,9 @@ fun SearchScreen(
                         Surface(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(48.dp),
+                                .height(56.dp),
                             shape = ZhihuShapeTokens.Pill,
-                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         ) {
                             Row(
                                 modifier = Modifier

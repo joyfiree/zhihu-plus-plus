@@ -18,6 +18,7 @@
 package com.github.zly2006.zhihu.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -73,7 +74,6 @@ import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.Keyboard
 import androidx.compose.material.icons.outlined.ThumbUp
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -84,7 +84,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -149,7 +148,11 @@ import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.reading.ReadingCommentOrder
 import com.github.zly2006.zhihu.reading.loadReadingPreferences
 import com.github.zly2006.zhihu.reading.saveReadingPreferences
+import com.github.zly2006.zhihu.ui.components.BounceOnChange
 import com.github.zly2006.zhihu.ui.components.PageTurnFab
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
+import com.github.zly2006.zhihu.ui.components.ZhihuSuggestionChip
+import com.github.zly2006.zhihu.ui.components.animatedCountLabel
 import com.github.zly2006.zhihu.ui.components.pageTurnContentEndMarker
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
@@ -559,7 +562,7 @@ fun CommentScreen(
     val actionChipIconColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     commentPendingDeletion?.let { target ->
-        AlertDialog(
+        ZhihuAlertDialog(
             modifier = Modifier.testTag(COMMENT_DELETE_DIALOG_TAG),
             onDismissRequest = {
                 if (!isDeletingComment) {
@@ -880,16 +883,31 @@ fun CommentScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.End,
                                         ) {
-                                            SuggestionChip(
+                                            val scoreLabelColor by animateColorAsState(
+                                                targetValue = if (viewModel.sortOrder == CommentSortOrder.SCORE) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                },
+                                                animationSpec = Motion.fadeTween(),
+                                                label = "comment_sort_score_label_color",
+                                            )
+                                            val timeLabelColor by animateColorAsState(
+                                                targetValue = if (viewModel.sortOrder == CommentSortOrder.TIME) {
+                                                    MaterialTheme.colorScheme.primary
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                                },
+                                                animationSpec = Motion.fadeTween(),
+                                                label = "comment_sort_time_label_color",
+                                            )
+                                            ZhihuSuggestionChip(
+                                                selected = viewModel.sortOrder == CommentSortOrder.SCORE,
                                                 modifier = Modifier.testTag(COMMENT_SORT_SCORE_TAG),
                                                 label = {
                                                     Text(
                                                         "最热",
-                                                        color = if (viewModel.sortOrder == CommentSortOrder.SCORE) {
-                                                            MaterialTheme.colorScheme.primary
-                                                        } else {
-                                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                                        },
+                                                        color = scoreLabelColor,
                                                         fontWeight = if (viewModel.sortOrder == CommentSortOrder.SCORE) {
                                                             FontWeight.SemiBold
                                                         } else {
@@ -908,16 +926,13 @@ fun CommentScreen(
                                                 },
                                             )
                                             Spacer(Modifier.width(12.dp))
-                                            SuggestionChip(
+                                            ZhihuSuggestionChip(
+                                                selected = viewModel.sortOrder == CommentSortOrder.TIME,
                                                 modifier = Modifier.testTag(COMMENT_SORT_TIME_TAG),
                                                 label = {
                                                     Text(
                                                         "最新",
-                                                        color = if (viewModel.sortOrder == CommentSortOrder.TIME) {
-                                                            MaterialTheme.colorScheme.primary
-                                                        } else {
-                                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                                        },
+                                                        color = timeLabelColor,
                                                         fontWeight = if (viewModel.sortOrder == CommentSortOrder.TIME) {
                                                             FontWeight.SemiBold
                                                         } else {
@@ -1273,12 +1288,12 @@ private fun CommentItem(
                 model = commentData.author.avatarUrl,
                 contentDescription = "头像",
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .clickable { navigator.onNavigate(authorPerson) },
                 contentScale = ContentScale.Crop,
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(
                 verticalArrangement = Arrangement.Top,
                 modifier = Modifier,
@@ -1289,8 +1304,8 @@ private fun CommentItem(
                     // 作者名
                     Text(
                         text = commentData.author.name,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier
                             .testTag("comment_author_${commentData.id}")
                             .clickable { navigator.onNavigate(authorPerson) },
@@ -1498,31 +1513,38 @@ private fun CommentItem(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // 点赞
+            // 点赞：图标做一次性回弹、数字滚动、触觉与动画同帧（否则连点会出现「震了但数没动」）。
+            // 回弹只在 isLiked 由 false→true 时播放；取消点赞不弹，因为「收回」不需要奖励感。
+            val haptics = rememberHapticController()
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .testTag("comment_like_button_${commentData.id}")
-                    .clickable(enabled = !isLikeLoading) { toggleLike() },
+                    .clickable(enabled = !isLikeLoading) {
+                        haptics.tick()
+                        toggleLike()
+                    },
             ) {
                 Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    if (isLiked) {
-                        Icons.Filled.ThumbUp
-                    } else {
-                        Icons.Outlined.ThumbUp
-                    },
-                    contentDescription = "点赞",
-                    modifier = Modifier.size(16.dp),
-                    tint = if (isLiked) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
+                BounceOnChange(trigger = isLiked) {
+                    Icon(
+                        if (isLiked) {
+                            Icons.Filled.ThumbUp
+                        } else {
+                            Icons.Outlined.ThumbUp
+                        },
+                        contentDescription = "点赞",
+                        modifier = Modifier.size(16.dp),
+                        tint = if (isLiked) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = likeCount.toString(),
+                    text = animatedCountLabel(likeCount).toString(),
                     modifier = Modifier.testTag("comment_like_count_${commentData.id}"),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (isLiked) {

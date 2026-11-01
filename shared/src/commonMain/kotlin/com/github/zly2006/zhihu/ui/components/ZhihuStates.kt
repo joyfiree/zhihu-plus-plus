@@ -17,6 +17,7 @@
 
 package com.github.zly2006.zhihu.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,11 +37,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 
 /**
@@ -57,10 +65,20 @@ fun ZhihuEmptyState(
     icon: ImageVector = Icons.Outlined.Inbox,
     action: (@Composable () -> Unit)? = null,
 ) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val enter by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = Motion.fadeTween(),
+        label = "empty_state_enter",
+    )
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(ZhihuSpacing.Huge),
+            .graphicsLayer {
+                alpha = enter
+                translationY = (1f - enter) * 24f
+            }.padding(ZhihuSpacing.Huge),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

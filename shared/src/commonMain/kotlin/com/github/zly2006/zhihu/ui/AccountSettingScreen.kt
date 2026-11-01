@@ -48,13 +48,13 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwitchAccount
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -78,6 +78,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.github.zly2006.zhihu.account.rememberZhihuAccountStore
@@ -96,9 +98,11 @@ import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.reading.isReadingPlayerSupported
 import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.ui.subscreens.BOTTOM_BAR_ITEMS_PREFERENCE_KEY
 import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
 import com.github.zly2006.zhihu.ui.subscreens.defaultBottomBarSelectionKeys
@@ -216,60 +220,86 @@ fun AccountSettingScreen(
             }
 
             if (data.login) {
-                Row(
-                    Modifier
+                Surface(
+                    modifier = Modifier
                         .testTag(ACCOUNT_SETTINGS_PROFILE_HEADER_TAG)
-                        .padding(16.dp, 0.dp, 16.dp, 16.dp)
-                        .clickable {
-                            navigator.onNavigate(
-                                Person(
-                                    id = data.id,
-                                    urlToken = data.urlToken ?: "",
-                                    name = data.username,
-                                ),
-                            )
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
+                    shape = ZhihuShapeTokens.Section,
+                    color = zhihuSurfaces.card,
                 ) {
-                    AsyncImage(
-                        model = data.avatarUrl,
-                        contentDescription = "头像",
+                    Row(
                         modifier = Modifier
-                            .size(64.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                            .clip(CircleShape),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = data.username,
-                        style = MaterialTheme.typography.headlineSmall,
-                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_PROFILE_NAME_TAG),
-                    )
-                    Spacer(Modifier.weight(1f))
-                    if (launchQrScanner != null) {
-                        FilledTonalIconButton(
-                            onClick = launchQrScanner,
-                            modifier = Modifier.size(40.dp).testTag(ACCOUNT_SETTINGS_SCAN_TAG),
-                        ) {
-                            Icon(Icons.Default.QrCodeScanner, contentDescription = "扫码登录")
-                        }
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    FilledTonalIconButton(
-                        onClick = {
-                            showLogoutDialog = true
-                        },
-                        modifier = Modifier.size(40.dp),
-                        colors = IconButtonDefaults.iconButtonColors().copy(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        ),
+                            .fillMaxWidth()
+                            .clickable {
+                                navigator.onNavigate(
+                                    Person(
+                                        id = data.id,
+                                        urlToken = data.urlToken ?: "",
+                                        name = data.username,
+                                    ),
+                                )
+                            }.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "退出登录",
-                            modifier = Modifier.size(24.dp),
+                        AsyncImage(
+                            model = data.avatarUrl,
+                            contentDescription = "头像",
+                            modifier = Modifier
+                                .size(72.dp)
+                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                                .clip(CircleShape),
                         )
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = data.username,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.testTag(ACCOUNT_SETTINGS_PROFILE_NAME_TAG),
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "查看主页",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Icon(
+                                    Icons.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                        if (launchQrScanner != null) {
+                            FilledTonalIconButton(
+                                onClick = launchQrScanner,
+                                modifier = Modifier.size(44.dp).testTag(ACCOUNT_SETTINGS_SCAN_TAG),
+                            ) {
+                                Icon(Icons.Default.QrCodeScanner, contentDescription = "扫码登录")
+                            }
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        FilledTonalIconButton(
+                            onClick = {
+                                showLogoutDialog = true
+                            },
+                            modifier = Modifier.size(44.dp),
+                            colors = IconButtonDefaults.iconButtonColors().copy(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ),
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Logout,
+                                contentDescription = "退出登录",
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
                     }
                 }
             } else {
@@ -617,7 +647,7 @@ fun AccountSettingScreen(
     }
 
     if (showLogoutDialog) {
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = { showLogoutDialog = false },
             title = { Text("退出登录") },
             text = {

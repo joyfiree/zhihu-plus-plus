@@ -134,6 +134,7 @@ import com.github.zly2006.zhihu.ui.components.ANSWER_SWITCH_SENSITIVITY_PREFEREN
 import com.github.zly2006.zhihu.ui.components.AnswerHorizontalOverscroll
 import com.github.zly2006.zhihu.ui.components.AnswerVerticalOverscroll
 import com.github.zly2006.zhihu.ui.components.AuthorBadge
+import com.github.zly2006.zhihu.ui.components.BounceOnChange
 import com.github.zly2006.zhihu.ui.components.CollectionDialogComponent
 import com.github.zly2006.zhihu.ui.components.CommentScreenComponent
 import com.github.zly2006.zhihu.ui.components.ContentEndMarker
@@ -143,7 +144,9 @@ import com.github.zly2006.zhihu.ui.components.ExportDialogComponent
 import com.github.zly2006.zhihu.ui.components.MyModalBottomSheet
 import com.github.zly2006.zhihu.ui.components.VerticalReadingProgressBar
 import com.github.zly2006.zhihu.ui.components.VotersSheet
+import com.github.zly2006.zhihu.ui.components.ZhihuFilterChip
 import com.github.zly2006.zhihu.ui.components.ZhihuTwoRowsTopAppBar
+import com.github.zly2006.zhihu.ui.components.animatedCountLabel
 import com.github.zly2006.zhihu.ui.components.normalizedAnswerSwitchSensitivity
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
@@ -624,7 +627,7 @@ fun ArticleScreen(
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Icon(painterResource(Res.drawable.ic_vote_up_24dp), "赞同")
                                                 Spacer(modifier = Modifier.width(4.dp))
-                                                Text(text = viewModel.voteUpCount.toString())
+                                                Text(text = animatedCountLabel(viewModel.voteUpCount).toString())
                                             }
                                             Button(
                                                 onClick = { viewModel.toggleVoteUp(environment, VoteUpState.Down) },
@@ -647,7 +650,7 @@ fun ArticleScreen(
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Icon(painterResource(Res.drawable.ic_vote_up_24dp), "赞同")
                                                 Spacer(modifier = Modifier.width(4.dp))
-                                                Text(text = viewModel.voteUpCount.toString())
+                                                Text(text = animatedCountLabel(viewModel.voteUpCount).toString())
                                                 Spacer(modifier = Modifier.width(8.dp))
                                             }
                                         }
@@ -676,7 +679,12 @@ fun ArticleScreen(
                                             contentColor = if (viewModel.isFavorited) Color.White else MaterialTheme.colorScheme.onSecondaryContainer,
                                         ),
                                     ) {
-                                        Icon(if (viewModel.isFavorited) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder, contentDescription = "收藏")
+                                        BounceOnChange(trigger = viewModel.isFavorited) {
+                                            Icon(
+                                                if (viewModel.isFavorited) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                                                contentDescription = "收藏",
+                                            )
+                                        }
                                     }
                                     Button(
                                         onClick = { showComments = true },
@@ -720,6 +728,11 @@ fun ArticleScreen(
                                         val upBgColor by animateColorAsState(
                                             targetValue = if (viewModel.voteUpState == VoteUpState.Up) voteUpNeutralContentDuo3() else MaterialTheme.colorScheme.surfaceContainer,
                                         )
+                                        val upScale by animateFloatAsState(
+                                            targetValue = if (viewModel.voteUpState == VoteUpState.Up) 1.06f else 1f,
+                                            animationSpec = Motion.springSnappy(),
+                                            label = "vote_up_scale",
+                                        )
                                         val upContentColor by animateColorAsState(
                                             targetValue = if (viewModel.voteUpState == VoteUpState.Up) Color.White else MaterialTheme.colorScheme.onSurface,
                                         )
@@ -727,7 +740,10 @@ fun ArticleScreen(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(50))
                                                 .background(upBgColor)
-                                                .clickable {
+                                                .graphicsLayer {
+                                                    scaleX = upScale
+                                                    scaleY = upScale
+                                                }.clickable {
                                                     viewModel.toggleVoteUp(
                                                         environment,
                                                         if (viewModel.voteUpState == VoteUpState.Up) VoteUpState.Neutral else VoteUpState.Up,
@@ -743,7 +759,7 @@ fun ArticleScreen(
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
-                                                text = viewModel.voteUpCount.toString(),
+                                                text = animatedCountLabel(viewModel.voteUpCount).toString(),
                                                 color = upContentColor,
                                                 style = MaterialTheme.typography.titleMedium,
                                             )
@@ -820,10 +836,12 @@ fun ArticleScreen(
                                             },
                                         ),
                                     ) {
-                                        Icon(
-                                            if (viewModel.isFavorited) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
-                                            contentDescription = "收藏",
-                                        )
+                                        BounceOnChange(trigger = viewModel.isFavorited) {
+                                            Icon(
+                                                if (viewModel.isFavorited) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder,
+                                                contentDescription = "收藏",
+                                            )
+                                        }
                                     }
 
                                     val ttsState = rememberArticleTtsState()
@@ -854,7 +872,7 @@ fun ArticleScreen(
                                     ) {
                                         Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "评论")
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text(text = "${viewModel.commentCount}", style = MaterialTheme.typography.titleMedium)
+                                        Text(text = animatedCountLabel(viewModel.commentCount).toString(), style = MaterialTheme.typography.titleMedium)
                                     }
                                 }
                             }
@@ -1007,7 +1025,7 @@ fun ArticleScreen(
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     viewModel.topics.forEach { topic ->
-                                        androidx.compose.material3.FilterChip(
+                                        ZhihuFilterChip(
                                             selected = false,
                                             onClick = { navigator.onNavigate(Topic(topic.id, topic.name)) },
                                             label = { Text("# ${topic.name}") },

@@ -91,6 +91,7 @@ import com.github.zly2006.zhihu.platform.PlatformPredictiveBackHandler
 import com.github.zly2006.zhihu.platform.exportTestTagsForUiAutomation
 import com.github.zly2006.zhihu.platform.platformName
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -124,6 +125,17 @@ fun MyModalBottomSheet(
         shape
     }
     val scope = rememberCoroutineScope()
+
+    /**
+     * 唯一的关闭出口。
+     *
+     * 意图：所有「我要关掉它」的路径（点遮罩、返回键、拖到阈值、代码调用）都必须先跑完 sheet 的下滑动画，
+     * 再通知调用方把弹层从组合里移除。任何一条路径直接 `onDismissRequest()`，用户就会看到一层
+     * 突然消失的 UI——这正是「瞬间消失」的成因。
+     *
+     * 参数：动画曲线由 [SheetState] 内部的 hideMotionSpec（M3 `FastEffects`）决定，
+     * 遮罩同一时刻用 [Motion.fadeTween]（同为 200ms 标准曲线）淡出，两者视觉上同步结束。
+     */
     val animateToDismiss: () -> Unit = {
         // 绕过 SheetState.confirmValueChange 不可见的问题，直接调用内部 anchoredDraggableState。
         if (sheetState.anchoredDraggableState.confirmValueChange.invoke(Hidden)) {
@@ -188,7 +200,8 @@ fun MyModalBottomSheet(
                 properties = properties,
                 contentColor = contentColor,
                 onDismissRequest = {
-                    scope.launch { sheetState.hide() }.invokeOnCompletion { onDismissRequest() }
+                    // 系统窗口回调（返回键 / 点外部）也必须走同一条关闭出口，否则 sheet 会被窗口直接拆掉。
+                    animateToDismiss()
                 },
                 predictiveBackProgress = predictiveBackProgress,
                 content = dialogContent,
@@ -198,8 +211,8 @@ fun MyModalBottomSheet(
                 properties = properties,
                 contentColor = contentColor,
                 onDismissRequest = {
-                    // 修复返回键需要按两次才关闭的问题。
-                    scope.launch { sheetState.hide() }.invokeOnCompletion { onDismissRequest() }
+                    // 修复返回键需要按两次才关闭的问题：先让 sheet 滑下去，再通知调用方移除。
+                    animateToDismiss()
                 },
                 predictiveBackProgress = predictiveBackProgress,
                 content = dialogContent,
@@ -444,11 +457,12 @@ private fun MyBottomSheetScrim(
     dismissEnabled: Boolean,
 ) {
     if (color.isSpecified) {
+        // 遮罩与 sheet 用同一档曲线（200ms 标准曲线）一起收放：任何一侧先结束，
+        // 用户都会看到「底下已经没了但内容还在」或反之的错位。
         val alpha by
             animateFloatAsState(
                 targetValue = if (visible) 1f else 0f,
-                animationSpec = androidx.compose.material3.tokens.MotionSchemeKeyTokens.DefaultEffects
-                    .value(),
+                animationSpec = Motion.fadeTween(),
                 label = "ScrimAlphaAnimation",
             )
         val closeSheet = getString(Strings.CloseSheet)

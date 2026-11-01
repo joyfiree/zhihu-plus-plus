@@ -20,7 +20,6 @@ package com.github.zly2006.zhihu.ui.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -67,7 +66,7 @@ fun FeedAuthorBlockConfirmDialogContent(
     if (request == null) return
 
     val isQuestionAuthor = request.type == FeedAuthorBlockType.QUESTION_AUTHOR
-    AlertDialog(
+    ZhihuAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (isQuestionAuthor) "屏蔽提问者" else "屏蔽用户") },
         text = {

@@ -363,7 +363,7 @@ fun AppearanceSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ZhihuLargeTopAppBar(
                 title = { Text("外观与阅读体验") },
@@ -744,7 +744,7 @@ fun AppearanceSettingsScreen(
 
                 var feedCardStyleExpanded by remember { mutableStateOf(false) }
                 val feedCardStyle = remember {
-                    mutableStateOf(settings.getString("feedCardStyle", "divider"))
+                    mutableStateOf(settings.getString("feedCardStyle", "card"))
                 }
                 val feedCardStyleOptions = listOf(
                     "card" to "卡片样式",

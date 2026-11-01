@@ -35,7 +35,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -77,6 +76,7 @@ import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.navigation.resolveContent
 import com.github.zly2006.zhihu.platform.isLiteVariant
 import com.github.zly2006.zhihu.ui.components.SectionHeader
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuEmptyState
 import com.github.zly2006.zhihu.ui.components.ZhihuErrorState
 import com.github.zly2006.zhihu.ui.components.ZhihuLoadingState
@@ -84,6 +84,7 @@ import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.util.formatDailyDate
 import com.github.zly2006.zhihu.util.jsonObject
 import com.github.zly2006.zhihu.util.twoDigitString
@@ -222,7 +223,7 @@ fun DailyScreen(
     }
 
     missingOriginStoryUrl?.let { storyUrl ->
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = { missingOriginStoryUrl = null },
             text = { Text("由于知乎的 Bug，无法找到原文") },
             confirmButton = {
@@ -411,7 +412,7 @@ fun DailyStoryCard(
         shape = ZhihuShapeTokens.Card,
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = zhihuSurfaces.card,
         ),
     ) {
         Row(

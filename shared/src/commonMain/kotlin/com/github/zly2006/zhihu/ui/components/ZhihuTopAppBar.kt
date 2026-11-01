@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 
 /**
  * 全应用统一的顶栏配色。
@@ -41,8 +42,8 @@ import androidx.compose.ui.graphics.Color
  */
 @Composable
 fun zhihuTopAppBarColors(
-    containerColor: Color = MaterialTheme.colorScheme.surface,
-    scrolledContainerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    containerColor: Color = zhihuSurfaces.page,
+    scrolledContainerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     titleContentColor: Color = MaterialTheme.colorScheme.onSurface,
     navigationIconContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     actionIconContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,

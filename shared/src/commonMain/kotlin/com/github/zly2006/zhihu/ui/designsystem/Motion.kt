@@ -87,6 +87,86 @@ object Motion {
     )
 
     /**
+     * 计数值滚动（赞同数、关注数、评论数）。
+     *
+     * 比 [fadeTween] 长 20ms 的原因：数字只有 1～4 位，220ms 才能让「+1」被眼睛捕捉到，
+     * 又不会长到和药丸缩放（spring）脱节；曲线用标准曲线，末段收敛平缓，避免数字「急停」。
+     */
+    fun <T> countTween(): TweenSpec<T> = tween(
+        durationMillis = 220,
+        easing = StandardEasing,
+    )
+
+    /**
+     * 图片解码完成后的淡入。
+     *
+     * 240ms 是「明显在过渡但不拖沓」的经验值：短于 150ms 会像硬切，
+     * 长于 300ms 会让连续滚动的信息流产生落后感。
+     */
+    fun <T> imageFadeTween(): TweenSpec<T> = tween(
+        durationMillis = 240,
+        easing = StandardEasing,
+    )
+
+    /** 二元状态回弹的「放大」段：短、快、只用减速曲线，让反馈在按下后半秒内完成。 */
+    fun <T> bouncePopTween(): TweenSpec<T> = tween(
+        durationMillis = 110,
+        easing = EmphasizedDecelerateEasing,
+    )
+
+    /** 二元状态回弹的「回落」段：带轻过冲，收尾干净。 */
+    fun <T> bounceSettle(): SpringSpec<T> = spring(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMediumLow,
+    )
+
+    /**
+     * 手势相关的物理常量（阻尼、阈值、吸附）。
+     *
+     * 收敛在这里的目的：回答切换的「拉多远算切换」和下拉刷新的「拉多远算刷新」
+     * 必须是同一套物理直觉，否则用户会在两个手势之间学到互相矛盾的阈值。
+     * 单位统一为 dp / 无量纲系数，调用点自己按屏幕密度换算；语义由 `answerSwitchSensitivity` 线性缩放。
+     */
+    object Gesture {
+        /** 单次手势的最大可视位移（dp）。tanh 会继续压缩更大的拖动，避免整页被拖走。 */
+        const val OVERSCROLL_MAX_DP = 200f
+
+        /** 触发「松手切换回答」的位移阈值（dp），实际阈值再按 `answerSwitchSensitivity` 线性缩放。 */
+        const val OVERSCROLL_TRIGGER_DP = 80f
+
+        /** tanh 阻尼系数：越大位移增长越慢、手感越「拉不动」。 */
+        const val OVERSCROLL_DAMPING = 1.2f
+
+        /** 横向手势的最大可视位移（dp）。水平方向可拖动空间更大，取比纵向更宽的档位。 */
+        const val HORIZONTAL_OVERSCROLL_MAX_DP = 300f
+
+        /** 横向触发切换的位移阈值（dp），比纵向更短：横滑的物理预期是「轻轻一甩就换」。 */
+        const val HORIZONTAL_OVERSCROLL_TRIGGER_DP = 46f
+
+        /** 横向 tanh 阻尼系数。 */
+        const val HORIZONTAL_OVERSCROLL_DAMPING = 1.2f
+
+        /** 二元状态回弹的峰值缩放。 */
+        const val BOUNCE_POP_SCALE = 1.28f
+
+        /** 卡片 / 磁贴按下时的缩放。 */
+        const val PRESSED_SCALE = 0.975f
+
+        /** 筛选 chip 选中态缩放：只做 4%，再多就会顶动相邻 chip。 */
+        const val CHIP_SELECTED_SCALE = 1.04f
+
+        /** 底栏自动隐藏/出现的位移阈值（px）；小于它视为手指轻微抖动。 */
+        const val BOTTOM_BAR_SCROLL_THRESHOLD_PX = 12f
+
+        /**
+         * 底栏状态切换后的静默期：这段时间内的反向**触摸**滚动不翻转可见性，避免快速上下滑时闪烁。
+         * 翻页按钮/键盘翻页（`NestedScrollSource.SideEffect` 合成滚动）与惯性不在此列：
+         * 它们是离散意图，被拦会让「翻页时自动隐藏底栏」失效。
+         */
+        const val BOTTOM_BAR_SETTLE_MILLIS = 300L
+    }
+
+    /**
      * overscroll 归位弹簧。
      *
      * 带轻微过冲（MediumBouncy），让用户在阈值附近回拉时能感到「已经拉过头」，

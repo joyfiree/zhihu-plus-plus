@@ -21,14 +21,13 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -37,6 +36,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,6 +81,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -149,8 +150,13 @@ import com.github.zly2006.zhihu.ui.components.NoOpPagerNestedScrollConnection
 import com.github.zly2006.zhihu.ui.components.ReadingPlayerBar
 import com.github.zly2006.zhihu.ui.components.ReadingQueueSheet
 import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
 import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
+import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXEnter
+import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXExit
+import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXPopEnter
+import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXPopExit
 import com.github.zly2006.zhihu.ui.subscreens.AppearanceSettingsScreen
 import com.github.zly2006.zhihu.ui.subscreens.BlockedFeedHistoryScreen
 import com.github.zly2006.zhihu.ui.subscreens.ColorSchemeScreen
@@ -163,8 +169,10 @@ import com.github.zly2006.zhihu.ui.subscreens.SettingsSearchScreen
 import com.github.zly2006.zhihu.ui.subscreens.SystemAndUpdateSettingsScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.reflect.KClass
 import kotlin.reflect.typeOf
+import kotlin.time.Clock
 
 private sealed class MainTabPage(
     val bottomDestination: TopLevelDestination,
@@ -368,11 +376,38 @@ fun ZhihuMain(
     var isBottomBarVisible by remember { mutableStateOf(true) }
     val bottomBarScrollConnection = remember {
         object : NestedScrollConnection {
+            /** 同一方向上的累积位移；方向一翻转就清零，避免「上滑 10px 再下滑 10px」凑出阈值。 */
+            private var accumulated = 0f
+            private var lastDirection = 0
+
+            /** 上一次翻转的单调时钟刻度（毫秒），用于静默期判定。 */
+            private var lastToggleAtMillis = 0L
+
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                when {
-                    available.y < -3f -> isBottomBarVisible = false
-                    available.y > 3f -> isBottomBarVisible = true
+                // 翻页按钮/键盘翻页是用 SideEffect 合成滚动的（见 dispatchPageTurnScroll），
+                // 所以这里不能按 source 过滤，否则「翻页时自动隐藏底栏」会失效。
+                val dy = available.y
+                if (dy == 0f) return Offset.Zero
+                val direction = if (dy > 0) 1 else -1
+                if (direction != lastDirection) {
+                    lastDirection = direction
+                    accumulated = 0f
                 }
+                accumulated += dy
+                if (abs(accumulated) < Motion.Gesture.BOTTOM_BAR_SCROLL_THRESHOLD_PX) return Offset.Zero
+
+                // 向下滚动（内容上移，dy < 0）隐藏底栏；向上滚动露出底栏。
+                val targetVisible = accumulated > 0
+                if (targetVisible == isBottomBarVisible) return Offset.Zero
+
+                // 静默期只约束触摸滚动：抖动来自手指来回蹭，而翻页与惯性是离散意图，不该被拦。
+                if (source == NestedScrollSource.UserInput) {
+                    val now = Clock.System.now().toEpochMilliseconds()
+                    if (now - lastToggleAtMillis < Motion.Gesture.BOTTOM_BAR_SETTLE_MILLIS) return Offset.Zero
+                    lastToggleAtMillis = now
+                }
+                accumulated = 0f
+                isBottomBarVisible = targetVisible
                 return Offset.Zero
             }
         }
@@ -538,23 +573,12 @@ fun ZhihuMain(
                 navController = detailNavController,
                 startDestination = EmptyDetail,
                 modifier = modifier.testTag("detail_pane"),
-                // 共享轴式转场：新页面从右侧滑入，旧页面同时左移 1/4 并淡出，形成层叠纵深。
-                enterTransition = {
-                    slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { it } +
-                        fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
-                },
-                exitTransition = {
-                    slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { -it / 4 } +
-                        fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
-                },
-                popEnterTransition = {
-                    slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { -it / 4 } +
-                        fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
-                },
-                popExitTransition = {
-                    slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { it } +
-                        fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
-                },
+                // 共享轴式转场：参数与曲线统一收敛在 MotionTransitions.kt，两个 NavHost 共用同一套，
+                // 保证「列表 → 详情」与「详情 → 下一层」手感完全一致，也让进入/返回成为同一条轴上的正反方向。
+                enterTransition = { sharedAxisXEnter() },
+                exitTransition = { sharedAxisXExit() },
+                popEnterTransition = { sharedAxisXPopEnter() },
+                popExitTransition = { sharedAxisXPopExit() },
             ) {
                 composable<EmptyDetail> {
                     EmptyDetailPane()
@@ -611,45 +635,79 @@ fun ZhihuMain(
                                 ?.bottomDestination
                             AnimatedVisibility(
                                 visible = showMainNavigation && (!autoHideBottomBar || isBottomBarVisible),
-                                enter = slideInVertically(tween(Motion.DURATION_SHORT)) { it },
-                                exit = slideOutVertically(tween(Motion.DURATION_SHORT)) { it },
+                                enter = slideInVertically(Motion.enterTween()) { it },
+                                exit = slideOutVertically(Motion.exitTween()) { it },
                             ) {
-                                NavigationBar(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                    modifier = Modifier.height(
-                                        ZhihuSizes.NavigationBarHeight + bottomPadding,
-                                    ),
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(
+                                            start = 12.dp,
+                                            end = 12.dp,
+                                            top = 4.dp,
+                                            bottom = bottomPadding + 8.dp,
+                                        ),
                                 ) {
-                                    @Composable
-                                    fun Item(
-                                        destination: TopLevelDestination,
-                                        label: String,
-                                        icon: ImageVector,
+                                    NavigationBar(
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        tonalElevation = 0.dp,
+                                        windowInsets = WindowInsets(0, 0, 0, 0),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(ZhihuSizes.NavigationBarHeight)
+                                            .clip(ZhihuShapeTokens.Section),
                                     ) {
-                                        val tag = "nav_tab_${destination.name.lowercase()}"
-                                        NavigationBarItem(
-                                            currentBottomDestination?.let { it::class == destination::class } == true,
-                                            onClick = {
-                                                haptics.tick()
-                                                isReadingPlayerExpandedByUser = false
-                                                if (currentBottomDestination?.let { it::class == destination::class } != true) {
-                                                    navigateTopLevel(destination)
-                                                } else if (tapToScrollToTopEnabled) {
-                                                    scrollToTopTrigger++
-                                                }
-                                            },
-                                            label = { Text(label) },
-                                            alwaysShowLabel = true,
-                                            colors = NavigationBarItemDefaults.colors(),
-                                            icon = {
-                                                Icon(icon, contentDescription = label)
-                                            },
-                                            modifier = Modifier.testTag(tag),
-                                        )
-                                    }
+                                        @Composable
+                                        fun Item(
+                                            destination: TopLevelDestination,
+                                            label: String,
+                                            icon: ImageVector,
+                                        ) {
+                                            val tag = "nav_tab_${destination.name.lowercase()}"
+                                            val isSelected =
+                                                currentBottomDestination?.let { it::class == destination::class } == true
+                                            val iconScale by animateFloatAsState(
+                                                targetValue = if (isSelected) 1.18f else 1f,
+                                                animationSpec = Motion.springSnappy(),
+                                                label = "nav_icon_scale",
+                                            )
+                                            NavigationBarItem(
+                                                isSelected,
+                                                onClick = {
+                                                    haptics.tick()
+                                                    isReadingPlayerExpandedByUser = false
+                                                    if (!isSelected) {
+                                                        navigateTopLevel(destination)
+                                                    } else if (tapToScrollToTopEnabled) {
+                                                        scrollToTopTrigger++
+                                                    }
+                                                },
+                                                label = { Text(label) },
+                                                alwaysShowLabel = true,
+                                                colors = NavigationBarItemDefaults.colors(
+                                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                ),
+                                                icon = {
+                                                    Icon(
+                                                        icon,
+                                                        contentDescription = label,
+                                                        modifier = Modifier.graphicsLayer {
+                                                            scaleX = iconScale
+                                                            scaleY = iconScale
+                                                        },
+                                                    )
+                                                },
+                                                modifier = Modifier.testTag(tag),
+                                            )
+                                        }
 
-                                    bottomBarItems.forEach { item ->
-                                        Item(item.first, item.second, item.third)
+                                        bottomBarItems.forEach { item ->
+                                            Item(item.first, item.second, item.third)
+                                        }
                                     }
                                 }
                             }
@@ -705,22 +763,10 @@ fun ZhihuMain(
                             },
                             startDestination = MainTabs,
                             // 与详情 NavHost 共用同一套共享轴参数，保证前进/返回两个方向手感一致。
-                            enterTransition = {
-                                slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { it } +
-                                    fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
-                            },
-                            exitTransition = {
-                                slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { -it / 4 } +
-                                    fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
-                            },
-                            popEnterTransition = {
-                                slideInHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing)) { -it / 4 } +
-                                    fadeIn(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing))
-                            },
-                            popExitTransition = {
-                                slideOutHorizontally(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing)) { it } +
-                                    fadeOut(tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing))
-                            },
+                            enterTransition = { sharedAxisXEnter() },
+                            exitTransition = { sharedAxisXExit() },
+                            popEnterTransition = { sharedAxisXPopEnter() },
+                            popExitTransition = { sharedAxisXPopExit() },
                         ) {
                             composable<MainTabs> {
                                 MainTabsPager(
@@ -992,45 +1038,59 @@ private fun MainTabsPager(
         pageNestedScrollConnection = NoOpPagerNestedScrollConnection,
     ) { pageIndex ->
         val page = pages.getOrNull(pageIndex) ?: return@HorizontalPager
-        when (page) {
-            MainTabPage.HomePage -> HomeScreen(
-                scrollToTopTrigger = scrollToTopTrigger,
-                innerPadding = innerPadding,
-                showTopActions = showHomeTopActions,
-                isActive = pagerState.currentPage == pageIndex,
-            )
-            MainTabPage.FollowPage -> FollowScreen(
-                scrollToTopTrigger = scrollToTopTrigger,
-                innerPadding = innerPadding,
-                parentPagerState = pagerState,
-                isActive = pagerState.currentPage == pageIndex,
-            )
-            MainTabPage.HotListPage -> HotListScreen(
-                innerPadding = innerPadding,
-                scrollToTopTrigger = scrollToTopTrigger,
-                isActive = pagerState.currentPage == pageIndex,
-            )
-            MainTabPage.DailyPage -> DailyScreen(
-                scrollToTopTrigger = scrollToTopTrigger,
-                isActive = pagerState.currentPage == pageIndex,
-            )
-            MainTabPage.OnlineHistoryPage -> OnlineHistoryScreen(
-                scrollToTopTrigger = scrollToTopTrigger,
-                isActive = pagerState.currentPage == pageIndex,
-            )
-            MainTabPage.MyCollectionsPage -> MyCollectionsTopLevelPage(
-                scrollToTopTrigger = scrollToTopTrigger,
-                innerPadding = innerPadding,
-                collectionDirectBrowseEnabled = collectionDirectBrowseEnabled,
-                isActive = pagerState.currentPage == pageIndex,
-            )
-            MainTabPage.AccountPage -> AccountSettingScreen(
-                innerPadding = innerPadding,
-                isActive = pagerState.currentPage == pageIndex,
-            )
+        // 视差：内容层比页面本体「慢」12%，切页时读起来是两块不同深度的板在错动，而不是一整张图平移。
+        // 偏移量在 graphicsLayer 的 lambda 里读取——那是绘制阶段，滑动过程中不会引发任何重组。
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    val pageOffset = (pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction
+                    translationX = pageOffset * size.width * MAIN_PAGER_PARALLAX_FACTOR
+                },
+        ) {
+            when (page) {
+                MainTabPage.HomePage -> HomeScreen(
+                    scrollToTopTrigger = scrollToTopTrigger,
+                    innerPadding = innerPadding,
+                    showTopActions = showHomeTopActions,
+                    isActive = pagerState.currentPage == pageIndex,
+                )
+                MainTabPage.FollowPage -> FollowScreen(
+                    scrollToTopTrigger = scrollToTopTrigger,
+                    innerPadding = innerPadding,
+                    parentPagerState = pagerState,
+                    isActive = pagerState.currentPage == pageIndex,
+                )
+                MainTabPage.HotListPage -> HotListScreen(
+                    innerPadding = innerPadding,
+                    scrollToTopTrigger = scrollToTopTrigger,
+                    isActive = pagerState.currentPage == pageIndex,
+                )
+                MainTabPage.DailyPage -> DailyScreen(
+                    scrollToTopTrigger = scrollToTopTrigger,
+                    isActive = pagerState.currentPage == pageIndex,
+                )
+                MainTabPage.OnlineHistoryPage -> OnlineHistoryScreen(
+                    scrollToTopTrigger = scrollToTopTrigger,
+                    isActive = pagerState.currentPage == pageIndex,
+                )
+                MainTabPage.MyCollectionsPage -> MyCollectionsTopLevelPage(
+                    scrollToTopTrigger = scrollToTopTrigger,
+                    innerPadding = innerPadding,
+                    collectionDirectBrowseEnabled = collectionDirectBrowseEnabled,
+                    isActive = pagerState.currentPage == pageIndex,
+                )
+                MainTabPage.AccountPage -> AccountSettingScreen(
+                    innerPadding = innerPadding,
+                    isActive = pagerState.currentPage == pageIndex,
+                )
+            }
         }
     }
 }
+
+/** 主 pager 的视差系数：内容层相对页面本体的位移比例（越小越克制）。 */
+private const val MAIN_PAGER_PARALLAX_FACTOR = 0.12f
 
 @Composable
 private fun MyCollectionsTopLevelPage(

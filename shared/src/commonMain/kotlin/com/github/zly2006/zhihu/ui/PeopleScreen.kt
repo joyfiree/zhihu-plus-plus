@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -72,6 +71,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -818,10 +818,15 @@ fun PeopleScreen(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .offset(y = lerp(240.dp, 0.dp, collapsedFraction))
-                        .padding(end = 0.dp)
+                        // 折叠进度是每帧变化的滚动量：位移与透明度都放进 graphicsLayer 的绘制阶段读取，
+                        // 折叠过程中这一层不会重组，也不会触发重新测量（原写法用 Modifier.offset / alpha，
+                        // 等于让整个 Box 按帧重组一次）。
+                        .graphicsLayer {
+                            // collapsedFraction 0 → 1 时从 240dp 位移回到原位（等价于 lerp(240.dp, 0.dp, f)）。
+                            translationY = 240.dp.toPx() * (1f - collapsedFraction)
+                            alpha = collapsedFraction
+                        }.padding(end = 0.dp)
                         .size(width = 96.dp, height = 56.dp)
-                        .alpha(collapsedFraction)
                         .background(
                             Brush.horizontalGradient(
                                 colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface),

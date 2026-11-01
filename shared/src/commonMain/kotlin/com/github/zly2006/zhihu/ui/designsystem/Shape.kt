@@ -43,17 +43,23 @@ val ZhihuShapes = Shapes(
  * 后续调整整体观感时只需要改这里。
  */
 object ZhihuShapeTokens {
-    /** 卡片 / 列表容器：M3 large。 */
-    val Card = RoundedCornerShape(16.dp)
+    /** 卡片 / 列表容器：M3 expressive 的 24dp，比默认 16dp 更「软」。 */
+    val Card = RoundedCornerShape(24.dp)
 
-    /** 强调型卡片（duo3 外观），比标准卡片更圆一些。 */
-    val CardExpressive = RoundedCornerShape(20.dp)
+    /** 信息流卡片：贴通知乎官方的 18dp，比大容器克制。 */
+    val FeedCard = RoundedCornerShape(18.dp)
 
-    /** 次级容器（缩略图、图片、代码块）：M3 medium。 */
-    val Thumbnail = RoundedCornerShape(12.dp)
+    /** 强调型卡片（大图信息流、封面容器）。 */
+    val CardExpressive = RoundedCornerShape(28.dp)
 
-    /** 小控件（tag、徽章）：M3 small。 */
-    val Badge = RoundedCornerShape(8.dp)
+    /** 次级容器（缩略图、图片、代码块）。 */
+    val Thumbnail = RoundedCornerShape(16.dp)
+
+    /** 小控件（tag、徽章）。 */
+    val Badge = RoundedCornerShape(10.dp)
+
+    /** 设置/内容分组容器：外层大圆角卡片。 */
+    val Section = RoundedCornerShape(28.dp)
 
     /** 底部弹层：顶部大圆角，底部贴边。 */
     val BottomSheet = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)

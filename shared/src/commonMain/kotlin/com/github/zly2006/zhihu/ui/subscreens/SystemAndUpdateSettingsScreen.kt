@@ -120,7 +120,7 @@ fun SystemAndUpdateSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ZhihuLargeTopAppBar(
                 title = { Text("系统与更新") },

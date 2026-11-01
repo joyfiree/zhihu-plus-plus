@@ -93,7 +93,7 @@ fun NotificationSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ZhihuLargeTopAppBar(
                 title = { Text("通知设置") },

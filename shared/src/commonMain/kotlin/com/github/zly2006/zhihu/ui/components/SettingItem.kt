@@ -21,6 +21,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -33,8 +34,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -65,6 +68,7 @@ import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.util.ProvideContentColorTextStyle
 import kotlinx.coroutines.delay
 
@@ -175,38 +179,44 @@ fun SettingItemGroup(
 
         header?.let { it() }
 
-        Layout(
-            content = content,
+        Surface(
             modifier = Modifier.fillMaxWidth(),
-        ) { measurables, constraints ->
-            val placeables = measurables.map { it.measure(constraints) }
-            val spacing = 6.dp.roundToPx()
-            val baseItemHeight = 56.dp.toPx()
+            shape = ZhihuShapeTokens.Section,
+            color = zhihuSurfaces.cardStrong,
+        ) {
+            Layout(
+                content = content,
+                modifier = Modifier.fillMaxWidth(),
+            ) { measurables, constraints ->
+                val placeables = measurables.map { it.measure(constraints) }
+                val spacing = 6.dp.roundToPx()
+                val baseItemHeight = 56.dp.toPx()
 
-            var yPosition = 0
-            val positions = mutableListOf<Int>()
-            var hasVisibleBefore = false
+                var yPosition = 0
+                val positions = mutableListOf<Int>()
+                var hasVisibleBefore = false
 
-            for (i in placeables.indices) {
-                val placeable = placeables[i]
-                val scale = (placeable.height / baseItemHeight).coerceIn(0f, 1f)
-
-                // 非首个可见元素前按比例补间距；元素缩小时，它前面的间距也同步收缩。
-                if (hasVisibleBefore && scale > 0f) {
-                    yPosition += (spacing * scale).toInt()
-                }
-
-                positions.add(yPosition)
-                yPosition += placeable.height
-
-                if (scale > 0f) {
-                    hasVisibleBefore = true
-                }
-            }
-
-            layout(constraints.maxWidth, yPosition) {
                 for (i in placeables.indices) {
-                    placeables[i].placeRelative(0, positions[i])
+                    val placeable = placeables[i]
+                    val scale = (placeable.height / baseItemHeight).coerceIn(0f, 1f)
+
+                    // 非首个可见元素前按比例补间距；元素缩小时，它前面的间距也同步收缩。
+                    if (hasVisibleBefore && scale > 0f) {
+                        yPosition += (spacing * scale).toInt()
+                    }
+
+                    positions.add(yPosition)
+                    yPosition += placeable.height
+
+                    if (scale > 0f) {
+                        hasVisibleBefore = true
+                    }
+                }
+
+                layout(constraints.maxWidth, yPosition) {
+                    for (i in placeables.indices) {
+                        placeables[i].placeRelative(0, positions[i])
+                    }
                 }
             }
         }
@@ -380,9 +390,9 @@ fun SettingItem(
     bottomAction: (@Composable () -> Unit)? = null,
     shape: Shape = ZhihuShapeTokens.Thumbnail,
     colors: CardColors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = zhihuSurfaces.card,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        disabledContainerColor = zhihuSurfaces.card,
         disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
     ),
     enabled: Boolean = true,
@@ -425,12 +435,21 @@ fun SettingItem(
             ) {
                 icon?.let {
                     Box(
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (enabled) {
+                                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerHighest
+                                },
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
                         CompositionLocalProvider(
                             LocalContentColor provides if (enabled) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                MaterialTheme.colorScheme.onSecondaryContainer
                             } else {
                                 colors.disabledContentColor
                             },
@@ -465,6 +484,18 @@ fun SettingItem(
                     }
                 }
                 endAction?.let { it() }
+                if (endAction == null && bottomAction == null && onClick != null) {
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = if (enabled) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            colors.disabledContentColor
+                        },
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
             bottomAction?.let { it() }
         }

@@ -17,8 +17,9 @@
 
 package com.github.zly2006.zhihu.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -26,6 +27,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,7 +60,6 @@ import androidx.compose.material.icons.filled.MarkUnreadChatAlt
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
@@ -84,12 +85,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
@@ -145,11 +147,13 @@ import com.github.zly2006.zhihu.ui.components.FeedPullToRefresh
 import com.github.zly2006.zhihu.ui.components.MyModalBottomSheet
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.feedKeywordExtractionAvailable
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.pressScale
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_FAB_OPACITY
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FAB_OPACITY
 import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
@@ -257,11 +261,9 @@ fun HomeScreen(
     val showUnreadBadge = notificationSettings.getUnreadBadgeEnabled()
     var showAccountBottomSheet by remember { mutableStateOf(false) }
     var showCreateMenu by remember { mutableStateOf(false) }
-    val createMenuBlurRadius by animateDpAsState(
-        targetValue = if (showCreateMenu) 8.dp else 0.dp,
-        animationSpec = tween(Motion.DURATION_SHORT),
-        label = "createMenuBlurRadius",
-    )
+    // 创作菜单遮罩：淡入由 AnimatedVisibility 的 fadeIn 负责，这里只决定最终浓度。
+    // 0.32 相当于「比原来的 0.16 深一档」，补上取消整页模糊后损失的层级感。
+    val createMenuScrimAlpha = 0.32f
 
     // 获取当前推荐算法设置
     val currentRecommendationMode =
@@ -274,7 +276,7 @@ fun HomeScreen(
 
     val account = rememberAccountSettingsAccountState().value
     if (account.login && !account.hasRequiredCookie) {
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = {},
             title = { Text("Cookie 不完整") },
             text = { Text("当前登录信息缺少必要的 Cookie d_c0，请重新登录。") },
@@ -498,16 +500,16 @@ fun HomeScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            // 打开创作菜单时不再对整页做 Modifier.blur()：整屏实时模糊在中低端机上是纯 GPU 开销，
+            // 而且会让下方内容每一帧重新渲染。改为加深 scrim（见下方遮罩层），
+            // 视觉上同样把「当前层」压下去，但只动一层半透明矩形。
             modifier = if (duo3HomeAccount) {
-                Modifier
-                    .fillMaxSize()
-                    .blur(createMenuBlurRadius)
+                Modifier.fillMaxSize()
             } else {
                 // master旧版需要pad掉状态栏
                 Modifier
                     .fillMaxSize()
                     .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
-                    .blur(createMenuBlurRadius)
             },
             topBar = {
                 if (!showTopActions) {
@@ -605,21 +607,64 @@ fun HomeScreen(
                         }
                     }
                 } else {
-                    Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 1.dp) {
-                        Row(
-                            modifier = Modifier
-                                .testTag(HOME_TOP_ACTIONS_TAG)
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
+                    Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 0.dp) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier
+                                    .testTag(HOME_TOP_ACTIONS_TAG)
+                                    .fillMaxWidth()
+                                    .padding(start = 20.dp, end = 8.dp, top = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "知乎",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .testTag(HOME_NOTIFICATION_BUTTON_TAG)
+                                        .clickable(role = Role.Button) {
+                                            navigator.onNavigate(Notification)
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    // 点击盒与内容盒分离，避免 IconButton 的裁剪边界截掉 BadgedBox 的 badge。
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .testTag(HOME_NOTIFICATION_BUTTON_CONTENT_TAG),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        BadgedBox(
+                                            badge = {
+                                                if (showUnreadBadge && unreadCount > 0) {
+                                                    Badge(modifier = Modifier.testTag(HOME_NOTIFICATION_BADGE_TAG)) {
+                                                        Text("$unreadCount")
+                                                    }
+                                                }
+                                            },
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Notifications,
+                                                contentDescription = "通知",
+                                                tint = MaterialTheme.colorScheme.onSurface,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                             Surface(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
+                                    .height(56.dp)
                                     .testTag(HOME_SEARCH_BUTTON_TAG),
                                 shape = ZhihuShapeTokens.Pill,
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 onClick = {
                                     navigator.onNavigate(
                                         Search(query = ""),
@@ -629,7 +674,7 @@ fun HomeScreen(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(horizontal = 16.dp),
+                                        .padding(horizontal = 20.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Icon(
@@ -639,44 +684,11 @@ fun HomeScreen(
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(
-                                        text = "搜索内容",
+                                        text = "搜索知乎",
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.bodyLarge,
+                                        modifier = Modifier.weight(1f),
                                     )
-                                }
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .testTag(HOME_NOTIFICATION_BUTTON_TAG)
-                                    .clickable(role = Role.Button) {
-                                        navigator.onNavigate(Notification)
-                                    },
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                // 点击盒与内容盒分离，避免 IconButton 的裁剪边界截掉 BadgedBox 的 badge。
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .testTag(HOME_NOTIFICATION_BUTTON_CONTENT_TAG),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    BadgedBox(
-                                        badge = {
-                                            if (showUnreadBadge && unreadCount > 0) {
-                                                Badge(modifier = Modifier.testTag(HOME_NOTIFICATION_BADGE_TAG)) {
-                                                    Text("$unreadCount")
-                                                }
-                                            }
-                                        },
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Notifications,
-                                            contentDescription = "通知",
-                                            tint = MaterialTheme.colorScheme.onSurface,
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -958,10 +970,28 @@ fun HomeScreen(
                         bottomAvoidance = readingPlayerOverlayPadding,
                         onClick = { viewModel.refresh(paginationEnvironment) },
                     ) {
-                        if (viewModel.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(30.dp))
-                        } else {
-                            Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                        // 刷新图标 ↔ 转圈：容器尺寸固定 30dp，两者在同一格内交叉淡入淡出，
+                        // 避免「转圈比图标大 10dp」导致的 FAB 内容跳动。
+                        Box(
+                            modifier = Modifier.size(30.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            AnimatedContent(
+                                targetState = viewModel.isLoading,
+                                transitionSpec = {
+                                    fadeIn(Motion.fadeTween()) togetherWith fadeOut(Motion.fadeTween())
+                                },
+                                label = "refresh_fab_content",
+                            ) { loading ->
+                                if (loading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.fillMaxSize(),
+                                        strokeWidth = 3.dp,
+                                    )
+                                } else {
+                                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                                }
+                            }
                         }
                     }
                 }
@@ -976,7 +1006,7 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.16f))
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = createMenuScrimAlpha))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -1064,9 +1094,20 @@ fun HomeScreen(
             val createFabOpacity = remember(settings) {
                 settings.getInt(PREF_FAB_OPACITY, DEFAULT_FAB_OPACITY).coerceIn(10, 100) / 100f
             }
+            // 菜单展开时「+」转成「×」：45° 是视觉上最省的一次旋转（正好把加号的两笔转成叉），
+            // 用 springSnappy 而不是 tween，收尾带一点点弹性，手感更接近按钮被「拧开」。
+            val createFabInteraction = remember { MutableInteractionSource() }
+            val addIconRotation by animateFloatAsState(
+                targetValue = if (showCreateMenu) 45f else 0f,
+                animationSpec = Motion.springSnappy(),
+                label = "create_fab_icon_rotation",
+            )
             FloatingActionButton(
-                modifier = Modifier.testTag(HOME_CREATE_FAB_TAG),
+                modifier = Modifier
+                    .testTag(HOME_CREATE_FAB_TAG)
+                    .pressScale(createFabInteraction),
                 onClick = { showCreateMenu = !showCreateMenu },
+                interactionSource = createFabInteraction,
                 shape = CircleShape,
                 containerColor = FloatingActionButtonDefaults.containerColor.copy(alpha = createFabOpacity),
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = createFabOpacity),
@@ -1076,7 +1117,11 @@ fun HomeScreen(
                     FloatingActionButtonDefaults.elevation()
                 },
             ) {
-                Icon(Icons.Default.Add, contentDescription = "创作")
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "创作",
+                    modifier = Modifier.graphicsLayer { rotationZ = addIconRotation },
+                )
             }
         }
     }

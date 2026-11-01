@@ -23,8 +23,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import com.github.zly2006.zhihu.ui.designsystem.LocalExtendedColors
+import com.github.zly2006.zhihu.ui.designsystem.LocalZhihuSurfaceColors
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapes
 import com.github.zly2006.zhihu.ui.designsystem.extendedColorsFor
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaceColorsFor
 import com.materialkolor.dynamicColorScheme
 
 /**
@@ -74,9 +76,22 @@ fun ZhihuTheme(content: @Composable () -> Unit) {
 
     PlatformSystemBarEffect(darkTheme)
 
-    CompositionLocalProvider(LocalExtendedColors provides extended) {
+    // 页面 / 卡片底色配对：浅色「灰底白卡」，深色「暗底亮卡」。
+    // 之前页面比卡片更亮，卡片看着像灰块，读不出「卡片」这层语义。
+    val surfaces = zhihuSurfaceColorsFor(colorScheme, darkTheme)
+    val pageScheme = if (isCustomBackground(customBackgroundColor, darkTheme)) {
+        // 用户自选了背景色：页面跟随其选择，卡片仍用推导出的层级。
+        colorScheme
+    } else {
+        colorScheme.copy(background = surfaces.page)
+    }
+
+    CompositionLocalProvider(
+        LocalExtendedColors provides extended,
+        LocalZhihuSurfaceColors provides surfaces,
+    ) {
         MaterialTheme(
-            colorScheme = colorScheme,
+            colorScheme = pageScheme,
             typography = Typography,
             shapes = ZhihuShapes,
             content = content,

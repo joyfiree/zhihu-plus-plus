@@ -29,7 +29,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,11 +59,13 @@ import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.ui.components.CreateCollectionDialog
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.viewmodel.CollectionsViewModel
 import com.github.zly2006.zhihu.viewmodel.rememberPaginationEnvironment
 import kotlinx.coroutines.launch
@@ -162,7 +163,7 @@ fun CollectionScreen(
                     .testTag("collection_screen_item_${collection.id}"),
                 shape = ZhihuShapeTokens.Card,
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    containerColor = zhihuSurfaces.card,
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = ZhihuSpacing.None),
                 onClick = {
@@ -251,7 +252,7 @@ fun CollectionScreen(
 
     collectionPendingDeletion?.let { collection ->
         val isDeleting = viewModel.deletingCollectionId != null
-        AlertDialog(
+        ZhihuAlertDialog(
             modifier = Modifier.testTag("collection_screen_delete_dialog_${collection.id}"),
             onDismissRequest = {
                 if (!isDeleting) {

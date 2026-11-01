@@ -17,12 +17,12 @@
 
 package com.github.zly2006.zhihu.ui
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.util.HttpStatusException
 
 @Composable
@@ -33,7 +33,7 @@ internal fun WriteOperationErrorDialog(
 ) {
     if (message == null) return
 
-    AlertDialog(
+    ZhihuAlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text("操作失败") },
         text = {

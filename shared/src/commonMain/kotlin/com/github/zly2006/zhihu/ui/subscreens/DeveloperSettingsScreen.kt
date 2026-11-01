@@ -34,7 +34,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -72,6 +71,7 @@ import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.ui.HOME_PIN_ANNOUNCEMENT_READ_KEY_PREFIX
 import com.github.zly2006.zhihu.ui.TtsState
 import com.github.zly2006.zhihu.ui.components.SettingItemOverall
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
@@ -116,7 +116,7 @@ fun DeveloperSettingsScreen() {
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ZhihuLargeTopAppBar(
                 title = { Text("开发者选项") },
@@ -295,7 +295,7 @@ fun DeveloperSettingsScreen() {
     if (showCookieDialog) {
         var cookieInputText by remember { mutableStateOf("") }
         var showCookieText by remember { mutableStateOf(false) }
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = {
                 showCookieDialog = false
                 cookieInputText = ""
@@ -392,7 +392,7 @@ fun DeveloperSettingsScreen() {
         var responseText by remember { mutableStateOf("") }
         var isLoading by remember { mutableStateOf(false) }
 
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = {
                 showSignedRequestDialog = false
                 urlInput = ZHIHU_ME_URL

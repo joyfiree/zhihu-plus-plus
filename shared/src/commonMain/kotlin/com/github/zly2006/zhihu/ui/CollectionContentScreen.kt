@@ -30,7 +30,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -65,6 +64,7 @@ import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
 import com.github.zly2006.zhihu.ui.components.FeedCard
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
@@ -267,7 +267,7 @@ private fun CollectionHtmlExportOptionsDialog(
 ) {
     var includeImages by remember { mutableStateOf(true) }
 
-    AlertDialog(
+    ZhihuAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("导出收藏夹 HTML") },
         text = {
@@ -321,7 +321,7 @@ private fun CollectionHtmlExportDialog(
     state: CollectionHtmlExportDialogState,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
+    ZhihuAlertDialog(
         onDismissRequest = {
             if (state.isCompleted) {
                 onDismiss()

@@ -33,12 +33,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.nlp.KeywordWithWeight
+import com.github.zly2006.zhihu.ui.components.ZhihuFilterChip
 import kotlin.math.roundToInt
 
 /**
@@ -89,7 +88,7 @@ fun BlockByKeywordsDialogContent(
     }
 
     if (showDialog) {
-        AlertDialog(
+        ZhihuAlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("按关键词屏蔽") },
             text = {
@@ -140,7 +139,7 @@ fun BlockByKeywordsDialogContent(
                         ) {
                             extractedKeywords.forEach { keyword ->
                                 val isSelected = keyword in selectedKeywords
-                                FilterChip(
+                                ZhihuFilterChip(
                                     selected = isSelected,
                                     onClick = {
                                         selectedKeywords = if (isSelected) {
@@ -261,7 +260,7 @@ fun KeywordDetailDialog(
 ) {
     val maxWeight = keywordInfoList.maxOfOrNull { it.weight } ?: 1.0
 
-    AlertDialog(
+    ZhihuAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("关键词详细信息") },
         text = {

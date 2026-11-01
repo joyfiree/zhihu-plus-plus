@@ -17,6 +17,7 @@
 
 package com.github.zly2006.zhihu.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -44,6 +45,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -58,6 +60,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -104,9 +107,12 @@ fun AnswerVerticalOverscroll(
     val haptics = rememberHapticController()
     val coroutineScope = rememberCoroutineScope()
 
-    val maxOverscrollPx = with(density) { MAX_OVERSCROLL_DP.dp.toPx() }
+    val maxOverscrollPx = with(density) {
+        Motion.Gesture.OVERSCROLL_MAX_DP.dp
+            .toPx()
+    }
     val triggerThresholdPx = with(density) {
-        (TRIGGER_THRESHOLD_DP / normalizedAnswerSwitchSensitivity(answerSwitchSensitivity)).dp.toPx()
+        (Motion.Gesture.OVERSCROLL_TRIGGER_DP / normalizedAnswerSwitchSensitivity(answerSwitchSensitivity)).dp.toPx()
     }
 
     val overscrollOffset = remember { Animatable(0f) }
@@ -145,7 +151,7 @@ fun AnswerVerticalOverscroll(
                         val newOffset = dampedOverscrollOffset(
                             rawDelta = rawDragAccumulator,
                             maxOverscrollPx = maxOverscrollPx,
-                            dampingFactor = DAMPING_FACTOR,
+                            dampingFactor = Motion.Gesture.OVERSCROLL_DAMPING,
                         )
                         coroutineScope.launch { overscrollOffset.snapTo(newOffset) }
                         if (hasTriggeredHaptic && abs(newOffset) < currentTriggerThresholdPx) {
@@ -179,7 +185,7 @@ fun AnswerVerticalOverscroll(
                     val newOffset = dampedOverscrollOffset(
                         rawDelta = rawDragAccumulator,
                         maxOverscrollPx = maxOverscrollPx,
-                        dampingFactor = DAMPING_FACTOR,
+                        dampingFactor = Motion.Gesture.OVERSCROLL_DAMPING,
                     )
                     coroutineScope.launch { overscrollOffset.snapTo(newOffset) }
                     if (!hasTriggeredHaptic && abs(newOffset) >= currentTriggerThresholdPx) {
@@ -269,7 +275,7 @@ fun AnswerVerticalOverscroll(
                                         val newOffset = dampedOverscrollOffset(
                                             rawDelta = rawDragAccumulator,
                                             maxOverscrollPx = maxOverscrollPx,
-                                            dampingFactor = DAMPING_FACTOR,
+                                            dampingFactor = Motion.Gesture.OVERSCROLL_DAMPING,
                                         )
                                         coroutineScope.launch { overscrollOffset.snapTo(newOffset) }
                                         if (!hasTriggeredHaptic && abs(newOffset) >= currentTriggerThresholdPx) {
@@ -311,19 +317,34 @@ fun AnswerVerticalOverscroll(
                 },
             ),
     ) {
-        // 预览卡片在底层，被主内容覆盖，主内容滑动时露出
+        // 预览卡片在底层，被主内容覆盖，主内容滑动时露出。
+
+        // 下面四个布尔量都用 derivedStateOf 收敛：`overscrollOffset` 每帧都在变，
+        // 直接在组合期读它会让整棵子树按帧重组；收敛成「是否出现 / 是否越阈」之后，
+        // 拖动全程只在跨过 0 与阈值这两个瞬间各重组一次。
+        val showPreviousCard by remember(previousAnswer, triggerThresholdPx) {
+            derivedStateOf { overscrollOffset.value > 0f && previousAnswer != null }
+        }
+        val showNextCard by remember(nextAnswer, triggerThresholdPx) {
+            derivedStateOf { overscrollOffset.value < 0f && nextAnswer != null }
+        }
+        val previousTriggered by remember(triggerThresholdPx) {
+            derivedStateOf { overscrollOffset.value >= triggerThresholdPx }
+        }
+        val nextTriggered by remember(triggerThresholdPx) {
+            derivedStateOf { overscrollOffset.value <= -triggerThresholdPx }
+        }
 
         // 上方预览卡片（上一个回答）—— 固定在顶部
-        if (overscrollOffset.value > 0 && previousAnswer != null) {
-            val progress = (overscrollOffset.value / triggerThresholdPx).coerceIn(0f, 1.5f)
+        if (showPreviousCard && previousAnswer != null) {
             AnswerPreviewCard(
                 authorName = previousAnswer.authorName,
                 excerpt = previousAnswer.title,
                 avatarUrl = previousAnswer.authorAvatarUrl,
                 label = "${previousAnswer.sourceLabel}的上一个回答",
                 icon = Icons.Filled.ArrowUpward,
-                isTriggered = overscrollOffset.value >= triggerThresholdPx,
-                progress = progress,
+                isTriggered = previousTriggered,
+                progressProvider = { (overscrollOffset.value / triggerThresholdPx).coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
@@ -332,16 +353,15 @@ fun AnswerVerticalOverscroll(
         }
 
         // 下方预览卡片（下一个回答）—— 固定在底部，内容顺序反转
-        if (overscrollOffset.value < 0 && nextAnswer != null) {
-            val progress = (abs(overscrollOffset.value) / triggerThresholdPx).coerceIn(0f, 1.5f)
+        if (showNextCard && nextAnswer != null) {
             AnswerPreviewCard(
                 authorName = nextAnswer.authorName,
                 excerpt = nextAnswer.title,
                 avatarUrl = nextAnswer.authorAvatarUrl,
                 label = "${nextAnswer.sourceLabel}的下一个回答",
                 icon = Icons.Filled.ArrowDownward,
-                isTriggered = abs(overscrollOffset.value) >= triggerThresholdPx,
-                progress = progress,
+                isTriggered = nextTriggered,
+                progressProvider = { (abs(overscrollOffset.value) / triggerThresholdPx).coerceIn(0f, 1f) },
                 reverseLayout = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -369,27 +389,37 @@ private fun AnswerPreviewCard(
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     isTriggered: Boolean,
-    progress: Float,
+    progressProvider: () -> Float,
     reverseLayout: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val bgColor = if (isTriggered) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest
-    }
-    val contentColor = if (isTriggered) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    // 「到达阈值」是一次状态切换，颜色要过渡而不是硬切：200ms 标准曲线与遮罩/文字淡入同档。
+    val bgColor by animateColorAsState(
+        targetValue = if (isTriggered) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        animationSpec = Motion.fadeTween(),
+        label = "answer_preview_bg",
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isTriggered) {
+            MaterialTheme.colorScheme.onPrimaryContainer
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = Motion.fadeTween(),
+        label = "answer_preview_content",
+    )
 
     Box(
         modifier = modifier
             .padding(horizontal = 16.dp)
             .clip(ZhihuShapeTokens.Card)
             .background(bgColor)
-            .alpha((progress).coerceIn(0f, 1f))
+            // alpha 在绘制阶段读取，拖动过程中不触发重组。
+            .graphicsLayer { alpha = progressProvider().coerceIn(0f, 1f) }
             .padding(12.dp),
     ) {
         val labelRow: @Composable () -> Unit = {
@@ -457,14 +487,7 @@ private fun AnswerPreviewCard(
     }
 }
 
-/** 单次手势的最大可视位移（dp）；tanh 会继续压缩更大的拖动，避免整页被拖走。 */
-private const val MAX_OVERSCROLL_DP = 200f
-
-/** 触发「松手切换回答」的位移阈值（dp），实际阈值再按 answerSwitchSensitivity 线性缩放。 */
-private const val TRIGGER_THRESHOLD_DP = 80f
-
-/** tanh 阻尼系数：越大位移增长越慢、手感越「拉不动」。 */
-private const val DAMPING_FACTOR = 1.2f
+/** 纵向手势的物理常量已上收到 `Motion.Gesture`；此处只保留 tanh 阻尼的实现。 */
 
 internal fun dampedOverscrollOffset(
     rawDelta: Float,

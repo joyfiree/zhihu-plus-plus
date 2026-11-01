@@ -32,7 +32,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -70,6 +69,7 @@ import com.github.zly2006.zhihu.ui.AUTO_REFRESH_HOME_ON_STARTUP_PREFERENCE_KEY
 import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
 import com.github.zly2006.zhihu.ui.components.SettingItemWithSwitch
+import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuDropdownAnchor
 import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
@@ -124,7 +124,7 @@ fun ContentFilterSettingsScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             ZhihuLargeTopAppBar(
                 title = { Text("推荐系统与内容过滤") },
@@ -357,7 +357,7 @@ fun ContentFilterSettingsScreen(
                         QUESTION_FOLLOWERS_THRESHOLD_PREFERENCE_KEY -> "问题最低关注数"
                         else -> "质量过滤阈值"
                     }
-                    AlertDialog(
+                    ZhihuAlertDialog(
                         onDismissRequest = { thresholdKey = null },
                         title = { Text("设置$thresholdTitle") },
                         text = { OutlinedTextField(value = input, onValueChange = { input = it }, label = { Text("阈值") }, singleLine = true) },
@@ -469,7 +469,7 @@ fun ContentFilterSettingsScreen(
                     if (showThresholdDialog) {
                         var inputValue by remember { mutableStateOf(topicThreshold.value.toString()) }
 
-                        AlertDialog(
+                        ZhihuAlertDialog(
                             onDismissRequest = { showThresholdDialog = false },
                             title = { Text("设置主题屏蔽阈值") },
                             text = {
@@ -634,7 +634,7 @@ fun ContentFilterSettingsScreen(
             }
 
             if (showStatsDialog && filterStats != null) {
-                AlertDialog(
+                ZhihuAlertDialog(
                     onDismissRequest = { showStatsDialog = false },
                     title = { Text("过滤统计详情") },
                     text = {

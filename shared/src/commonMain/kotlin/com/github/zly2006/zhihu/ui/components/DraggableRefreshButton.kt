@@ -18,10 +18,10 @@
 package com.github.zly2006.zhihu.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.FloatingActionButton
@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_FAB_OPACITY
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FAB_OPACITY
@@ -98,12 +99,12 @@ fun DraggableRefreshButton(
 
     val animatedOffsetX by animateFloatAsState(
         targetValue = offsetX,
-        animationSpec = tween(if (pressing) 1 else 300),
+        animationSpec = if (pressing) snap() else Motion.springSnappy(),
         label = "offsetX",
     )
     val animatedOffsetY by animateFloatAsState(
         targetValue = visibleOffsetY,
-        animationSpec = tween(if (pressing) 1 else 300),
+        animationSpec = if (pressing) snap() else Motion.springSnappy(),
         label = "offsetY",
     )
     val displayedOffsetX = if (pressing) offsetX else animatedOffsetX
@@ -115,8 +116,8 @@ fun DraggableRefreshButton(
     }
     FloatingActionButton(
         onClick = onClick,
-        shape = CircleShape,
-        containerColor = FloatingActionButtonDefaults.containerColor.copy(alpha = opacityFraction),
+        shape = RoundedCornerShape(20.dp),
+        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = opacityFraction),
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = opacityFraction),
         elevation = if (opacityFraction < 1f) {
             FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)

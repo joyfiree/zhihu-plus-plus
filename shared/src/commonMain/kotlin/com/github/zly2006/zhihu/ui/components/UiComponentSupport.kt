@@ -17,6 +17,7 @@
 
 package com.github.zly2006.zhihu.ui.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -39,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -50,6 +52,7 @@ import com.github.zly2006.zhihu.nlp.KeywordWithWeight
 import com.github.zly2006.zhihu.platform.rememberImageSaver
 import com.github.zly2006.zhihu.platform.rememberImageSharer
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.util.Log
 import com.github.zly2006.zhihu.viewmodel.filter.BlockedKeyword
 import com.github.zly2006.zhihu.viewmodel.filter.BlockedQuestionAuthor
@@ -283,10 +286,23 @@ fun OpenImagePreviewContent(
         Modifier
     }
 
+    // 打开时的进入：整层从 0.92 放大到 1 并淡入。
+    // 这一层缩放和「双击放大图片」互不干扰——前者作用在查看器整层，后者作用在图片自身矩阵；
+    // 关闭方向不做对称动画，因为关闭是窗口级 dismiss，宿主（Dialog）会先把窗口拆掉，动画没有播放的余地。
+    val enter = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        enter.animateTo(targetValue = 1f, animationSpec = Motion.enterTween())
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .graphicsLayer {
+                alpha = enter.value
+                val scale = 0.92f + 0.08f * enter.value
+                scaleX = scale
+                scaleY = scale
+            }.background(Color.Black),
     ) {
         // 禁用图片查看器自带的震动反馈，保持长按菜单手感稳定。
         CompositionLocalProvider(LocalHapticFeedback provides NoopHapticFeedback) {

@@ -22,6 +22,7 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -91,6 +92,7 @@ import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ZhihuCenterAlignedTopAppBar
 import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.util.formatFullDateTime
 import com.github.zly2006.zhihu.util.formatRelativeTime
 import com.github.zly2006.zhihu.viewmodel.PrivateMessageViewModel
@@ -164,7 +166,7 @@ fun PrivateMessageScreen(destination: Notification.Message) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.background,
                 ),
             )
         },
@@ -319,9 +321,14 @@ private fun PrivateMessageBubble(
                         bottomEnd = if (incoming) 16.dp else 4.dp,
                     ),
                     color = if (incoming) {
-                        MaterialTheme.colorScheme.surfaceContainerLow
+                        zhihuSurfaces.card
                     } else {
                         MaterialTheme.colorScheme.primaryContainer
+                    },
+                    border = if (incoming) {
+                        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    } else {
+                        null
                     },
                 ) {
                     SelectionContainer {

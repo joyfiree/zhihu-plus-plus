@@ -122,6 +122,7 @@ fun RenderImage(
             contentDescription = data.altText,
             modifier = modifier
                 .fillMaxWidth(0.8f)
+                .clip(ZhihuShapeTokens.Thumbnail)
                 .then(
                     if (imageAspectRatio != null) {
                         Modifier.aspectRatio(imageAspectRatio)
