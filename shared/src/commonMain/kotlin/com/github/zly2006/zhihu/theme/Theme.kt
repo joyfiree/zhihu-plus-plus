@@ -34,15 +34,15 @@ import com.materialkolor.dynamicColorScheme
  *
  * 配色来源有三档，优先级从高到低：
  * 1. 系统动态取色（Android 12+，且用户开启「使用 Material You 动态取色」）；
- * 2. 用户自选种子色推导出的完整 M3 配色；
- * 3. 默认知乎蓝种子色。
+ * 2. 默认种子色（[ZhihuSeedColor]）时直接使用 [officialZhihuColorScheme] 的手调官方配色；
+ * 3. 用户自选种子色推导出的完整 M3 配色。
  *
  * 三档最终都会经过 [buildZhihuColorScheme]，把「自定义背景色」映射到整套表面阶梯，
  * 因此无论走哪一档，`surface` / `surfaceContainer*` / `onSurface` 的层级关系都是一致的。
  *
  * 主题同时提供：
- * - [ZhihuShapes]：M3 五档圆角；
- * - [Typography]：针对中文调整过行高与字距的 M3 排版；
+ * - [ZhihuShapes]：形状阶梯；
+ * - [Typography]：针对中文调整过行高与字距的排版；
  * - [LocalExtendedColors]：赞同、收藏、朗读等 M3 没有覆盖的功能强调色。
  */
 @Composable
@@ -53,10 +53,10 @@ fun ZhihuTheme(content: @Composable () -> Unit) {
     val darkTheme = ThemeManager.isDarkTheme()
     val platformScheme = platformDynamicColorScheme(darkTheme)
 
-    val baseScheme = if (useDynamicColor && platformScheme != null) {
-        platformScheme
-    } else {
-        dynamicColorScheme(seedColor = seedColor, isDark = darkTheme, isAmoled = false)
+    val baseScheme = when {
+        useDynamicColor && platformScheme != null -> platformScheme
+        seedColor == ZhihuSeedColor -> officialZhihuColorScheme(darkTheme)
+        else -> dynamicColorScheme(seedColor = seedColor, isDark = darkTheme, isAmoled = false)
     }
     // 参考配色只用于两件事：取表面阶梯的相对明度差，以及在背景明暗与主题相反时提供同极性前景色。
     val lightReference = dynamicColorScheme(seedColor = seedColor, isDark = false, isAmoled = false)

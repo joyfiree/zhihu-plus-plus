@@ -71,7 +71,7 @@ import com.github.zly2006.zhihu.ui.components.SettingItemGroup
 import com.github.zly2006.zhihu.ui.components.SettingItemWithSwitch
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.ZhihuDropdownAnchor
-import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
@@ -126,7 +126,7 @@ fun ContentFilterSettingsScreen(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            ZhihuLargeTopAppBar(
+            ZhihuTopAppBar(
                 title = { Text("推荐系统与内容过滤") },
                 navigationIcon = {
                     IconButton(

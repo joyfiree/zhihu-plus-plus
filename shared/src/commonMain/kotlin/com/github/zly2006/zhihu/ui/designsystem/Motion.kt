@@ -146,8 +146,8 @@ object Motion {
         /** 横向 tanh 阻尼系数。 */
         const val HORIZONTAL_OVERSCROLL_DAMPING = 1.2f
 
-        /** 二元状态回弹的峰值缩放。 */
-        const val BOUNCE_POP_SCALE = 1.28f
+        /** 二元状态回弹的峰值缩放：官方风格的克制反馈，只放大一成出头。 */
+        const val BOUNCE_POP_SCALE = 1.12f
 
         /** 卡片 / 磁贴按下时的缩放。 */
         const val PRESSED_SCALE = 0.975f

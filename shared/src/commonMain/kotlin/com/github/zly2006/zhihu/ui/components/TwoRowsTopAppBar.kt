@@ -107,7 +107,7 @@ fun ZhihuTwoRowsTopAppBar(
     collapsedHeight: Dp = Dp.Unspecified,
     expandedHeight: Dp = Dp.Unspecified,
     windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
-    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
+    colors: TopAppBarColors = zhihuTopAppBarColors(),
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     val snapToCollapsedThresholdPx = with(LocalDensity.current) {

@@ -224,9 +224,8 @@ fun <T> PaginatedList(
         // 真卡片「原地替换」，Lazy 列表认为 key 没变，于是骨架硬切成卡片（就是「骨架突然变卡片」）。
         // 换 key 之后，骨架走 fadeOut、卡片走 fadeIn，得到一次真正的交叉淡入。
         if (items.isEmpty() && !isEnd()) {
-            items(count = 4, key = { index -> "zhihu_skeleton_$index" }) { index ->
+            items(count = 4, key = { index -> "zhihu_skeleton_$index" }) {
                 ZhihuSkeletonCard(
-                    showCover = index % 2 == 0,
                     modifier = Modifier
                         .animateItem(fadeOutSpec = Motion.fadeTween())
                         .padding(horizontal = 16.dp, vertical = 5.dp),

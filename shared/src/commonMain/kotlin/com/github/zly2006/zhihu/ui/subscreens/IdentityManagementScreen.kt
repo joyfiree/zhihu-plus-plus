@@ -82,7 +82,7 @@ import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
-import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
@@ -255,7 +255,7 @@ fun IdentityManagementScreen() {
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            ZhihuLargeTopAppBar(
+            ZhihuTopAppBar(
                 title = { Text("身份管理") },
                 navigationIcon = {
                     IconButton(

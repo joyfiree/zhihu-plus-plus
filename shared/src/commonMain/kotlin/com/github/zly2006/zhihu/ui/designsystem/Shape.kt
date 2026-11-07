@@ -22,18 +22,18 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * Material Design 3 形状阶梯。
+ * 形状阶梯（仿知乎官方 App）。
  *
- * M3 用一组固定圆角表达「组件层级」：越小越贴内容（输入框、chip），
- * 越大越像独立容器（卡片、弹层）。页面里不要再写 `RoundedCornerShape(4.dp)` 这类
- * 随手取的圆角，否则同一屏会出现 4/8/12/16 混用。
+ * 官方的圆角语言克制且偏小：卡片 12dp、弹层 16dp、按钮和 chip 是药丸形。
+ * 页面里不要再写 `RoundedCornerShape(4.dp)` 这类随手取的圆角，
+ * 否则同一屏会出现 4/8/12/16 混用。
  */
 val ZhihuShapes = Shapes(
-    extraSmall = RoundedCornerShape(4.dp),
-    small = RoundedCornerShape(8.dp),
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(percent = 50),
     medium = RoundedCornerShape(12.dp),
     large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(16.dp),
 )
 
 /**
@@ -43,30 +43,27 @@ val ZhihuShapes = Shapes(
  * 后续调整整体观感时只需要改这里。
  */
 object ZhihuShapeTokens {
-    /** 卡片 / 列表容器：M3 expressive 的 24dp，比默认 16dp 更「软」。 */
-    val Card = RoundedCornerShape(24.dp)
+    /** 卡片 / 列表容器：官方信息流卡片的中等圆角。 */
+    val Card = RoundedCornerShape(12.dp)
 
-    /** 信息流卡片：贴通知乎官方的 18dp，比大容器克制。 */
-    val FeedCard = RoundedCornerShape(18.dp)
+    /** 信息流卡片：与 [Card] 同档，保留独立别名以便单独微调。 */
+    val FeedCard = RoundedCornerShape(12.dp)
 
-    /** 强调型卡片（大图信息流、封面容器）。 */
-    val CardExpressive = RoundedCornerShape(28.dp)
+    /** 次级容器（缩略图、图片、代码块）：官方缩略图的小圆角。 */
+    val Thumbnail = RoundedCornerShape(6.dp)
 
-    /** 次级容器（缩略图、图片、代码块）。 */
-    val Thumbnail = RoundedCornerShape(16.dp)
+    /** 小控件（tag、徽章）：官方徽标为药丸形。 */
+    val Badge = RoundedCornerShape(percent = 50)
 
-    /** 小控件（tag、徽章）。 */
-    val Badge = RoundedCornerShape(10.dp)
+    /** 设置/内容分组容器。 */
+    val Section = RoundedCornerShape(12.dp)
 
-    /** 设置/内容分组容器：外层大圆角卡片。 */
-    val Section = RoundedCornerShape(28.dp)
+    /** 底部弹层：顶部圆角，底部贴边。 */
+    val BottomSheet = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
 
-    /** 底部弹层：顶部大圆角，底部贴边。 */
-    val BottomSheet = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-
-    /** 药丸形（筛选 chip、分组总开关）。 */
+    /** 药丸形（筛选 chip、投票按钮）。 */
     val Pill = RoundedCornerShape(percent = 50)
 
-    /** 对话框：M3 extraLarge。 */
-    val Dialog = RoundedCornerShape(28.dp)
+    /** 对话框。 */
+    val Dialog = RoundedCornerShape(16.dp)
 }

@@ -26,7 +26,7 @@ import com.github.zly2006.zhihu.theme.ThemeMode
 
 data class ThemeSnapshot(
     val useDynamicColor: Boolean = true,
-    val customColor: Int = 0xFF2196F3.toInt(),
+    val customColor: Int = ZhihuSeedColor.toArgb(),
     val backgroundColorLight: Int = 0xFFFFFFFF.toInt(),
     val backgroundColorDark: Int = 0xFF121212.toInt(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,

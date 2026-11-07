@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
-import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
 import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
@@ -153,7 +153,7 @@ fun OpenSourceLicensesScreen() {
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            ZhihuLargeTopAppBar(
+            ZhihuTopAppBar(
                 title = { Text("开源许可") },
                 navigationIcon = {
                     IconButton(

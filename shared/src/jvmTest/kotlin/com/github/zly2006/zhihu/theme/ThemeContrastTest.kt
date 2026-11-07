@@ -41,7 +41,7 @@ class ThemeContrastTest {
 
     private val lightBackgrounds = listOf(
         "纯白" to Color(0xFFFFFFFF),
-        "知乎蓝" to Color(0xFF2196F3),
+        "官方蓝" to Color(0xFF056DE8),
         "米黄" to Color(0xFFF5F1E8),
         "浅灰" to Color(0xFFEEEEEE),
     )
@@ -121,6 +121,35 @@ class ThemeContrastTest {
             val ascending = ladder.zipWithNext().all { (a, b) -> b >= a - 0.001f }
             val descending = ladder.zipWithNext().all { (a, b) -> b <= a + 0.001f }
             assertTrue(ascending || descending, "背景/$name 的 surface 阶梯明度不单调：$ladder")
+        }
+    }
+
+    /**
+     * 官方手调配色的对比度契约。
+     *
+     * 官方值不经过任何推导算法，调参时容易只看观感而破坏可读性；
+     * 这里把与推导路径相同的 WCAG 底线锁住：正文 ≥ 4.5:1，辅助文本在卡片和灰底页面上都 ≥ 3:1，
+     * 且表面阶梯保持明度单调（保证「灰底白卡 / 暗底亮卡」的层级语言）。
+     */
+    @Test
+    fun officialZhihuSchemeKeepsContrastAndLadder() {
+        for (isDark in listOf(false, true)) {
+            val scheme = officialZhihuColorScheme(isDark)
+            val label = if (isDark) "深色" else "浅色"
+            assertContrast(4.5f, scheme.onSurface, scheme.surface, "$label/官方 onSurface")
+            assertContrast(4.5f, scheme.onBackground, scheme.background, "$label/官方 onBackground")
+            assertContrast(3.0f, scheme.onSurfaceVariant, scheme.surface, "$label/官方 onSurfaceVariant(卡片)")
+            assertContrast(3.0f, scheme.onSurfaceVariant, scheme.background, "$label/官方 onSurfaceVariant(页面)")
+            val ladder = listOf(
+                scheme.surfaceContainerLowest,
+                scheme.surfaceContainerLow,
+                scheme.surfaceContainer,
+                scheme.surfaceContainerHigh,
+                scheme.surfaceContainerHighest,
+            ).map { it.luminance() }
+            val ascending = ladder.zipWithNext().all { (a, b) -> b >= a - 0.001f }
+            val descending = ladder.zipWithNext().all { (a, b) -> b <= a + 0.001f }
+            assertTrue(ascending || descending, "$label/官方 surface 阶梯明度不单调：$ladder")
         }
     }
 }

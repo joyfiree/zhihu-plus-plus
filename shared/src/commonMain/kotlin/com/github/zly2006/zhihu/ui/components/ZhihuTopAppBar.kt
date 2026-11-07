@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
@@ -35,15 +34,13 @@ import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 /**
  * 全应用统一的顶栏配色。
  *
- * M3 规定顶栏属于「surface」层级：未滚动时与页面同色（靠内容滚动产生分离感），
- * 滚动后被内容推起的部分换成 `surfaceContainer`，形成轻微的高度暗示。
- * 早期页面各自用默认配色（primary 背景或纯 surface），滚动时也没有颜色变化，
- * 这正是各个页面观感不一致的主要来源之一。
+ * 仿知乎官方：顶栏是「卡片」层级——浅色为纯白、深色为卡片色，始终与灰底页面区分；
+ * 滚动前后保持同色，靠页面底色的分层表达边界，不做滚动变色。
  */
 @Composable
 fun zhihuTopAppBarColors(
-    containerColor: Color = zhihuSurfaces.page,
-    scrolledContainerColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    containerColor: Color = zhihuSurfaces.card,
+    scrolledContainerColor: Color = zhihuSurfaces.card,
     titleContentColor: Color = MaterialTheme.colorScheme.onSurface,
     navigationIconContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     actionIconContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -100,34 +97,6 @@ fun ZhihuCenterAlignedTopAppBar(
     windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
 ) {
     CenterAlignedTopAppBar(
-        title = title,
-        modifier = modifier,
-        navigationIcon = navigationIcon,
-        actions = actions,
-        colors = colors,
-        scrollBehavior = scrollBehavior,
-        windowInsets = windowInsets,
-    )
-}
-
-/**
- * 大标题顶部应用栏。
- *
- * 设置类页面用它把页面标题放大成 `headlineMedium`，滚动后收成普通工具栏高度。
- * 这是 M3 里「一级页面」的标准表达，比所有页面都用 64dp 小标题更有层次。
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ZhihuLargeTopAppBar(
-    title: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    navigationIcon: @Composable () -> Unit = {},
-    actions: @Composable RowScope.() -> Unit = {},
-    colors: TopAppBarColors = zhihuTopAppBarColors(),
-    scrollBehavior: TopAppBarScrollBehavior? = null,
-    windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
-) {
-    LargeTopAppBar(
         title = title,
         modifier = modifier,
         navigationIcon = navigationIcon,

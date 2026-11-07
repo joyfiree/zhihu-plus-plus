@@ -60,9 +60,11 @@ internal fun zhihuSurfaceColorsFor(scheme: ColorScheme, darkTheme: Boolean): Zhi
             cardStrong = scheme.surfaceContainerHigh,
         )
     } else {
+        // 浅色下 surfaceContainerLow 被夹在「纯白 surface」与「灰底 page」之间，只能是近白
+        // （surface 阶梯要保持明度单调）；强调卡用更灰一档的 High，才能在白卡上读出层次。
         ZhihuSurfaceColors(
             page = scheme.surfaceContainer,
             card = scheme.surface,
-            cardStrong = scheme.surfaceContainerLow,
+            cardStrong = scheme.surfaceContainerHigh,
         )
     }

@@ -70,7 +70,7 @@ object AndroidThemeSettings {
         }
         return ThemeSnapshot(
             useDynamicColor = settings.getBoolean("useDynamicColor", false),
-            customColor = settings.getInt("customThemeColor", 0xFF2196F3.toInt()),
+            customColor = settings.getInt("customThemeColor", ZhihuSeedColor.toArgb()),
             backgroundColorLight = settings.getInt("backgroundColorLight", 0xFFFFFFFF.toInt()),
             backgroundColorDark = settings.getInt("backgroundColorDark", 0xFF121212.toInt()),
             themeMode = themeMode,

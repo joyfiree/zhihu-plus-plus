@@ -60,16 +60,16 @@ val Typography = Typography(
     headlineLarge = style(32, 40),
     headlineMedium = style(28, 38),
     headlineSmall = style(24, 34),
-    // 小标题：AppBar 标题、卡片标题、设置分组标题。
-    titleLarge = style(22, 30, FontWeight.Medium),
+    // 小标题：AppBar 标题（官方顶栏约 17-18sp）、卡片标题、设置分组标题。
+    titleLarge = style(18, 26, FontWeight.Medium),
     titleMedium = style(16, 24, FontWeight.Medium),
     titleSmall = style(14, 22, FontWeight.Medium),
     // 正文：内容主体。
     bodyLarge = style(16, 26),
     bodyMedium = style(14, 22),
     bodySmall = style(12, 18),
-    // 标签：按钮、导航栏、辅助信息。
-    labelLarge = style(14, 20, FontWeight.Medium),
+    // 标签：按钮（官方按钮约 15sp）、导航栏、辅助信息。
+    labelLarge = style(15, 22, FontWeight.Medium),
     labelMedium = style(12, 18, FontWeight.Medium),
     labelSmall = style(11, 16, FontWeight.Medium),
 )

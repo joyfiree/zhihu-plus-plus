@@ -97,6 +97,7 @@ import com.github.zly2006.zhihu.ui.components.WriteContentFabColumn
 import com.github.zly2006.zhihu.ui.components.WriteContentMarkdownEditor
 import com.github.zly2006.zhihu.ui.components.WriteContentPreviewSheet
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.util.json
 import com.github.zly2006.zhihu.util.raiseForStatus
 import com.github.zly2006.zhihu.viewmodel.postSigned
@@ -527,7 +528,7 @@ fun WritePinScreen(destination: WritePin = WritePin()) {
                                     modifier =
                                         Modifier
                                             .size(56.dp)
-                                            .clip(MaterialTheme.shapes.small),
+                                            .clip(ZhihuShapeTokens.Thumbnail),
                                 )
                                 Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {

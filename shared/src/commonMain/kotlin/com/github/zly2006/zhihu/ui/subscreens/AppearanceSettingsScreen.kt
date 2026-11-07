@@ -109,8 +109,8 @@ import com.github.zly2006.zhihu.ui.components.SettingItemGroup
 import com.github.zly2006.zhihu.ui.components.SettingItemOverall
 import com.github.zly2006.zhihu.ui.components.SettingItemWithSwitch
 import com.github.zly2006.zhihu.ui.components.ZhihuDropdownAnchor
-import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
 import com.github.zly2006.zhihu.ui.components.ZhihuSlider
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.normalizedAnswerSwitchSensitivity
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
@@ -365,7 +365,7 @@ fun AppearanceSettingsScreen(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            ZhihuLargeTopAppBar(
+            ZhihuTopAppBar(
                 title = { Text("外观与阅读体验") },
                 navigationIcon = {
                     IconButton(
@@ -514,7 +514,7 @@ fun AppearanceSettingsScreen(
                         initialColor = luotianYiColor,
                         presetColors = listOf(
                             Color(0xFF66CCFF),
-                            Color(0xFF2196F3),
+                            Color(0xFF056DE8),
                             Color(0xFF4CAF50),
                             Color(0xFFF44336),
                             Color(0xFFFF9800),
@@ -1563,9 +1563,9 @@ fun AppearanceSettingsScreen(
             // 先声明所有子开关状态，以便主开关可以批量操作
             val duo3All = remember { mutableStateOf(settings.getBoolean("duo3_all", false)) }
             val duo3CardAppearance = remember { mutableStateOf(settings.getBoolean("duo3_card_appearance", false)) }
-            val duo3CardLayout = remember { mutableStateOf(settings.getBoolean("duo3_card_layout", false)) }
+            val duo3CardLayout = remember { mutableStateOf(settings.getBoolean("duo3_card_layout", true)) }
             val duo3CardLargeTitle = remember {
-                mutableStateOf(settings.getBoolean(DUO3_CARD_LARGE_TITLE_PREFERENCE_KEY, true))
+                mutableStateOf(settings.getBoolean(DUO3_CARD_LARGE_TITLE_PREFERENCE_KEY, false))
             }
             val duo3ArticleBar = remember { mutableStateOf(settings.getBoolean("duo3_article_bar", false)) }
             val duo3ArticleActions = remember { mutableStateOf(settings.getBoolean("duo3_article_actions", false)) }
@@ -1730,7 +1730,7 @@ fun AppearanceSettingsScreen(
                 AnimatedVisibility(visible = duo3CardLayout.value) {
                     SettingItemWithSwitch(
                         title = { Text("信息流卡片：使用更大的标题字体") },
-                        description = { Text("默认启用；关闭后标题会缩小一档。") },
+                        description = { Text("默认关闭，标题与官方一致为 16sp；开启后放大一档。") },
                         checked = duo3CardLargeTitle.value,
                         onCheckedChange = {
                             duo3CardLargeTitle.value = it

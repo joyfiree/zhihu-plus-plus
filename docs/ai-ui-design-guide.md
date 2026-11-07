@@ -37,7 +37,7 @@ URL 解析集中在 `resolveContent()`。支持知乎问题、回答、文章、
 
 设置列表使用 `SettingItemGroup` 包组，单项用 `SettingItem`，开关用 `SettingItemWithSwitch`，总开关用 `SettingItemOverall`。需要从账号页跳入并高亮某个设置时，给目标项传 `settingKey`，导航参数使用 `Account.AppearanceSettings(setting = "...")` 或 `Account.RecommendSettings(setting = "...")`。
 
-返回入口通常放在当前页面顶栏的 `navigationIcon`：设置页多用 `LargeTopAppBar`，普通列表页多用 `TopAppBar`。返回图标优先用自动镜像箭头，`contentDescription = "返回"`。列表页容器通常是 `Scaffold` 加可滚动内容，具体背景色和滚动容器以现有页面体系为准。
+返回入口通常放在当前页面顶栏的 `navigationIcon`：设置页和普通列表页多用 `ZhihuTopAppBar`，无同级 tab 的详情页用 `ZhihuCenterAlignedTopAppBar`。返回图标优先用自动镜像箭头，`contentDescription = "返回"`。列表页容器通常是 `Scaffold` 加可滚动内容，具体背景色和滚动容器以现有页面体系为准。
 
 底栏按钮测试 tag 是 `nav_tab_${destination.name.lowercase()}`。设置页和账号页已有显式 test tag，新增可测试入口优先加稳定 tag，而不是让 UI 测试用坐标点。
 
@@ -47,9 +47,9 @@ URL 解析集中在 `resolveContent()`。支持知乎问题、回答、文章、
 
 ## 视觉体系
 
-当前主线 UI 以 Material 3 为默认实现。改共同行为时优先放在 common runtime、状态或 shared component；改视觉时先确认影响的是共享组件、单个页面还是平台 adapter，避免只改入口而漏掉复用路径。
+当前主线 UI 以**仿知乎官方 App** 为默认实现（2026-11 起替代 MD3 方向，见 `docs/zhihu-official-style.md`）：默认种子色下直接使用 `theme/OfficialZhihuScheme.kt` 的手调官方配色（品牌蓝 `#056DE8`、浅色 `#F6F6F6` 灰底白卡、深色 `#121212`/`#1E1E1E`）；用户自定义种子色或开启动态取色时回退到 material-kolor 推导。改共同行为时优先放在 common runtime、状态或 shared component；改视觉时先确认影响的是共享组件、单个页面还是平台 adapter，避免只改入口而漏掉复用路径。
 
-视觉 token 集中在 `shared/.../ui/designsystem/`：`Motion.kt`（时长/缓动/弹簧/手势常量）、`Shape.kt`（M3 五档 + `ZhihuShapeTokens`）、`Dimens.kt`（间距/尺寸/高度/动效秒数）、`Haptics.kt`（`rememberHapticController()`）、`ExtendedColors.kt`（点赞/收藏/朗读语义色）。页面不得直写 `tween(数字)`、`RoundedCornerShape(N.dp)` 或 `Color(0xFF…)`；白名单与收敛进度见 `docs/md3-refactor/audit.md`。
+视觉 token 集中在 `shared/.../ui/designsystem/`：`Motion.kt`（时长/缓动/弹簧/手势常量）、`Shape.kt`（形状阶梯 + `ZhihuShapeTokens`，卡片 12dp、弹层 16dp、按钮/徽章药丸形）、`Dimens.kt`（间距/尺寸/高度/动效秒数）、`Haptics.kt`（`rememberHapticController()`）、`ExtendedColors.kt`（赞同蓝/收藏金/朗读绿）。页面不得直写 `tween(数字)`、`RoundedCornerShape(N.dp)` 或 `Color(0xFF…)`；色值字面量只允许出现在 `theme/` 下的配色定义文件。
 
 主题状态集中在 `ThemeManager` 和平台 `ThemeSettingsRuntime`。`themeMode` 控制明暗，`useDynamicColor` 控制 Material You 动态取色，`customThemeColor` 在动态取色关闭后生效，`backgroundColorLight` / `backgroundColorDark` 控制背景色，`luotianyi_color` 控制应用内浏览器工具栏色。
 
@@ -173,11 +173,13 @@ rg "rememberSettingsStore|putBoolean|putString|putInt|getBoolean|getString|getIn
 rg "testTag\\(|nav_tab_|ACCOUNT_SETTINGS_|APPEARANCE_SETTINGS_" shared app
 ```
 
-## MD3 Token 契约（2026-10-31 起）
+## Token 契约（2026-11 官方风格版）
 
 | 场景 | 唯一出口 | 不要写 |
 | --- | --- | --- |
-| 顶栏 | `ZhihuTopAppBar` / `ZhihuCenterAlignedTopAppBar` / `ZhihuLargeTopAppBar` | 直接 `TopAppBar` + 自定义 `colors` |
+| 顶栏 | `ZhihuTopAppBar` / `ZhihuCenterAlignedTopAppBar` | 直接 `TopAppBar` + 自定义 `colors` |
+| 底栏 | `ZhihuMain` 内的官方平铺 `NavigationBar`（描边/实心双态图标） | 自绘浮动胶囊底栏 |
+| 官方配色 | `theme/OfficialZhihuScheme.kt`（默认种子时自动启用） | 页面内手写官方色值 |
 | 设置分组 | `SettingItemGroup` + `SettingItemWithSwitch` / `SettingItem` | 自绘 `Surface` 行 |
 | 空/错/加载态 | `ZhihuEmptyState` / `ZhihuErrorState` / `ZhihuLoadingState` | 居中一行 `Text("暂无内容")` |
 | 列表分组标题 | `SectionHeader` | 两侧横线夹文字 |
@@ -185,8 +187,8 @@ rg "testTag\\(|nav_tab_|ACCOUNT_SETTINGS_|APPEARANCE_SETTINGS_" shared app
 | 动效 | `Motion.DURATION_*` / `Motion.*Easing` / `Motion.springMedium()` | `tween(200)`、自定义 CubicBezier |
 | 触觉 | `rememberHapticController()` 的 `confirm/tick/gestureThreshold/longPress` | `performHapticFeedback(...)` |
 | 圆角 | `ZhihuShapeTokens.*` 或 `MaterialTheme.shapes` | `RoundedCornerShape(12.dp)` |
-| 滑块 | `ZhihuSlider` | 直接 `Slider(...)`（默认 Expressive 竖条 thumb 与全局形态不一致） |
-| 设置内下拉 | `ZhihuDropdownAnchor`（配合 `ExposedDropdownMenuBox`） | `OutlinedTextField` 直接塞进设置行（行内出现第二个带边框方块） |
+| 滑块 | `ZhihuSlider` | 直接 `Slider(...)` |
+| 设置内下拉 | `ZhihuDropdownAnchor`（配合 `ExposedDropdownMenuBox`） | `OutlinedTextField` 直接塞进设置行 |
 | 功能强调色 | `extendedColors.like/favorite/tts` | `Color(0xFFF57C00)` 等字面量 |
 
-`enable_predictive_back` 已在 `MyModalBottomSheet` 接通运行时读取（控制自绘弹层的跟手预览）；manifest 级系统动画无法运行时切换，改动前先看 `docs/md3-refactor/status.md` 的偏差说明。
+`enable_predictive_back` 已在 `MyModalBottomSheet` 接通运行时读取（控制自绘弹层的跟手预览）；manifest 级系统动画无法运行时切换。

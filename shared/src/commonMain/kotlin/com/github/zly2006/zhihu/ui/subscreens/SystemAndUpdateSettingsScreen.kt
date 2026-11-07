@@ -78,10 +78,11 @@ import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
 import com.github.zly2006.zhihu.ui.components.SettingItemWithSwitch
 import com.github.zly2006.zhihu.ui.components.ZhihuDropdownAnchor
-import com.github.zly2006.zhihu.ui.components.ZhihuLargeTopAppBar
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.util.ContinuousUsageReminderPolicy
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -122,7 +123,7 @@ fun SystemAndUpdateSettingsScreen(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            ZhihuLargeTopAppBar(
+            ZhihuTopAppBar(
                 title = { Text("系统与更新") },
                 navigationIcon = {
                     IconButton(
@@ -185,7 +186,7 @@ fun SystemAndUpdateSettingsScreen(
                             Spacer(modifier = Modifier.height(16.dp))
                             Surface(
                                 color = MaterialTheme.colorScheme.surfaceContainer,
-                                shape = MaterialTheme.shapes.small,
+                                shape = ZhihuShapeTokens.Card,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Column(modifier = Modifier.padding(12.dp, 8.dp)) {

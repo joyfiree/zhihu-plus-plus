@@ -135,8 +135,9 @@ fun FeedCard(
         settings.getString("feedCardStyle", "card")
     }
     val duo3CardAppearance = remember { settings.getBoolean("duo3_card_appearance", false) }
-    val duo3CardLayout = remember { settings.getBoolean("duo3_card_layout", false) }
-    val duo3CardLargeTitle = remember { settings.getBoolean("duo3_card_large_title", true) }
+    // 官方排版（作者行在卡片底部、摘要 4 行）默认启用；标题默认用 16sp 的 titleMedium。
+    val duo3CardLayout = remember { settings.getBoolean("duo3_card_layout", true) }
+    val duo3CardLargeTitle = remember { settings.getBoolean("duo3_card_large_title", false) }
     val pinImages = (item.feed?.target as? Feed.PinTarget)
         ?.content
         ?.filterIsInstance<DataHolder.Pin.ContentImage>()

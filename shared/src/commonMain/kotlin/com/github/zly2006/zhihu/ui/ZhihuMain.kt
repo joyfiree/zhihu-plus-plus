@@ -21,7 +21,6 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -33,6 +32,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -56,6 +56,14 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material.icons.outlined.Bookmarks
+import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.ManageAccounts
+import androidx.compose.material.icons.outlined.Newspaper
+import androidx.compose.material.icons.outlined.Whatshot
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -81,8 +89,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -150,13 +158,13 @@ import com.github.zly2006.zhihu.ui.components.NoOpPagerNestedScrollConnection
 import com.github.zly2006.zhihu.ui.components.ReadingPlayerBar
 import com.github.zly2006.zhihu.ui.components.ReadingQueueSheet
 import com.github.zly2006.zhihu.ui.designsystem.Motion
-import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
 import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXEnter
 import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXExit
 import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXPopEnter
 import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXPopExit
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.ui.subscreens.AppearanceSettingsScreen
 import com.github.zly2006.zhihu.ui.subscreens.BlockedFeedHistoryScreen
 import com.github.zly2006.zhihu.ui.subscreens.ColorSchemeScreen
@@ -192,6 +200,16 @@ private sealed class MainTabPage(
 
     data object AccountPage : MainTabPage(Account, "account")
 }
+
+/**
+ * 底栏 tab 定义：仿官方「未选中描边灰 / 选中实心蓝」的双态图标。
+ */
+private data class BottomBarTab(
+    val destination: TopLevelDestination,
+    val label: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
+)
 
 internal val LocalReadingPlayerOverlayPadding = staticCompositionLocalOf { 0.dp }
 internal val LocalArticleNavController = staticCompositionLocalOf<NavHostController?> { null }
@@ -414,21 +432,21 @@ fun ZhihuMain(
     }
 
     val allBottomBarItems = listOf(
-        Triple(Home, "主页", Icons.Filled.Home),
-        Triple(Follow, "关注", Icons.Filled.Group),
-        Triple(HotList, "热榜", Icons.Filled.Whatshot),
-        Triple(Daily, "日报", Icons.Filled.Newspaper),
-        Triple(OnlineHistory, "历史", Icons.Filled.History),
-        Triple(MyCollections, "收藏夹", Icons.Filled.Bookmarks),
-        Triple(Account, "账号", Icons.Filled.ManageAccounts),
+        BottomBarTab(Home, "主页", Icons.Filled.Home, Icons.Outlined.Home),
+        BottomBarTab(Follow, "关注", Icons.Filled.Group, Icons.Outlined.Group),
+        BottomBarTab(HotList, "热榜", Icons.Filled.Whatshot, Icons.Outlined.Whatshot),
+        BottomBarTab(Daily, "日报", Icons.Filled.Newspaper, Icons.Outlined.Newspaper),
+        BottomBarTab(OnlineHistory, "历史", Icons.Filled.History, Icons.Outlined.History),
+        BottomBarTab(MyCollections, "收藏夹", Icons.Filled.Bookmarks, Icons.Outlined.Bookmarks),
+        BottomBarTab(Account, "账号", Icons.Filled.ManageAccounts, Icons.Outlined.ManageAccounts),
     )
     val bottomBarItems = selectedBottomBarItemKeys.mapNotNull { key ->
-        allBottomBarItems.firstOrNull { it.first.name == key }
+        allBottomBarItems.firstOrNull { it.destination.name == key }
     }
 
     val mainTabPages = remember(bottomBarItems) {
         bottomBarItems.flatMap { item ->
-            when (item.first) {
+            when (item.destination) {
                 Home -> listOf(MainTabPage.HomePage)
                 Follow -> listOf(MainTabPage.FollowPage)
                 HotList -> listOf(MainTabPage.HotListPage)
@@ -638,76 +656,62 @@ fun ZhihuMain(
                                 enter = slideInVertically(Motion.enterTween()) { it },
                                 exit = slideOutVertically(Motion.exitTween()) { it },
                             ) {
-                                Box(
+                                // 仿官方底栏：整宽平铺、白色卡片底、顶部发丝线，不用 M3 浮动胶囊。
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(
-                                            start = 12.dp,
-                                            end = 12.dp,
-                                            top = 4.dp,
-                                            bottom = bottomPadding + 8.dp,
-                                        ),
+                                        .padding(bottom = bottomPadding),
                                 ) {
+                                    HorizontalDivider(
+                                        thickness = ZhihuSizes.DividerThickness,
+                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                    )
                                     NavigationBar(
-                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        containerColor = zhihuSurfaces.card,
                                         tonalElevation = 0.dp,
                                         windowInsets = WindowInsets(0, 0, 0, 0),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(ZhihuSizes.NavigationBarHeight)
-                                            .clip(ZhihuShapeTokens.Section),
+                                            .height(ZhihuSizes.NavigationBarHeight),
                                     ) {
                                         @Composable
                                         fun Item(
-                                            destination: TopLevelDestination,
-                                            label: String,
-                                            icon: ImageVector,
+                                            tab: BottomBarTab,
                                         ) {
-                                            val tag = "nav_tab_${destination.name.lowercase()}"
+                                            val tag = "nav_tab_${tab.destination.name.lowercase()}"
                                             val isSelected =
-                                                currentBottomDestination?.let { it::class == destination::class } == true
-                                            val iconScale by animateFloatAsState(
-                                                targetValue = if (isSelected) 1.18f else 1f,
-                                                animationSpec = Motion.springSnappy(),
-                                                label = "nav_icon_scale",
-                                            )
+                                                currentBottomDestination?.let { it::class == tab.destination::class } == true
                                             NavigationBarItem(
                                                 isSelected,
                                                 onClick = {
                                                     haptics.tick()
                                                     isReadingPlayerExpandedByUser = false
                                                     if (!isSelected) {
-                                                        navigateTopLevel(destination)
+                                                        navigateTopLevel(tab.destination)
                                                     } else if (tapToScrollToTopEnabled) {
                                                         scrollToTopTrigger++
                                                     }
                                                 },
-                                                label = { Text(label) },
+                                                label = { Text(tab.label) },
                                                 alwaysShowLabel = true,
                                                 colors = NavigationBarItemDefaults.colors(
-                                                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                                    indicatorColor = Color.Transparent,
                                                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 ),
                                                 icon = {
                                                     Icon(
-                                                        icon,
-                                                        contentDescription = label,
-                                                        modifier = Modifier.graphicsLayer {
-                                                            scaleX = iconScale
-                                                            scaleY = iconScale
-                                                        },
+                                                        if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+                                                        contentDescription = tab.label,
                                                     )
                                                 },
                                                 modifier = Modifier.testTag(tag),
                                             )
                                         }
 
-                                        bottomBarItems.forEach { item ->
-                                            Item(item.first, item.second, item.third)
-                                        }
+                                        bottomBarItems.forEach { Item(it) }
                                     }
                                 }
                             }
