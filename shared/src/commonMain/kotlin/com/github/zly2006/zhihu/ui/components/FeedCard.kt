@@ -283,7 +283,7 @@ private fun FeedCardCardContent(
     val thumb = thumbnailUrl?.takeIf { it.isNotEmpty() && showFeedThumbnail && !item.isFiltered }
     val sourceLabel = item.feed?.sourceLabel.takeUnless { item.isFiltered }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = ZhihuSpacing.Medium)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(ZhihuSpacing.Medium)) {
         if (showSourceLabel && !sourceLabel.isNullOrBlank()) {
             Text(
                 text = sourceLabel,

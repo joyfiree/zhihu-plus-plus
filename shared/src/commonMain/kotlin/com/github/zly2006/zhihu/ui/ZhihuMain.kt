@@ -29,6 +29,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -657,9 +658,12 @@ fun ZhihuMain(
                                 exit = slideOutVertically(Motion.exitTween()) { it },
                             ) {
                                 // 仿官方底栏：整宽平铺、白色卡片底、顶部发丝线，不用 M3 浮动胶囊。
+                                // background 必须声明在 padding 之前：底栏底色要一路铺到系统手势区，
+                                // 否则让出的这段会露出 Scaffold 的页面底色（灰底/深底），底栏看起来没贴底。
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .background(zhihuSurfaces.card)
                                         .padding(bottom = bottomPadding),
                                 ) {
                                     HorizontalDivider(

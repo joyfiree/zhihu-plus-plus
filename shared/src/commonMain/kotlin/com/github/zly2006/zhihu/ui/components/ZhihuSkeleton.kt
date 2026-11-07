@@ -124,7 +124,7 @@ fun ZhihuSkeletonCard(
         colors = CardDefaults.cardColors(containerColor = zhihuSurfaces.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(ZhihuSpacing.Large)) {
+        Column(modifier = Modifier.padding(ZhihuSpacing.Medium)) {
             SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(0.92f), height = 20)
             Spacer(Modifier.height(ZhihuSpacing.Small))
             SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(0.58f), height = 20)
