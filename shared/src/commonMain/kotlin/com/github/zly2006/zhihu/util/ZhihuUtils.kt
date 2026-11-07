@@ -138,6 +138,29 @@ fun formatFullDateTime(epochSeconds: Long): String {
     }
 }
 
+/**
+ * 通知列表/邀请卡片共用的日期展示：今天显示 `HH:mm`，昨天显示「昨天」，更早显示 `MM-DD`。
+ * 避免会话列表、邀请卡片各写一套格式造成同一个通知页面出现三种时间风格。
+ */
+@OptIn(ExperimentalTime::class)
+fun formatNotificationTime(
+    epochSeconds: Long,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): String {
+    if (epochSeconds <= 0) return ""
+    val dateTime = Instant.fromEpochSeconds(epochSeconds).toLocalDateTime(timeZone)
+    val today = Clock.System
+        .now()
+        .toLocalDateTime(timeZone)
+        .date
+    val date = dateTime.date
+    return when {
+        date == today -> "${dateTime.hour.twoDigitString()}:${dateTime.minute.twoDigitString()}"
+        date.toEpochDays() == today.toEpochDays() - 1 -> "昨天"
+        else -> "${date.month.number.twoDigitString()}-${date.day.twoDigitString()}"
+    }
+}
+
 internal fun Int.twoDigitString(): String = toString().padStart(2, '0')
 
 fun extractImageUrl(attribute: (String) -> String): String? =

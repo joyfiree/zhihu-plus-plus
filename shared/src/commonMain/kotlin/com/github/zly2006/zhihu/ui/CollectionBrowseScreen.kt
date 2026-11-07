@@ -18,7 +18,6 @@
 package com.github.zly2006.zhihu.ui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,7 +43,6 @@ import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,8 +63,9 @@ import com.github.zly2006.zhihu.data.Collection
 import com.github.zly2006.zhihu.data.FeedDisplayItem
 import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
+import com.github.zly2006.zhihu.ui.components.CollectionDeleteDialog
 import com.github.zly2006.zhihu.ui.components.DraggableRefreshButton
-import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
+import com.github.zly2006.zhihu.ui.components.ZhihuErrorState
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.viewmodel.CollectionContentEnvironment
 import com.github.zly2006.zhihu.viewmodel.CollectionContentViewModel
@@ -299,6 +298,19 @@ fun CollectionBrowseScreen(
         },
     ) { innerPadding ->
         when {
+            collections.isEmpty() && collectionsViewModel.errorMessage != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ZhihuErrorState(
+                        description = collectionsViewModel.errorMessage,
+                        onRetry = { collectionsViewModel.refresh(environment) },
+                    )
+                }
+            }
             collections.isEmpty() && (useLocalCollections || collectionsViewModel.isEnd) -> {
                 Box(
                     modifier = Modifier
@@ -380,54 +392,25 @@ fun CollectionBrowseScreen(
 
     collectionPendingDeletion?.let { collection ->
         val isDeleting = collectionsViewModel.deletingCollectionId != null
-        ZhihuAlertDialog(
-            modifier = Modifier.testTag("collection_browse_delete_dialog_${collection.id}"),
-            onDismissRequest = {
-                if (!isDeleting) {
-                    collectionPendingDeletion = null
-                }
-            },
-            title = { Text("删除收藏夹") },
-            text = {
-                Column {
-                    Text("删除后无法恢复，确认删除收藏夹“${collection.title}”吗？")
-                    collectionsViewModel.deleteCollectionError?.let { error ->
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            if (collectionsViewModel.deleteCollection(environment, collection)) {
-                                if (selectedCollectionId == collection.id) {
-                                    selectedCollectionId = pickDefaultCollectionId(
-                                        collections.filterNot { it.id == collection.id },
-                                    )
-                                }
-                                collectionsViewModel.refresh(environment)
-                                collectionPendingDeletion = null
-                                userMessages.showShortMessage("收藏夹已删除")
-                            }
+        CollectionDeleteDialog(
+            collectionTitle = collection.title,
+            isDeleting = isDeleting,
+            errorMessage = collectionsViewModel.deleteCollectionError,
+            dialogTestTag = "collection_browse_delete_dialog_${collection.id}",
+            confirmTestTag = "collection_browse_delete_confirm_${collection.id}",
+            onDismiss = { collectionPendingDeletion = null },
+            onConfirm = {
+                coroutineScope.launch {
+                    if (collectionsViewModel.deleteCollection(environment, collection)) {
+                        if (selectedCollectionId == collection.id) {
+                            selectedCollectionId = pickDefaultCollectionId(
+                                collections.filterNot { it.id == collection.id },
+                            )
                         }
-                    },
-                    enabled = !isDeleting,
-                    modifier = Modifier.testTag("collection_browse_delete_confirm_${collection.id}"),
-                ) {
-                    Text(if (isDeleting) "删除中…" else "删除")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { collectionPendingDeletion = null },
-                    enabled = !isDeleting,
-                ) {
-                    Text("取消")
+                        collectionsViewModel.refresh(environment)
+                        collectionPendingDeletion = null
+                        userMessages.showShortMessage("收藏夹已删除")
+                    }
                 }
             },
         )

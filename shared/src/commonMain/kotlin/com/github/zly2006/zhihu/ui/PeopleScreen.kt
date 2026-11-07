@@ -22,7 +22,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,8 +43,10 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,10 +74,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
@@ -815,33 +815,6 @@ fun PeopleScreen(
                         }
                     }
                 }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        // 折叠进度是每帧变化的滚动量：位移与透明度都放进 graphicsLayer 的绘制阶段读取，
-                        // 折叠过程中这一层不会重组，也不会触发重新测量（原写法用 Modifier.offset / alpha，
-                        // 等于让整个 Box 按帧重组一次）。
-                        .graphicsLayer {
-                            // collapsedFraction 0 → 1 时从 240dp 位移回到原位（等价于 lerp(240.dp, 0.dp, f)）。
-                            translationY = 240.dp.toPx() * (1f - collapsedFraction)
-                            alpha = collapsedFraction
-                        }.padding(end = 0.dp)
-                        .size(width = 96.dp, height = 56.dp)
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
-                            ),
-                        ).pointerInput(Unit) {
-                            awaitPointerEventScope {
-                                while (true) {
-                                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                                    while (awaitPointerEvent(PointerEventPass.Initial).changes.any { it.pressed }) {
-                                        awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
-                                    }
-                                }
-                            }
-                        },
-                )
                 if (viewModel.memberHashId.isNotBlank() && viewModel.memberHashId != Person.EMPTY_ID) {
                     IconButton(
                         onClick = {
@@ -856,7 +829,13 @@ fun PeopleScreen(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(top = lerp(32.dp, 4.dp, collapsedFraction), end = 8.dp)
-                            .testTag(PEOPLE_SCREEN_SEARCH_BUTTON_TAG),
+                            .graphicsLayer { alpha = collapsedFraction }
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
+                                ),
+                                CircleShape,
+                            ).testTag(PEOPLE_SCREEN_SEARCH_BUTTON_TAG),
                     ) {
                         Icon(Icons.Default.Search, contentDescription = "搜索 TA 的创作")
                     }
@@ -871,6 +850,8 @@ fun PeopleScreen(
         ) {
             HorizontalPager(
                 state = pagerState,
+                // 相邻页也保留组合，切 Tab 再切回不会丢掉 LazyListState 滚动位置。
+                beyondViewportPageCount = 2,
                 modifier = Modifier
                     .weight(1f)
                     .testTag(PEOPLE_SCREEN_PAGER_TAG),
@@ -1451,7 +1432,7 @@ private fun PeopleListItem(
     ) {
         AsyncImage(
             model = people.avatarUrl,
-            contentDescription = "用户头像",
+            contentDescription = null,
             modifier = Modifier
                 .padding(end = 12.dp)
                 .size(48.dp)
@@ -1532,8 +1513,17 @@ private fun StatItem(label: String, value: Int, onClick: () -> Unit = {}, tag: S
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp),
     ) {
-        Text(text = value.toString(), style = MaterialTheme.typography.titleMedium)
-        Text(text = label, style = MaterialTheme.typography.labelMedium)
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -1681,7 +1671,7 @@ private fun UserInfoHeader(
         ) {
             AsyncImage(
                 model = viewModel.avatar,
-                contentDescription = "用户头像",
+                contentDescription = "查看头像大图",
                 modifier = Modifier
                     .testTag(PEOPLE_SCREEN_AVATAR_TAG)
                     .padding(end = 16.dp)
@@ -1764,11 +1754,24 @@ private fun UserInfoHeader(
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedButton(
-                onClick = onFollowToggle,
-                modifier = Modifier.testTag(PEOPLE_SCREEN_FOLLOW_BUTTON_TAG),
-            ) {
-                Text(if (viewModel.isFollowing) "取消关注" else "关注")
+            if (viewModel.isFollowing) {
+                FilledTonalButton(
+                    onClick = onFollowToggle,
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                    modifier = Modifier.testTag(PEOPLE_SCREEN_FOLLOW_BUTTON_TAG),
+                ) {
+                    Text("取消关注")
+                }
+            } else {
+                Button(
+                    onClick = onFollowToggle,
+                    modifier = Modifier.testTag(PEOPLE_SCREEN_FOLLOW_BUTTON_TAG),
+                ) {
+                    Text("关注")
+                }
             }
             OutlinedButton(
                 onClick = onBlockToggle,

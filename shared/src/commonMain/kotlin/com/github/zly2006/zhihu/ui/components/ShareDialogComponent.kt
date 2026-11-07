@@ -17,29 +17,21 @@
 
 package com.github.zly2006.zhihu.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,15 +53,16 @@ import com.github.zly2006.zhihu.navigation.Topic
 import com.github.zly2006.zhihu.platform.PlainTextClipboard
 import com.github.zly2006.zhihu.platform.SettingsStore
 import com.github.zly2006.zhihu.platform.UserMessageSink
-import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 
 /**
  * 通用分享弹窗内容。
  *
- * 弹窗采用底部滑入的操作面板，提供系统分享、复制链接和跳转分享设置三个动作。它只负责视觉和点击分发，
- * 具体分享、复制和设置导航由调用方注入，方便文章、问题、想法等内容复用同一套交互。
+ * 曾经是自绘的半透明遮罩 + 手动滑入面板：把手条画了但不可拖，也没有 `navigationBarsPadding()`，
+ * 全面屏上最后一个按钮会压进系统手势条。现在直接用 [MyModalBottomSheet] 承载，拖拽、返回键关闭、
+ * 系统栏 inset 都是它自带的，这里只负责菜单内容。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShareDialogContent(
     showDialog: Boolean,
@@ -78,84 +71,35 @@ fun ShareDialogContent(
     onCopyClick: () -> Unit,
     onSettingsClick: () -> Unit,
 ) {
-    AnimatedVisibility(
-        visible = showDialog,
-        enter = fadeIn(animationSpec = tween(Motion.DURATION_MEDIUM)),
-        exit = fadeOut(animationSpec = tween(Motion.DURATION_MEDIUM)),
-    ) {
-        Box(
+    if (!showDialog) return
+    MyModalBottomSheet(onDismissRequest = onDismissRequest) {
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable { onDismissRequest() },
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
         ) {
-            AnimatedVisibility(
-                visible = showDialog,
-                enter = slideInVertically(
-                    initialOffsetY = { it },
-                    animationSpec = tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedDecelerateEasing),
-                ),
-                exit = slideOutVertically(
-                    targetOffsetY = { it },
-                    animationSpec = tween(Motion.DURATION_MEDIUM, easing = Motion.EmphasizedAccelerateEasing),
-                ),
-                modifier = Modifier.align(Alignment.BottomCenter),
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = false) { /* 阻止点击穿透 */ },
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 20.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(40.dp)
-                                    .height(4.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                        RoundedCornerShape(2.dp),
-                                    ),
-                            )
-                        }
+            MenuActionButton(
+                icon = Icons.Filled.Share,
+                text = "分享",
+                onClick = onShareClick,
+            )
 
-                        MenuActionButton(
-                            icon = Icons.Filled.Share,
-                            text = "分享",
-                            onClick = onShareClick,
-                        )
+            Spacer(modifier = Modifier.height(12.dp))
 
-                        Spacer(modifier = Modifier.height(12.dp))
+            MenuActionButton(
+                icon = Icons.Filled.ContentCopy,
+                text = "复制链接",
+                onClick = onCopyClick,
+            )
 
-                        MenuActionButton(
-                            icon = Icons.Filled.ContentCopy,
-                            text = "复制链接",
-                            onClick = onCopyClick,
-                        )
+            Spacer(modifier = Modifier.height(12.dp))
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        MenuActionButton(
-                            icon = Icons.Filled.Settings,
-                            text = "分享设置",
-                            onClick = onSettingsClick,
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                }
-            }
+            MenuActionButton(
+                icon = Icons.Filled.Settings,
+                text = "分享设置",
+                onClick = onSettingsClick,
+            )
         }
     }
 }

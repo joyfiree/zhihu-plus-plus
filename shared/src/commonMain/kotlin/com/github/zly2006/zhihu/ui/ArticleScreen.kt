@@ -63,6 +63,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -152,6 +153,7 @@ import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.rememberPreferCollapsedExitUntilCollapsedScrollBehavior
 import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
 import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
 import com.github.zly2006.zhihu.ui.designsystem.extendedColors
 import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_PAGE_TURN_SWITCH_ANSWER
@@ -504,7 +506,7 @@ fun ArticleScreen(
                                                 it
                                             }
                                         },
-                                    maxLines = if (expanded) Int.MAX_VALUE else 1,
+                                    maxLines = if (expanded) 2 else 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             },
@@ -512,7 +514,7 @@ fun ArticleScreen(
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
-                                        .padding(if (expanded) PaddingValues(vertical = 16.dp) else PaddingValues(top = 2.dp, bottom = 8.dp))
+                                        .padding(if (expanded) PaddingValues(top = 8.dp, bottom = 12.dp) else PaddingValues(top = 2.dp, bottom = 8.dp))
                                         .padding(end = 16.dp)
                                         .fillMaxWidth()
                                         .clickable {
@@ -550,8 +552,8 @@ fun ArticleScreen(
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
                                                 text = viewModel.authorName,
-                                                style = if (expanded) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelMedium,
-                                                color = if (expanded) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis,
                                                 modifier = Modifier.weight(1f, fill = false),
@@ -595,7 +597,7 @@ fun ArticleScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
                                     .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 8.dp)
-                                    .height(36.dp),
+                                    .height(48.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Row(
@@ -627,7 +629,7 @@ fun ArticleScreen(
                                                 onClick = { viewModel.toggleVoteUp(environment, VoteUpState.Down) },
                                                 colors = voteUpNeutralButtonColors(),
                                                 shape = RectangleShape,
-                                                modifier = Modifier.height(ButtonDefaults.MinHeight).width(ButtonDefaults.MinHeight),
+                                                modifier = Modifier.height(ZhihuSizes.MinTouchTarget).width(ZhihuSizes.MinTouchTarget),
                                                 contentPadding = PaddingValues(horizontal = 0.dp),
                                             ) {
                                                 Icon(painterResource(Res.drawable.ic_vote_down_24dp), "反对")
@@ -654,7 +656,7 @@ fun ArticleScreen(
                                                 onClick = { viewModel.toggleVoteUp(environment, VoteUpState.Neutral) },
                                                 colors = voteUpActiveButtonColors(),
                                                 shape = RectangleShape,
-                                                modifier = Modifier.height(ButtonDefaults.MinHeight),
+                                                modifier = Modifier.height(ZhihuSizes.MinTouchTarget),
                                                 contentPadding = PaddingValues(horizontal = 0.dp),
                                             ) {
                                                 Icon(painterResource(Res.drawable.ic_vote_down_24dp), "反对")
@@ -877,6 +879,7 @@ fun ArticleScreen(
                         if (bottomBarState.showSlot) {
                             Box(
                                 modifier = Modifier
+                                    .fillMaxWidth()
                                     .onSizeChanged { bottomBarState.heightPx = it.height.toFloat() }
                                     .graphicsLayer {
                                         translationY = bottomBarState.offset.value
@@ -885,9 +888,15 @@ fun ArticleScreen(
                                         } else {
                                             1f
                                         }
-                                    },
+                                    }.background(MaterialTheme.colorScheme.surface),
                             ) {
-                                ActionBarContent()
+                                Column {
+                                    HorizontalDivider(
+                                        thickness = ZhihuSizes.DividerThickness,
+                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                    )
+                                    ActionBarContent()
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(readingPlayerOverlayPadding))
@@ -1121,16 +1130,18 @@ fun ArticleScreen(
                             .pageTurnViewportWithGuide(pageTurnTarget),
                     )
                     // 状态栏渐变遮罩，仅 duo3 路径需要；主视觉路径不绘制。
-                    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-                    val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(statusBarHeight + 16.dp)
-                            .background(
-                                Brush.verticalGradient(smoothGradient(surfaceColor, 0.8f)),
-                            ),
-                    ) {}
+                    if (useDuo3ArticleActions) {
+                        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                        val surfaceColor = MaterialTheme.colorScheme.surfaceContainer
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(statusBarHeight + 16.dp)
+                                .background(
+                                    Brush.verticalGradient(smoothGradient(surfaceColor, 0.8f)),
+                                ),
+                        ) {}
+                    }
                 }
             }
         }

@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 import com.github.zly2006.zhihu.ui.rememberObservedSetting
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_SHOW_CONTENT_END_MARKER
 import com.github.zly2006.zhihu.ui.subscreens.PREF_SHOW_CONTENT_END_MARKER
@@ -180,6 +181,9 @@ fun <T> PaginatedList(
     reverseLayout: Boolean = false,
     animateItemPlacement: Boolean = true,
     isEnd: () -> Boolean = { false },
+    /** 首屏为空且加载失败时展示的错误信息；非空会用 [ZhihuErrorState] 取代骨架屏，并给出重试入口。 */
+    errorMessage: String? = null,
+    onRetry: (() -> Unit)? = null,
     footer: @Composable ((LazyListState) -> Unit)? = null,
     key: ((T) -> Any)? = null,
     topContent: LazyListScope.() -> Unit = {},
@@ -223,17 +227,25 @@ fun <T> PaginatedList(
         // 关键点：骨架用**独立 key**（skeleton-N）。若沿用索引 key，数据到达时同一个槽位会被
         // 真卡片「原地替换」，Lazy 列表认为 key 没变，于是骨架硬切成卡片（就是「骨架突然变卡片」）。
         // 换 key 之后，骨架走 fadeOut、卡片走 fadeIn，得到一次真正的交叉淡入。
-        if (items.isEmpty() && !isEnd()) {
+        if (items.isEmpty() && errorMessage != null) {
+            item {
+                ZhihuErrorState(
+                    description = errorMessage,
+                    onRetry = onRetry,
+                    modifier = Modifier.fillParentMaxHeight(0.7f),
+                )
+            }
+        } else if (items.isEmpty() && !isEnd()) {
             items(count = 4, key = { index -> "zhihu_skeleton_$index" }) {
                 ZhihuSkeletonCard(
                     modifier = Modifier
                         .animateItem(fadeOutSpec = Motion.fadeTween())
-                        .padding(horizontal = 16.dp, vertical = 5.dp),
+                        .padding(horizontal = 16.dp, vertical = ZhihuSpacing.CardGap),
                 )
             }
         }
         // 确实没有内容（已结束且空）：给统一的空态，而不是一块白。
-        if (items.isEmpty() && isEnd()) {
+        if (items.isEmpty() && isEnd() && errorMessage == null) {
             item {
                 ZhihuEmptyState(
                     title = "这里还什么都没有",

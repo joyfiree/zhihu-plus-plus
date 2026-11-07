@@ -64,8 +64,8 @@ val Typography = Typography(
     titleLarge = style(18, 26, FontWeight.Medium),
     titleMedium = style(16, 24, FontWeight.Medium),
     titleSmall = style(14, 22, FontWeight.Medium),
-    // 正文：内容主体。
-    bodyLarge = style(16, 26),
+    // 正文：内容主体。官方正文约 17-18sp、行高约 1.7，这里取 17sp 作为可读性基准。
+    bodyLarge = style(17, 28),
     bodyMedium = style(14, 22),
     bodySmall = style(12, 18),
     // 标签：按钮（官方按钮约 15sp）、导航栏、辅助信息。
@@ -73,3 +73,24 @@ val Typography = Typography(
     labelMedium = style(12, 18, FontWeight.Medium),
     labelSmall = style(11, 16, FontWeight.Medium),
 )
+
+/**
+ * `Typography` 15 个 M3 语义角色之外、仿官方场景专用的补充令牌。
+ *
+ * `headlineMedium`（28sp）是 M3 的"中等标题"尺寸，首页品牌词标、设置分组大标题等展示级场景
+ * 仍在使用它；但回答页/问题页这类"内容标题"官方实测在 20-22sp 加粗，直接复用 28sp 会显得过大。
+ * 这里单独给一个语义角色，避免为了改内容标题而牵连其它复用 `headlineMedium` 的页面。
+ */
+object ZhihuTypography {
+    /** 回答页/问题页展开态大标题：20sp、加粗，行高按 1.4 倍留足中文间距。 */
+    val ContentTitle = style(20, 28, FontWeight.SemiBold)
+
+    /**
+     * 信息流卡片元信息行：作者名与赞同/评论计数。
+     *
+     * 三种卡片排版曾经各写各的（15sp / 12sp / 11sp），这里统一成官方口径——
+     * 作者名 13sp，计数、时间等辅助信息 12sp，避免同一张卡片里出现第三种字号。
+     */
+    val FeedAuthorName = style(13, 18, FontWeight.Medium)
+    val FeedMeta = style(12, 16, FontWeight.Medium)
+}

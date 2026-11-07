@@ -18,7 +18,6 @@
 package com.github.zly2006.zhihu.ui
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -665,7 +664,7 @@ private fun TopicIntroduction(
                 .fillMaxWidth()
                 .clipToBounds()
                 .animateContentSize(
-                    animationSpec = tween(Motion.DURATION_LONG, easing = FastOutSlowInEasing),
+                    animationSpec = tween(Motion.DURATION_LONG, easing = Motion.EmphasizedEasing),
                 ),
     ) {
         Text(

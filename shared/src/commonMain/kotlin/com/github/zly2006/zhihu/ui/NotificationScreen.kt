@@ -17,6 +17,7 @@
 
 package com.github.zly2006.zhihu.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +62,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,16 +90,13 @@ import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ZhihuCenterAlignedTopAppBar
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
+import com.github.zly2006.zhihu.util.formatNotificationTime
 import com.github.zly2006.zhihu.util.formatRelativeTime
 import com.github.zly2006.zhihu.viewmodel.MobileNotificationCategory
 import com.github.zly2006.zhihu.viewmodel.NotificationEnvironment
 import com.github.zly2006.zhihu.viewmodel.NotificationViewModel
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 @Composable
 expect fun rememberNotificationEnvironment(
@@ -107,7 +107,7 @@ expect fun rememberNotificationEnvironment(
  * 通知主页复用官方 Android `message/v3` 的信息层级：四个分类、邀请回答入口和私信会话列表。
  * 应用内显示过滤与自动已读仍由 [NotificationSettingsStore] 控制，不能借布局调整改变默认通知偏好。
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NotificationScreen() {
     val navigator = LocalNavigator.current
@@ -164,11 +164,13 @@ fun NotificationScreen() {
                 items = viewModel.allData,
                 onLoadMore = { viewModel.loadMore(environment) },
                 isEnd = { viewModel.isEnd },
+                errorMessage = viewModel.errorMessage,
+                onRetry = { viewModel.refresh(environment) },
                 modifier = Modifier.fillMaxSize(),
                 footer = ProgressIndicatorFooter,
                 key = { it.stableId },
                 topContent = {
-                    item(key = "notification_categories") {
+                    stickyHeader(key = "notification_categories") {
                         NotificationCategoryRow(
                             unreadCounts = viewModel.categoryUnreadCounts,
                             showUnreadBadges = settingsStore.getUnreadBadgeEnabled(),
@@ -177,6 +179,7 @@ fun NotificationScreen() {
                                     Notification.Entry(category.entryName, category.detailTitle),
                                 )
                             },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface),
                         )
                     }
                     viewModel.invitation?.let { invitation ->
@@ -215,9 +218,10 @@ private fun NotificationCategoryRow(
     unreadCounts: Map<MobileNotificationCategory, Int>,
     showUnreadBadges: Boolean,
     onCategoryClick: (MobileNotificationCategory) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -253,7 +257,7 @@ private fun NotificationCategoryRow(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = category.homeIcon(),
-                                contentDescription = category.detailTitle,
+                                contentDescription = null,
                                 modifier = Modifier.size(26.dp),
                             )
                         }
@@ -434,7 +438,9 @@ fun NotificationItemView(
                         Surface(
                             color = MaterialTheme.colorScheme.error,
                             shape = CircleShape,
-                            modifier = Modifier.size(6.dp),
+                            modifier = Modifier
+                                .size(6.dp)
+                                .semantics { stateDescription = "未读" },
                         ) {}
                     }
                 }
@@ -614,8 +620,7 @@ internal fun MobileNotificationTimelineItem.navDestination(): NavDestination? {
 private fun MobileNotificationTimelineItem.notificationListDate(): String {
     val epochSeconds = created.takeIf { it > 0 } ?: createdStr.toLongOrNull()
         ?: return createdStr
-    val dateTime = Instant.fromEpochSeconds(epochSeconds).toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${dateTime.month.number.toString().padStart(2, '0')}-${dateTime.day.toString().padStart(2, '0')}"
+    return formatNotificationTime(epochSeconds)
 }
 
 private fun formatUnreadCount(count: Int): String = if (count > 99) "99+" else count.toString()

@@ -36,6 +36,9 @@ object ZhihuSpacing {
 
     /** 页面左右内容边距（列表、设置页、正文统一 16dp）。 */
     val ScreenGutter = 16.dp
+
+    /** 信息流卡片之间的垂直间隙，骨架屏与真实卡片共用，避免两处各写一份而跳版。 */
+    val CardGap = 5.dp
 }
 
 /**
@@ -50,11 +53,15 @@ object ZhihuSizes {
     val TopAppBarHeight = 64.dp
     val MediumTopAppBarHeight = 112.dp
     val LargeTopAppBarHeight = 152.dp
-    val NavigationBarHeight = 80.dp
+    val NavigationBarHeight = 64.dp
     val Icon = 24.dp
     val IconSmall = 20.dp
     val AvatarSmall = 24.dp
     val AvatarMedium = 32.dp
     val AvatarLarge = 40.dp
     val DividerThickness = 1.dp
+
+    /** 信息流缩略图统一尺寸（4:3），三种卡片排版与骨架屏共用，避免真实卡片加载后跳尺寸。 */
+    val FeedThumbnailWidth = 112.dp
+    val FeedThumbnailHeight = 84.dp
 }

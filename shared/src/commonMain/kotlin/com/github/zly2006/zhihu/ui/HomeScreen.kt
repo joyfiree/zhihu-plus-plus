@@ -74,6 +74,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -91,7 +92,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
@@ -135,6 +135,7 @@ import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.platform.rememberWebViewUrlOpener
 import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
+import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.components.AnnouncementCard
 import com.github.zly2006.zhihu.ui.components.AnnouncementCardDefaults
 import com.github.zly2006.zhihu.ui.components.BlockByKeywordsDialog
@@ -154,6 +155,7 @@ import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.pressScale
+import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_FAB_OPACITY
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FAB_OPACITY
 import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
@@ -520,7 +522,7 @@ fun HomeScreen(
                         Surface(
                             modifier = Modifier
                                 .height(
-                                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp + 32.dp,
+                                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp + 56.dp + 8.dp,
                                 ).fillMaxWidth(),
                         ) { }
                         Row(
@@ -566,10 +568,10 @@ fun HomeScreen(
                                     IconButton(
                                         onClick = { showAccountBottomSheet = true },
                                         modifier = Modifier
-                                            .size(64.dp)
+                                            .size(48.dp)
                                             .testTag(HOME_ACCOUNT_BUTTON_TAG),
                                     ) {
-                                        Box(Modifier.padding(12.dp)) {
+                                        Box(Modifier.padding(8.dp)) {
                                             BadgedBox(
                                                 badge = {
                                                     if (showUnreadBadge && unreadCount > 0) {
@@ -584,7 +586,7 @@ fun HomeScreen(
                                                         contentDescription = "账号",
                                                         contentScale = ContentScale.Crop,
                                                         modifier = Modifier
-                                                            .size(40.dp)
+                                                            .size(32.dp)
                                                             .border(
                                                                 0.5.dp,
                                                                 MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
@@ -596,7 +598,7 @@ fun HomeScreen(
                                                         Icons.Default.AccountCircle,
                                                         contentDescription = "账号",
                                                         tint = MaterialTheme.colorScheme.onSurface,
-                                                        modifier = Modifier.size(40.dp),
+                                                        modifier = Modifier.size(32.dp),
                                                     )
                                                 }
                                             }
@@ -618,8 +620,7 @@ fun HomeScreen(
                             ) {
                                 Text(
                                     text = "知乎",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    style = ZhihuTypography.ContentTitle,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -699,7 +700,8 @@ fun HomeScreen(
             if (duo3HomeAccount && showAccountBottomSheet) {
                 MyModalBottomSheet(
                     onDismissRequest = { showAccountBottomSheet = false },
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    containerColor = zhihuSurfaces.page,
+                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
                 ) {
                     AccountSettingScreen(
                         innerPadding = PaddingValues(0.dp),
@@ -722,6 +724,7 @@ fun HomeScreen(
                         bottom = innerPadding.calculateBottomPadding() + readingPlayerOverlayPadding,
                     ),
                     onLoadMore = { viewModel.loadMore(paginationEnvironment) },
+                    isEnd = { viewModel.isEnd },
                     footer = ProgressIndicatorFooter,
                     key = { item -> item.stableKey },
                     topContent = {

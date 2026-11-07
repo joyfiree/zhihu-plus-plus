@@ -49,8 +49,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -123,10 +125,11 @@ fun WriteAnswerScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     var editorActionsVisible by remember { mutableStateOf(true) }
-    val actionVisibilityThreshold = with(LocalDensity.current) { 12.dp.roundToPx() }
+    val density = LocalDensity.current
+    val actionVisibilityThreshold = with(density) { 12.dp.roundToPx() }
     var accumulatedEditorScroll by remember { mutableStateOf(0f) }
 
-    var content by remember { mutableStateOf(TextFieldValue("")) }
+    var content by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
     var tocEnabled by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
     var existingAnswerId by remember { mutableStateOf<Long?>(null) }
@@ -142,6 +145,10 @@ fun WriteAnswerScreen(
     var previewHtml by remember { mutableStateOf<String?>(null) }
     var previewMarkdown by remember { mutableStateOf<String?>(null) }
     var previewUseWebView by remember { mutableStateOf(false) }
+    // FAB 列的真实高度（dp），用来给编辑器留出不被 FAB 遮挡的底部空间；
+    // 初次布局前用 280dp 兜底，measured 之后换成实测值 + 24dp 安全间隙。
+    var fabColumnHeight by remember { mutableStateOf(280.dp) }
+    val canPublishOrSave = !isSubmitting && content.text.isNotBlank()
 
     suspend fun ensureAnswerId(): Long? {
         val cached = existingAnswerId
@@ -369,7 +376,7 @@ fun WriteAnswerScreen(
                     }
                     Button(
                         onClick = { submitAnswer(publish = true) },
-                        enabled = !isSubmitting && !isUploadingImage,
+                        enabled = canPublishOrSave && !isUploadingImage,
                     ) {
                         if (isSubmitting) {
                             CircularProgressIndicator(
@@ -390,9 +397,12 @@ fun WriteAnswerScreen(
                 exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
             ) {
                 WriteContentFabColumn(
-                    previewEnabled = !isSubmitting && content.text.isNotBlank(),
+                    modifier = Modifier.onGloballyPositioned {
+                        fabColumnHeight = with(density) { it.size.height.toDp() } + 24.dp
+                    },
+                    previewEnabled = canPublishOrSave,
                     imageEnabled = isImagePickerSupported && !isSubmitting && !isUploadingImage,
-                    saveEnabled = !isSubmitting,
+                    saveEnabled = canPublishOrSave,
                     showImageButton = isImagePickerSupported,
                     isUploadingImage = isUploadingImage,
                     previewTag = WRITE_ANSWER_FAB_PREVIEW_TAG,
@@ -421,7 +431,7 @@ fun WriteAnswerScreen(
                 contentTag = WRITE_ANSWER_CONTENT_TAG,
                 enabled = !isSubmitting,
                 modifier = Modifier.fillMaxSize(),
-                bottomPadding = 280.dp,
+                bottomPadding = fabColumnHeight,
                 onVerticalScroll = { delta ->
                     if (accumulatedEditorScroll != 0f && (accumulatedEditorScroll > 0f) != (delta > 0f)) {
                         accumulatedEditorScroll = delta

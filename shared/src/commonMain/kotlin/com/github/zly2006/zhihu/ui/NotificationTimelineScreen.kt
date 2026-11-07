@@ -68,14 +68,10 @@ import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ZhihuCenterAlignedTopAppBar
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
+import com.github.zly2006.zhihu.util.formatNotificationTime
 import com.github.zly2006.zhihu.viewmodel.MobileNotificationCategory
 import com.github.zly2006.zhihu.viewmodel.NotificationTimelineViewModel
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.number
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,6 +121,8 @@ fun NotificationTimelineScreen(
                 items = viewModel.allData,
                 onLoadMore = { viewModel.loadMore(environment) },
                 isEnd = { viewModel.isEnd },
+                errorMessage = viewModel.errorMessage,
+                onRetry = { viewModel.refresh(environment) },
                 listState = listState,
                 modifier = Modifier
                     .fillMaxSize()
@@ -327,20 +325,6 @@ private fun InvitationAnswerItem(
 }
 
 @OptIn(ExperimentalTime::class)
-private fun MobileNotificationTimelineItem.invitationTime(): String {
-    if (created <= 0) return ""
-    val timeZone = TimeZone.currentSystemDefault()
-    val dateTime = Instant.fromEpochSeconds(created).toLocalDateTime(timeZone)
-    val today = Clock.System
-        .now()
-        .toLocalDateTime(timeZone)
-        .date
-    val date = dateTime.date
-    return when {
-        date == today -> "${dateTime.hour.toString().padStart(2, '0')}:${dateTime.minute.toString().padStart(2, '0')}"
-        date.toEpochDays() == today.toEpochDays() - 1 -> "昨天"
-        else -> "${date.month.number.toString().padStart(2, '0')}-${date.day.toString().padStart(2, '0')}"
-    }
-}
+private fun MobileNotificationTimelineItem.invitationTime(): String = formatNotificationTime(created)
 
 private const val INVITATION_ENTRY_NAME = "invite"

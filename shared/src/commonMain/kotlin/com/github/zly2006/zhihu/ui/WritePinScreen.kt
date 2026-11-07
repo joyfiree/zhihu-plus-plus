@@ -50,12 +50,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -222,14 +225,14 @@ fun WritePinScreen(destination: WritePin = WritePin()) {
             .takeIf(String::isNotBlank)
             ?.let { PinContentTopicItem(it, destination.topicName) }
     }
-    var content by remember(initialTopic) {
+    var content by rememberSaveable(initialTopic, stateSaver = TextFieldValue.Saver) {
         mutableStateOf(
             initialTopic
                 ?.let { TextFieldValue("#${it.displayName} ") }
                 ?: TextFieldValue(""),
         )
     }
-    var title by remember { mutableStateOf(TextFieldValue("")) }
+    var title by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
     var images by remember { mutableStateOf<List<UploadedZhihuImage>>(emptyList()) }
     var selectedTopics by remember(initialTopic) {
         mutableStateOf(
@@ -250,6 +253,13 @@ fun WritePinScreen(destination: WritePin = WritePin()) {
     var previewHtml by remember { mutableStateOf<String?>(null) }
     var previewMarkdown by remember { mutableStateOf<String?>(null) }
     var previewUseWebView by remember { mutableStateOf(false) }
+    // 实测 FAB 列高度，避免像回答页那样写死一个经验值当编辑器底部留白。
+    val density = LocalDensity.current
+    var fabColumnHeight by remember { mutableStateOf(160.dp) }
+    // 想法允许「只发图片、不写文字」，所以发布/保存只要求「文字或图片至少有一样」；
+    // 预览只渲染 Markdown 文字，纯图片想法没有可预览的内容，因此单独要求文字非空。
+    val canSubmitPin = !isSubmitting && (content.text.isNotBlank() || images.isNotEmpty())
+    val canPreviewPin = !isSubmitting && content.text.isNotBlank()
 
     fun updateContent(newValue: TextFieldValue) {
         selectedTopics = updatePinTopicMarkers(content.text, newValue.text, selectedTopics)
@@ -431,7 +441,7 @@ fun WritePinScreen(destination: WritePin = WritePin()) {
                 actions = {
                     Button(
                         onClick = { submitPin(publish = true) },
-                        enabled = !isSubmitting && !isUploadingImage,
+                        enabled = canSubmitPin && !isUploadingImage,
                     ) {
                         if (isSubmitting) {
                             CircularProgressIndicator(
@@ -447,9 +457,12 @@ fun WritePinScreen(destination: WritePin = WritePin()) {
         },
         floatingActionButton = {
             WriteContentFabColumn(
-                previewEnabled = !isSubmitting && content.text.isNotBlank(),
+                modifier = Modifier.onGloballyPositioned {
+                    fabColumnHeight = with(density) { it.size.height.toDp() } + 24.dp
+                },
+                previewEnabled = canPreviewPin,
                 imageEnabled = isImagePickerSupported && !isSubmitting && !isUploadingImage,
-                saveEnabled = !isSubmitting,
+                saveEnabled = canSubmitPin,
                 showImageButton = isImagePickerSupported,
                 isUploadingImage = isUploadingImage,
                 previewTag = WRITE_PIN_FAB_PREVIEW_TAG,
@@ -566,6 +579,7 @@ fun WritePinScreen(destination: WritePin = WritePin()) {
                             .fillMaxWidth()
                             .weight(1f),
                     topPadding = 4.dp,
+                    bottomPadding = fabColumnHeight,
                     visualTransformation = PinTopicVisualTransformation(selectedTopics, MaterialTheme.colorScheme.primary),
                     extraShortcuts = listOf(MarkdownShortcut.Topic),
                 )

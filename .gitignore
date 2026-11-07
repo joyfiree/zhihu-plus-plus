@@ -68,3 +68,6 @@ third_party/native-maven/
 
 # 工作区数据目录（WorkBuddy 记忆/会话，不入库）
 .workbuddy/
+
+# MyFlicker local tool config
+.myflicker/

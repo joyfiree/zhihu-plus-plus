@@ -106,6 +106,8 @@ data class IdentityManagementState(
     val loading: Boolean = false,
     val switchingToAccountId: String? = null,
     val creating: Boolean = false,
+    /** 仅用于「加载账号列表失败」。切换/创建账号的失败走 [com.github.zly2006.zhihu.platform.UserMessageSink]，不塞进这里——
+     *  否则会把整个列表换成一个无关的全屏错误页。 */
     val errorMessage: String? = null,
 ) {
     val busy: Boolean
@@ -462,7 +464,6 @@ fun IdentityManagementScreen() {
                                 } catch (e: Exception) {
                                     state = state.copy(
                                         switchingToAccountId = null,
-                                        errorMessage = e.message ?: "切换账号失败",
                                     )
                                     throw e
                                 }
@@ -548,7 +549,6 @@ fun IdentityManagementScreen() {
                                 } catch (e: Exception) {
                                     state = state.copy(
                                         creating = false,
-                                        errorMessage = e.message ?: "创建新账号失败",
                                     )
                                     throw e
                                 }

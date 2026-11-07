@@ -154,6 +154,7 @@ class NotificationViewModel :
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             environment.handleFetchFailure(this::class.simpleName, e)
+            errorHandle(e)
         } finally {
             refreshingFirstPage = false
             isLoading = false
@@ -249,6 +250,7 @@ class NotificationTimelineViewModel(
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             environment.handleFetchFailure(this::class.simpleName, e)
+            errorHandle(e)
         } finally {
             isLoading = false
         }
@@ -469,6 +471,7 @@ class PrivateMessageViewModel(
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             environment.handleFetchFailure(this::class.simpleName, e)
+            errorHandle(e)
         } finally {
             isLoading = false
         }

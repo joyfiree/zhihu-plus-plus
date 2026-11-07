@@ -50,7 +50,7 @@ class DesignSystemTokensTest {
     fun componentMinimumsStayTouchable() {
         assertEquals(48.dp, ZhihuSizes.MinTouchTarget)
         assertEquals(56.dp, ZhihuSizes.ListItemMinHeight)
-        assertEquals(80.dp, ZhihuSizes.NavigationBarHeight)
+        assertEquals(64.dp, ZhihuSizes.NavigationBarHeight)
         assertEquals(24.dp, ZhihuSizes.Icon)
     }
 }

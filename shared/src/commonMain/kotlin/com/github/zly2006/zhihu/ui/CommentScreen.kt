@@ -195,6 +195,14 @@ const val COMMENT_SORT_SCORE_TAG = "comment_sort_score"
 const val COMMENT_SORT_TIME_TAG = "comment_sort_time"
 const val COMMENT_IMAGE_MENU_OPEN_TAG = "comment_image_menu_open"
 const val COMMENT_IMAGE_MENU_BROWSER_TAG = "comment_image_menu_browser"
+
+/**
+ * 评论正文的统一起点：40dp 头像 + 12dp 间距。
+ *
+ * 子评论容器、底部时间/点赞行都应该对齐到这个值，而不是各自写一个接近但不相等的字面量——
+ * 三套不同的缩进（40 / 52 / 44）会让评论列表的竖直对齐线看起来是错的。
+ */
+val CommentIndent = 52.dp
 const val COMMENT_IMAGE_MENU_SAVE_TAG = "comment_image_menu_save"
 const val COMMENT_IMAGE_MENU_SHARE_TAG = "comment_image_menu_share"
 const val COMMENT_DELETE_DIALOG_TAG = "comment_delete_dialog"
@@ -761,7 +769,7 @@ fun CommentScreen(
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(start = 40.dp, top = 8.dp),
+                                                .padding(start = CommentIndent, top = 8.dp),
                                         ) {
                                             if (commentItem.item.childComments.isNotEmpty()) {
                                                 commentItem.item.childComments.forEach { childComment ->
@@ -1058,7 +1066,6 @@ fun CommentScreen(
                                     IconButton(
                                         onClick = { replyToComment = null },
                                         modifier = Modifier
-                                            .size(24.dp)
                                             .testTag(COMMENT_CANCEL_REPLY_TAG),
                                     ) {
                                         Icon(
@@ -1137,14 +1144,14 @@ fun CommentScreen(
                                                 } else {
                                                     "写下你的评论..."
                                                 },
-                                                style = MaterialTheme.typography.bodyLarge,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
                                         }
                                         inner()
                                     }
                                 },
                                 textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    lineHeight = 18.sp,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 ),
                             )
@@ -1152,7 +1159,6 @@ fun CommentScreen(
                             IconButton(
                                 onClick = { submitComment() },
                                 modifier = Modifier
-                                    .size(24.dp)
                                     .testTag(COMMENT_SEND_BUTTON_TAG),
                                 enabled = !isSending && commentFieldValue.text.isNotBlank(),
                             ) {
@@ -1380,7 +1386,7 @@ private fun CommentItem(
                 Column {
                     val settings = rememberSettingsStore()
                     val fontSizePercent = remember { settings.getInt(PREF_FONT_SIZE, 100) }
-                    val lineHeightPercent = remember { settings.getInt(PREF_LINE_HEIGHT, 160) }
+                    val lineHeightPercent = remember { settings.getInt(PREF_LINE_HEIGHT, 170) }
                     SelectionContainer(
                         modifier = Modifier.commentSelectionWorkaround(),
                     ) {
@@ -1411,7 +1417,7 @@ private fun CommentItem(
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 44.dp),
+                .padding(start = CommentIndent),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             // 时间
@@ -1446,7 +1452,6 @@ private fun CommentItem(
                     IconButton(
                         onClick = { showMoreMenu = true },
                         modifier = Modifier
-                            .size(24.dp)
                             .testTag("comment_more_button_${commentData.id}"),
                     ) {
                         Icon(
@@ -1484,21 +1489,17 @@ private fun CommentItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .heightIn(min = 40.dp)
                     .testTag("comment_reply_button_${commentData.id}")
                     .clickable { onChildCommentClick(comment) },
             ) {
                 Spacer(modifier = Modifier.width(4.dp))
-                Column(
-                    modifier = Modifier.height(24.dp),
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.Comment,
-                        contentDescription = "回复",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Icon(
+                    Icons.AutoMirrored.Outlined.Comment,
+                    contentDescription = "回复",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(modifier = Modifier.width(4.dp))
                 if (comment.item.childCommentCount > 0) {
                     Text(
@@ -1519,6 +1520,7 @@ private fun CommentItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .heightIn(min = 40.dp)
                     .testTag("comment_like_button_${commentData.id}")
                     .clickable(enabled = !isLikeLoading) {
                         haptics.tick()

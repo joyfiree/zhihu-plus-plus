@@ -18,8 +18,6 @@
 package com.github.zly2006.zhihu.ui.components
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,18 +49,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
@@ -114,14 +116,14 @@ fun Modifier.highlightSetting(
                 }
                 // 闪烁两次：亮、暗、亮、暗、亮。
                 repeat(2) {
-                    highlightAlpha.animateTo(0.4f, tween(Motion.DURATION_SHORT, easing = LinearEasing))
-                    highlightAlpha.animateTo(0.1f, tween(Motion.DURATION_SHORT, easing = LinearEasing))
+                    highlightAlpha.animateTo(0.4f, tween(Motion.DURATION_SHORT, easing = Motion.StandardEasing))
+                    highlightAlpha.animateTo(0.1f, tween(Motion.DURATION_SHORT, easing = Motion.StandardEasing))
                 }
-                highlightAlpha.animateTo(0.4f, tween(Motion.DURATION_SHORT))
-                delay(2000)
-                highlightAlpha.animateTo(0f, tween(Motion.DURATION_LONG, easing = FastOutSlowInEasing))
+                highlightAlpha.animateTo(0.4f, tween(Motion.DURATION_SHORT, easing = Motion.StandardEasing))
+                delay(900)
+                highlightAlpha.animateTo(0f, tween(Motion.DURATION_LONG, easing = Motion.EmphasizedAccelerateEasing))
             } else {
-                highlightAlpha.animateTo(0f, tween(Motion.DURATION_LONG))
+                highlightAlpha.animateTo(0f, tween(Motion.DURATION_LONG, easing = Motion.StandardEasing))
             }
         }
 
@@ -137,11 +139,18 @@ fun Modifier.highlightSetting(
 }
 
 /**
+ * 标记「当前处于 [SettingItemGroup] 容器内」，让 [SettingItem] 据此改变默认圆角。
+ *
+ * 组内行不应该各自带圆角——那会在容器背景上露出一圈圈灰缝，变成「一堆小白卡」而不是官方的整块白卡。
+ * 组外独立使用（比如弹窗里单独一行开关）则保留原来的圆角卡片外观。
+ */
+internal val LocalInsideSettingGroup = compositionLocalOf { false }
+
+/**
  * 设置页的分组容器。
  *
- * 一组设置 = 一个分组标题 + 若干等高的圆角行 + 可选的说明文字。组内行之间用 6dp 间隙分隔，
- * 行本身带 12dp 圆角和 `surfaceContainerLow` 底色，形成 M3 的「分组列表」观感；
- * 间隙会在展开/收起动画中随行高一起收缩，不会留下突兀空白。
+ * 一组设置 = 一个分组标题 + 若干等高的行 + 可选的说明文字；行与行之间不留缝隙、不各自带圆角，
+ * 整体由外层 `Section` 圆角裁出一块连续白卡，贴近官方「我 - 设置」的观感。
  *
  * 视觉上它是设置页的主要节奏单位，新增设置页时优先用它组织内容。
  */
@@ -171,51 +180,62 @@ fun SettingItemGroup(
         title?.let {
             Text(
                 text = it,
-                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 10.dp),
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = ZhihuSpacing.Small),
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
         header?.let { it() }
 
+        // 行间不画组件级 Divider（content 是不透明的 @Composable 插槽，拿不到「相邻两行」这层信息），
+        // 改在容器层按自定义 Layout 量出的行边界自己画发丝线：既不用改 119 处调用点，也不会在隐藏/展开行之间留下错位的线。
+        val dividerPositions = remember { mutableStateOf<List<Int>>(emptyList()) }
+        val dividerColor = MaterialTheme.colorScheme.outlineVariant
+        val dividerThicknessPx = with(LocalDensity.current) { 0.5.dp.toPx() }
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawWithContent {
+                    drawContent()
+                    val positions = dividerPositions.value
+                    for (y in positions) {
+                        drawLine(
+                            color = dividerColor,
+                            start = Offset(0f, y.toFloat()),
+                            end = Offset(size.width, y.toFloat()),
+                            strokeWidth = dividerThicknessPx,
+                        )
+                    }
+                },
             shape = ZhihuShapeTokens.Section,
             color = zhihuSurfaces.cardStrong,
         ) {
-            Layout(
-                content = content,
-                modifier = Modifier.fillMaxWidth(),
-            ) { measurables, constraints ->
-                val placeables = measurables.map { it.measure(constraints) }
-                val spacing = 6.dp.roundToPx()
-                val baseItemHeight = 56.dp.toPx()
+            CompositionLocalProvider(LocalInsideSettingGroup provides true) {
+                Layout(
+                    content = content,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { measurables, constraints ->
+                    val placeables = measurables.map { it.measure(constraints) }
 
-                var yPosition = 0
-                val positions = mutableListOf<Int>()
-                var hasVisibleBefore = false
-
-                for (i in placeables.indices) {
-                    val placeable = placeables[i]
-                    val scale = (placeable.height / baseItemHeight).coerceIn(0f, 1f)
-
-                    // 非首个可见元素前按比例补间距；元素缩小时，它前面的间距也同步收缩。
-                    if (hasVisibleBefore && scale > 0f) {
-                        yPosition += (spacing * scale).toInt()
+                    // 组内行拼成一块连续白卡：行间不留缝隙，收起/隐藏的行（高度 0）也不留痕迹。
+                    var yPosition = 0
+                    val positions = mutableListOf<Int>()
+                    for (placeable in placeables) {
+                        positions.add(yPosition)
+                        yPosition += placeable.height
                     }
+                    // 画线位置 = 每个「高度大于 0 的行」的下边界，再去掉最后一条（那是容器底边，不是行间缝）。
+                    val visibleRowBottoms = positions
+                        .zip(placeables) { position, placeable -> (position + placeable.height) to placeable.height }
+                        .filter { (_, height) -> height > 0 }
+                        .map { (bottom, _) -> bottom }
+                    dividerPositions.value = visibleRowBottoms.dropLast(1)
 
-                    positions.add(yPosition)
-                    yPosition += placeable.height
-
-                    if (scale > 0f) {
-                        hasVisibleBefore = true
-                    }
-                }
-
-                layout(constraints.maxWidth, yPosition) {
-                    for (i in placeables.indices) {
-                        placeables[i].placeRelative(0, positions[i])
+                    layout(constraints.maxWidth, yPosition) {
+                        for (i in placeables.indices) {
+                            placeables[i].placeRelative(0, positions[i])
+                        }
                     }
                 }
             }
@@ -388,7 +408,7 @@ fun SettingItem(
     onClick: (() -> Unit)? = null,
     endAction: (@Composable () -> Unit)? = null,
     bottomAction: (@Composable () -> Unit)? = null,
-    shape: Shape = ZhihuShapeTokens.Thumbnail,
+    shape: Shape = if (LocalInsideSettingGroup.current) RectangleShape else ZhihuShapeTokens.Thumbnail,
     colors: CardColors = CardDefaults.cardColors(
         containerColor = zhihuSurfaces.card,
         contentColor = MaterialTheme.colorScheme.onSurface,

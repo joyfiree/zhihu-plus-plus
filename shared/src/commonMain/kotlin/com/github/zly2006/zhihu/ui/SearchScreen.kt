@@ -274,7 +274,7 @@ fun SearchScreen(
             IconButton(
                 onClick = { historyMoreMenuExpanded = true },
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(48.dp)
                     .testTag("search_history_more_button"),
             ) {
                 Icon(Icons.Default.MoreVert, contentDescription = "更多", modifier = Modifier.size(18.dp))
@@ -395,7 +395,7 @@ fun SearchScreen(
                                     IconButton(
                                         onClick = { searchText = "" },
                                         modifier = Modifier
-                                            .size(32.dp)
+                                            .size(48.dp)
                                             .testTag("search_clear_button"),
                                     ) {
                                         Icon(
@@ -479,9 +479,7 @@ fun SearchScreen(
                                     Icons.Default.Search,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier
-                                        .width(28.dp)
-                                        .size(18.dp),
+                                    modifier = Modifier.size(width = 28.dp, height = 18.dp),
                                 )
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
@@ -536,9 +534,7 @@ fun SearchScreen(
                                         Icons.Default.Search,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier
-                                            .width(28.dp)
-                                            .size(18.dp),
+                                        modifier = Modifier.size(width = 28.dp, height = 18.dp),
                                     )
                                     Text(
                                         text = query,
@@ -571,7 +567,7 @@ fun SearchScreen(
                                             coroutineScope.launch { runCatching { fetchHotSearch() } }
                                         },
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(48.dp)
                                             .testTag("search_hot_refresh_button"),
                                     ) {
                                         Icon(Icons.Default.Refresh, contentDescription = "刷新热搜", modifier = Modifier.size(18.dp))
@@ -580,7 +576,7 @@ fun SearchScreen(
                                     IconButton(
                                         onClick = { hotSearchMoreMenuExpanded = true },
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(48.dp)
                                             .testTag("search_hot_more_button"),
                                     ) {
                                         Icon(Icons.Default.MoreVert, contentDescription = "更多", modifier = Modifier.size(18.dp))
@@ -769,6 +765,7 @@ fun SearchScreen(
                         items = viewModel.entities,
                         listState = generalListState,
                         onLoadMore = { viewModel.loadMore(paginationEnvironment) },
+                        isEnd = { viewModel.isEnd },
                         modifier = Modifier
                             .pageTurnViewportWithGuide(pageTurnTarget)
                             .testTag("search_general_results"),

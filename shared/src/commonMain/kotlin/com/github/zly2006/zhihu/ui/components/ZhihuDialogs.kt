@@ -19,15 +19,21 @@ package com.github.zly2006.zhihu.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
@@ -92,5 +98,60 @@ fun ZhihuAlertDialog(
         textContentColor = AlertDialogDefaults.textContentColor,
         tonalElevation = tonalElevation,
         properties = properties,
+    )
+}
+
+/**
+ * 删除收藏夹的二次确认弹窗。
+ *
+ * `CollectionScreen` 与 `CollectionBrowseScreen` 曾各自写了一份逐字相同的实现；
+ * 收在这里之后两边只传各自的 testTag 前缀和回调。确认按钮用 error 色——
+ * 这是破坏性操作，不该跟「取消」长得一样。
+ */
+@Composable
+fun CollectionDeleteDialog(
+    collectionTitle: String,
+    isDeleting: Boolean,
+    errorMessage: String?,
+    dialogTestTag: String,
+    confirmTestTag: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    ZhihuAlertDialog(
+        modifier = Modifier.testTag(dialogTestTag),
+        onDismissRequest = {
+            if (!isDeleting) onDismiss()
+        },
+        title = { Text("删除收藏夹") },
+        text = {
+            Column {
+                Text("删除后无法恢复，确认删除收藏夹“$collectionTitle”吗？")
+                errorMessage?.let {
+                    Text(
+                        text = it,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = !isDeleting,
+                colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+                modifier = Modifier.testTag(confirmTestTag),
+            ) {
+                Text(if (isDeleting) "删除中…" else "删除")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isDeleting) {
+                Text("取消")
+            }
+        },
     )
 }

@@ -46,7 +46,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.SentimentSatisfied
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -186,17 +185,9 @@ fun PrivateMessageScreen(destination: Notification.Message) {
                             .weight(1f)
                             .testTag("private_message_input"),
                         placeholder = { Text("发私信") },
-                        enabled = !viewModel.isSending,
                         maxLines = 4,
                         shape = ZhihuShapeTokens.Thumbnail,
                     )
-                    IconButton(onClick = {}, enabled = false) {
-                        Icon(
-                            Icons.Outlined.SentimentSatisfied,
-                            contentDescription = "表情（暂不可用）",
-                            tint = MaterialTheme.colorScheme.outline,
-                        )
-                    }
                     IconButton(
                         onClick = {
                             val content = draft
@@ -230,6 +221,8 @@ fun PrivateMessageScreen(destination: Notification.Message) {
                 items = viewModel.allData,
                 onLoadMore = { viewModel.loadMore(environment) },
                 isEnd = { viewModel.isEnd },
+                errorMessage = viewModel.errorMessage,
+                onRetry = { viewModel.refresh(environment) },
                 reverseLayout = true,
                 // 保留列表淡入，由新消息高度连续变化带动旧消息让位，避免独立的位置动画造成重叠。
                 animateItemPlacement = false,

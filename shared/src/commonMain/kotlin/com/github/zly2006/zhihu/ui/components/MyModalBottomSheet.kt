@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.BottomSheetDefaults
@@ -92,6 +93,7 @@ import com.github.zly2006.zhihu.platform.exportTestTagsForUiAutomation
 import com.github.zly2006.zhihu.platform.platformName
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -107,7 +109,7 @@ fun MyModalBottomSheet(
     sheetState: SheetState = rememberModalBottomSheetState(),
     sheetMaxWidth: Dp = BottomSheetDefaults.SheetMaxWidth,
     sheetGesturesEnabled: Boolean = true,
-    shape: Shape = BottomSheetDefaults.ExpandedShape,
+    shape: Shape = ZhihuShapeTokens.BottomSheet,
     containerColor: Color = BottomSheetDefaults.ContainerColor,
     contentColor: Color = contentColorFor(containerColor),
     tonalElevation: Dp = 0.dp,
@@ -268,7 +270,7 @@ fun BottomSheet(
     contentWindowInsets: @Composable () -> WindowInsets = {
         BottomSheetDefaults.windowInsets
     },
-    shape: Shape = BottomSheetDefaults.ExpandedShape,
+    shape: Shape = ZhihuShapeTokens.BottomSheet,
     containerColor: Color = BottomSheetDefaults.ContainerColor,
     contentColor: Color = contentColorFor(containerColor),
     tonalElevation: Dp = BottomSheetDefaults.Elevation,
@@ -370,6 +372,7 @@ fun BottomSheet(
             Modifier
                 .fillMaxWidth()
                 .windowInsetsPadding(contentWindowInsets())
+                .navigationBarsPadding()
                 .graphicsLayer {
                     val progress = predictiveBackProgress.value
                     val predictiveBackScaleX = calculatePredictiveBackScaleX(progress)

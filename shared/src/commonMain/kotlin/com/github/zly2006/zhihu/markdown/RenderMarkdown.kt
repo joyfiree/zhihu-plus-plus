@@ -121,7 +121,7 @@ fun RenderImage(
             model = rememberMarkdownImageModel(data.url),
             contentDescription = data.altText,
             modifier = modifier
-                .fillMaxWidth(0.8f)
+                .fillMaxWidth()
                 .clip(ZhihuShapeTokens.Thumbnail)
                 .then(
                     if (imageAspectRatio != null) {
@@ -320,7 +320,7 @@ private fun RenderMarkdownDocument(
     val openExternalUrl = rememberExternalUrlOpener()
     val settings = rememberSettingsStore()
     val fontSize = settings.getInt(PREF_FONT_SIZE, 100)
-    val lineHeight = settings.getInt(PREF_LINE_HEIGHT, 160)
+    val lineHeight = settings.getInt(PREF_LINE_HEIGHT, 170)
     val blockSpacing = settings.getInt(PREF_BLOCK_SPACING, 100)
     var segmentCommentTarget by remember { mutableStateOf<SegmentCommentHolder?>(null) }
     var segmentActionSheetState by remember { mutableStateOf<SegmentActionSheetState?>(null) }

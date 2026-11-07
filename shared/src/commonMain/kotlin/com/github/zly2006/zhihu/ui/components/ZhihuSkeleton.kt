@@ -140,7 +140,7 @@ fun ZhihuSkeletonCard(
                 Spacer(Modifier.width(ZhihuSpacing.Medium))
                 Box(
                     modifier = Modifier
-                        .size(width = 112.dp, height = 84.dp)
+                        .size(width = ZhihuSizes.FeedThumbnailWidth, height = ZhihuSizes.FeedThumbnailHeight)
                         .clip(ZhihuShapeTokens.Thumbnail)
                         .shimmerPlaceholder(shimmer, shimmerBase, shimmerHighlight),
                 )

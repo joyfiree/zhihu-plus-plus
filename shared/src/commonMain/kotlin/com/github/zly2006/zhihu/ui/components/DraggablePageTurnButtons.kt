@@ -261,7 +261,7 @@ fun DraggablePageTurnButtons(
                 detectDragGestures(
                     onDragStart = {
                         dragging = true
-                        haptics.longPress()
+                        haptics.tick()
                     },
                     onDragEnd = {
                         dragging = false
@@ -316,7 +316,6 @@ private fun PageTurnButton(
         modifier = Modifier.size(size).combinedClickable(
             onClick = onClick,
             onLongClick = onLongClick,
-            indication = null,
             interactionSource = remember { MutableInteractionSource() },
         ),
     ) {

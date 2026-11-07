@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -373,6 +374,23 @@ fun PinScreen(
                 },
             )
         },
+        bottomBar = {
+            if (pinContent != null) {
+                PinActionBar(
+                    isLiked = isLiked,
+                    likeCount = likeCount,
+                    commentCount = pinContent?.commentCount ?: 0,
+                    onLikeClick = {
+                        coroutineScope.launch {
+                            val result = togglePinLike(paginationEnvironment, pin, isLiked)
+                            isLiked = result.isLiked
+                            likeCount = result.likeCount
+                        }
+                    },
+                    onCommentClick = { showComments = true },
+                )
+            }
+        },
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -415,16 +433,6 @@ fun PinScreen(
                         likeCount = likeCount,
                         pollVotingOptionId = pollVotingOptionId,
                         pollErrorMessage = pollErrorMessage,
-                        onLikeClick = {
-                            coroutineScope.launch {
-                                val result = togglePinLike(paginationEnvironment, pin, isLiked)
-                                isLiked = result.isLiked
-                                likeCount = result.likeCount
-                            }
-                        },
-                        onCommentClick = {
-                            showComments = true
-                        },
                         onSocialCreditClick = {
                             showVoters = true
                             if (voters.isEmpty()) {
@@ -488,6 +496,63 @@ fun PinScreen(
     }
 }
 
+/**
+ * 想法详情底部固定的赞/评栏。
+ *
+ * 曾经是 [PinContent] 滚动区域里的一个 `Row`，跟着正文一起滚走；官方 App 的赞/评/分享固定在底部，
+ * 这里挪到 `Scaffold.bottomBar`，内容区不再重复渲染。
+ */
+@Composable
+private fun PinActionBar(
+    isLiked: Boolean,
+    likeCount: Int,
+    commentCount: Int,
+    onLikeClick: () -> Unit,
+    onCommentClick: () -> Unit,
+) {
+    Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 2.dp) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            FilledTonalButton(
+                onClick = onLikeClick,
+                modifier = Modifier.testTag(PIN_SCREEN_LIKE_BUTTON_TAG),
+            ) {
+                Icon(
+                    if (isLiked) Icons.Filled.ThumbUp else Icons.Outlined.OutlinedThumbUp,
+                    contentDescription = "赞",
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    "$likeCount",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            FilledTonalButton(
+                onClick = onCommentClick,
+                modifier = Modifier.testTag(PIN_SCREEN_COMMENT_BUTTON_TAG),
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Comment,
+                    contentDescription = "评论",
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    "$commentCount",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun PinContent(
     pin: DataHolder.Pin,
@@ -498,8 +563,6 @@ private fun PinContent(
     likeCount: Int,
     pollVotingOptionId: String?,
     pollErrorMessage: String?,
-    onLikeClick: () -> Unit,
-    onCommentClick: () -> Unit,
     onSocialCreditClick: () -> Unit,
     onPollVote: (pollId: String, optionId: String) -> Unit,
 ) {
@@ -537,7 +600,7 @@ private fun PinContent(
             ) {
                 AsyncImage(
                     model = pin.author.avatarUrl,
-                    contentDescription = "头像",
+                    contentDescription = null,
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape),
@@ -734,44 +797,6 @@ private fun PinContent(
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        // 统计与操作区。
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            FilledTonalButton(
-                onClick = onLikeClick,
-                modifier = Modifier.testTag(PIN_SCREEN_LIKE_BUTTON_TAG),
-            ) {
-                Icon(
-                    if (isLiked) Icons.Filled.ThumbUp else Icons.Outlined.OutlinedThumbUp,
-                    contentDescription = "赞",
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    "$likeCount",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-
-            FilledTonalButton(
-                onClick = onCommentClick,
-                modifier = Modifier.testTag(PIN_SCREEN_COMMENT_BUTTON_TAG),
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Comment,
-                    contentDescription = "评论",
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    "${pin.commentCount}",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
         }
 
         // 话题列表。

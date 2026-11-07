@@ -33,6 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -40,18 +42,20 @@ import androidx.compose.ui.unit.dp
 
 enum class MarkdownShortcut(
     val label: String,
+    /** 无障碍朗读用的中文说明，按钮本身只显示符号/缩写，不足以表达含义。 */
+    val description: String,
 ) {
-    H1("H1"),
-    H2("H2"),
-    Bold("B"),
-    Italic("I"),
-    Link("Link"),
-    Quote(">"),
-    InlineCode("</>"),
-    CodeBlock("```"),
-    Divider("HR"),
-    Math("∑"),
-    Topic("#"),
+    H1("H1", "一级标题"),
+    H2("H2", "二级标题"),
+    Bold("B", "加粗"),
+    Italic("I", "斜体"),
+    Link("Link", "插入链接"),
+    Quote(">", "引用"),
+    InlineCode("</>", "行内代码"),
+    CodeBlock("```", "代码块"),
+    Divider("HR", "分割线"),
+    Math("∑", "数学公式"),
+    Topic("#", "插入话题"),
 }
 
 @Composable
@@ -82,6 +86,7 @@ fun MarkdownShortcutToolbar(
             shortcuts.forEach { shortcut ->
                 ShortcutButton(
                     label = shortcut.label,
+                    description = shortcut.description,
                     enabled = enabled,
                     onClick = { onApplyShortcut(shortcut) },
                 )
@@ -94,13 +99,16 @@ fun MarkdownShortcutToolbar(
 @Composable
 private fun ShortcutButton(
     label: String,
+    description: String,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
     IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.size(40.dp),
+        modifier = Modifier
+            .size(48.dp)
+            .semantics { contentDescription = description },
     ) {
         Text(
             text = label,
@@ -129,6 +137,21 @@ fun TextFieldValue.applyMarkdownShortcut(shortcut: MarkdownShortcut): TextFieldV
 internal fun TextFieldValue.replaceSelection(
     insert: String,
     cursorOffsetInInsert: Int,
+): TextFieldValue = replaceSelection(
+    insert = insert,
+    selectionRangeInInsert = cursorOffsetInInsert..cursorOffsetInInsert,
+)
+
+/**
+ * 替换当前选区为 [insert],并把结果选区设为 [selectionRangeInInsert]（相对于 insert 开头的偏移区间）。
+ *
+ * 当 [selectionRangeInInsert] 的起止相同时等价于把光标放在那个位置；起止不同时会选中一段文字——
+ * 典型用法是无选区插入占位符后，把占位符整体选中，这样用户紧接着输入就会直接替换掉占位符，
+ * 而不是把占位符留在光标后面变成“加粗x”这样的夹心文本。
+ */
+internal fun TextFieldValue.replaceSelection(
+    insert: String,
+    selectionRangeInInsert: IntRange,
 ): TextFieldValue {
     val start = selection.min
     val end = selection.max
@@ -137,10 +160,11 @@ internal fun TextFieldValue.replaceSelection(
         append(insert)
         append(text.substring(end))
     }
-    val cursor = (start + cursorOffsetInInsert).coerceIn(0, newText.length)
+    val selStart = (start + selectionRangeInInsert.first).coerceIn(0, newText.length)
+    val selEnd = (start + selectionRangeInInsert.last).coerceIn(0, newText.length)
     return TextFieldValue(
         text = newText,
-        selection = TextRange(cursor, cursor),
+        selection = TextRange(selStart, selEnd),
     )
 }
 
@@ -154,13 +178,13 @@ private fun TextFieldValue.wrapSelection(
     val selected = text.substring(start, end)
     val core = selected.ifEmpty { placeholder }
     val insert = prefix + core + suffix
-    val cursorOffset =
-        if (selected.isEmpty()) {
-            prefix.length
-        } else {
-            insert.length
-        }
-    return replaceSelection(insert = insert, cursorOffsetInInsert = cursorOffset)
+    if (selected.isEmpty()) {
+        return replaceSelection(
+            insert = insert,
+            selectionRangeInInsert = prefix.length..(prefix.length + placeholder.length),
+        )
+    }
+    return replaceSelection(insert = insert, cursorOffsetInInsert = insert.length)
 }
 
 private fun TextFieldValue.toggleHeading(
@@ -415,13 +439,15 @@ private fun TextFieldValue.insertLink(): TextFieldValue {
     val selected = text.substring(start, end)
     val linkText = selected.ifEmpty { "链接文字" }
     val insert = "[$linkText](https://)"
-    val cursorOffset =
-        if (selected.isEmpty()) {
-            1
-        } else {
-            insert.indexOf("https://")
-        }
-    return replaceSelection(insert = insert, cursorOffsetInInsert = cursorOffset)
+    if (selected.isEmpty()) {
+        // 没有选中文字时，把占位符“链接文字”整体选中，方便用户直接输入覆盖它；
+        // 已经选中文字时则把光标定位到 https:// 上，方便替换链接地址。
+        return replaceSelection(
+            insert = insert,
+            selectionRangeInInsert = 1..(1 + linkText.length),
+        )
+    }
+    return replaceSelection(insert = insert, cursorOffsetInInsert = insert.indexOf("https://"))
 }
 
 private fun TextFieldValue.replaceAt(

@@ -17,6 +17,7 @@
 
 package com.github.zly2006.zhihu.ui.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -159,28 +161,38 @@ fun CommentScreenComponent(
             dragHandle = { DragHandleTitle("评论") },
             usePlatformWindow = content !is Article,
         ) {
-            CommentScreen(
-                content = { content },
-                initialCommentId = pendingCommentId,
-                onChildCommentClick = { commentItem ->
-                    if (commentItem.clickTarget != null) {
-                        pendingChildComment = null
-                        activeChildComment = commentItem
-                    }
+            // 「回复」子层打开时，根层的评论列表仍在原地合成；不清掉语义会让无障碍树和 UI 自动化
+            // 同时看到两份 COMMENT_SCREEN_LIST_TAG 列表（子层那份才是用户此刻真正能交互到的）。
+            Box(
+                modifier = if (activeChildComment != null) {
+                    Modifier.clearAndSetSemantics {}
+                } else {
+                    Modifier
                 },
-                commentInput = commentDrafts[contentStateKey].orEmpty(),
-                onCommentInputChange = { updateCommentDraft(contentStateKey, it) },
-                listState = rootListState,
-                pageTurnEnabled =
-                    (content is Article || content is Pin) &&
-                        activeChildComment == null &&
-                        (authorCommentPolicyAcknowledged || !isZhPlusAuthorContent),
-                showPageTurnFab = content is Pin,
-                onInitialChildCommentResolved = { rootComment, childComment ->
-                    pendingChildComment = childComment
-                    activeChildComment = rootComment
-                },
-            )
+            ) {
+                CommentScreen(
+                    content = { content },
+                    initialCommentId = pendingCommentId,
+                    onChildCommentClick = { commentItem ->
+                        if (commentItem.clickTarget != null) {
+                            pendingChildComment = null
+                            activeChildComment = commentItem
+                        }
+                    },
+                    commentInput = commentDrafts[contentStateKey].orEmpty(),
+                    onCommentInputChange = { updateCommentDraft(contentStateKey, it) },
+                    listState = rootListState,
+                    pageTurnEnabled =
+                        (content is Article || content is Pin) &&
+                            activeChildComment == null &&
+                            (authorCommentPolicyAcknowledged || !isZhPlusAuthorContent),
+                    showPageTurnFab = content is Pin,
+                    onInitialChildCommentResolved = { rootComment, childComment ->
+                        pendingChildComment = childComment
+                        activeChildComment = rootComment
+                    },
+                )
+            }
         }
     }
 

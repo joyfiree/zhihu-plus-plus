@@ -18,6 +18,10 @@
 package com.github.zly2006.zhihu.ui.subscreens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,9 +47,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -105,10 +107,10 @@ import com.github.zly2006.zhihu.ui.components.DISABLE_BOTTOM_SHEET_ROUNDED_CORNE
 import com.github.zly2006.zhihu.ui.components.MAX_ANSWER_SWITCH_SENSITIVITY
 import com.github.zly2006.zhihu.ui.components.MIN_ANSWER_SWITCH_SENSITIVITY
 import com.github.zly2006.zhihu.ui.components.SettingItem
+import com.github.zly2006.zhihu.ui.components.SettingItemDropdownOptions
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
 import com.github.zly2006.zhihu.ui.components.SettingItemOverall
 import com.github.zly2006.zhihu.ui.components.SettingItemWithSwitch
-import com.github.zly2006.zhihu.ui.components.ZhihuDropdownAnchor
 import com.github.zly2006.zhihu.ui.components.ZhihuSlider
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.components.normalizedAnswerSwitchSensitivity
@@ -278,6 +280,10 @@ internal fun normalizeBottomBarItemOrder(
 private fun bottomBarItemOrderPreferenceValue(keys: List<String>): String =
     keys.joinToString(BOTTOM_BAR_ITEM_ORDER_SEPARATOR)
 
+/** 设置页里「某个开关联动显示/隐藏一行」的统一进出动画，避免每处各写一套裸时长。 */
+private val settingRowEnter = fadeIn(Motion.enterTween()) + expandVertically(Motion.enterTween())
+private val settingRowExit = fadeOut(Motion.exitTween()) + shrinkVertically(Motion.exitTween())
+
 internal fun bottomBarItemOrderFromPreference(
     preferenceValue: String?,
     selectedKeys: Set<String>,
@@ -303,6 +309,13 @@ internal fun shouldShowAccountHistoryShortcut(
  *
  * 底部导航栏相关设置会影响 [com.github.zly2006.zhihu.ui.ZhihuMain] 的主壳状态；页面退出时必须通过 [onExit]
  * 触发上层重新读取设置，而不是直接重建 NavHost。
+ *
+ * TODO(UI-REVIEW.md #16)：一级页目前是 11 个分组、50+ 行铺成一整屏，官方是收敛到 7 行左右的二级页导航。
+ * 没有拆分的原因不是懒，是风险不对称：拆页要新增 `NavDestination` 分支、把这里大量互相读写的 `remember`
+ * 状态分拆到不同文件、并重新接通所有带 `settingKey` 深链的调用方（账号页快捷入口、分享设置入口等），
+ * 这类路由/状态错误编译器查不出来，只能跑起来点才能验证，而当前环境没有可用的模拟器/真机。
+ * 等能跑 AVD 验证，或者接受「先改完再人工走一遍深链」的风险时，再按审查建议的
+ * 主题 / 阅读排版 / 回答页 / 信息流与底栏 / 翻页 / 交互与反馈 / 实验特性 七个二级页拆分。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -458,7 +471,7 @@ fun AppearanceSettingsScreen(
                 var showColorPicker by remember { mutableStateOf(false) }
                 val customColor = ThemeManager.getCustomColor()
 
-                AnimatedVisibility(visible = !useDynamicColor) {
+                AnimatedVisibility(visible = !useDynamicColor, enter = settingRowEnter, exit = settingRowExit) {
                     SettingItem(
                         title = { Text("自定义主题色") },
                         description = { Text("点击选择您喜欢的主题颜色") },
@@ -662,7 +675,7 @@ fun AppearanceSettingsScreen(
                     },
                 )
 
-                var lineHeight by remember { mutableIntStateOf(settings.getInt(PREF_LINE_HEIGHT, 160)) }
+                var lineHeight by remember { mutableIntStateOf(settings.getInt(PREF_LINE_HEIGHT, 170)) }
                 SettingItem(
                     title = { Text("行高") },
                     description = { Text("调整内容行间距 (${lineHeight / 100f})") },
@@ -757,31 +770,19 @@ fun AppearanceSettingsScreen(
                     highlightedKey = settingKey,
                     bringIntoViewRequester = requesterFor("feedCardStyle"),
                     endAction = {
-                        ExposedDropdownMenuBox(
+                        SettingItemDropdownOptions(
                             expanded = feedCardStyleExpanded,
                             onExpandedChange = { feedCardStyleExpanded = it },
-                        ) {
-                            ZhihuDropdownAnchor(
-                                value = feedCardStyleOptions.find { it.first == feedCardStyle.value }?.second ?: "卡片样式",
-                                modifier = Modifier.width(160.dp),
-                            )
-                            ExposedDropdownMenu(
-                                expanded = feedCardStyleExpanded,
-                                onDismissRequest = { feedCardStyleExpanded = false },
-                            ) {
-                                feedCardStyleOptions.forEach { (mode, label) ->
-                                    DropdownMenuItem(
-                                        text = { Text(label) },
-                                        onClick = {
-                                            feedCardStyle.value = mode
-                                            settings.putString("feedCardStyle", mode)
-                                            feedCardStyleExpanded = false
-                                            userMessages.showShortMessage("已设置为：$label")
-                                        },
-                                    )
-                                }
-                            }
-                        }
+                            options = feedCardStyleOptions,
+                            selectedKey = feedCardStyle.value,
+                            defaultLabel = "卡片样式",
+                            onSelect = { mode, label ->
+                                feedCardStyle.value = mode
+                                settings.putString("feedCardStyle", mode)
+                                feedCardStyleExpanded = false
+                                userMessages.showShortMessage("已设置为：$label")
+                            },
+                        )
                     },
                 )
             }
@@ -900,7 +901,7 @@ fun AppearanceSettingsScreen(
                 )
 
                 val autoHideSkipAnswerButton = remember { mutableStateOf(settings.getBoolean("autoHideSkipAnswerButton", true)) }
-                AnimatedVisibility(buttonSkipAnswer.value) {
+                AnimatedVisibility(buttonSkipAnswer.value, enter = settingRowEnter, exit = settingRowExit) {
                     SettingItemWithSwitch(
                         title = { Text("滚动时自动隐藏跳转按钮") },
                         description = { Text("上划时淡出「下一个回答」按钮，下划时淡入显示。") },
@@ -943,31 +944,19 @@ fun AppearanceSettingsScreen(
                         highlightedKey = settingKey,
                         bringIntoViewRequester = requesterFor("answerSwitchMode"),
                         endAction = {
-                            ExposedDropdownMenuBox(
+                            SettingItemDropdownOptions(
                                 expanded = answerSwitchExpanded,
                                 onExpandedChange = { answerSwitchExpanded = it },
-                            ) {
-                                ZhihuDropdownAnchor(
-                                    value = answerSwitchOptions.find { it.first == answerSwitchMode.value }?.second ?: "上下滑动切换",
-                                    modifier = Modifier.width(160.dp),
-                                )
-                                ExposedDropdownMenu(
-                                    expanded = answerSwitchExpanded,
-                                    onDismissRequest = { answerSwitchExpanded = false },
-                                ) {
-                                    answerSwitchOptions.forEach { (mode, label) ->
-                                        DropdownMenuItem(
-                                            text = { Text(label) },
-                                            onClick = {
-                                                answerSwitchMode.value = mode
-                                                settings.putString("answerSwitchMode", mode)
-                                                answerSwitchExpanded = false
-                                                userMessages.showShortMessage("已设置为：$label")
-                                            },
-                                        )
-                                    }
-                                }
-                            }
+                                options = answerSwitchOptions,
+                                selectedKey = answerSwitchMode.value,
+                                defaultLabel = "上下滑动切换",
+                                onSelect = { mode, label ->
+                                    answerSwitchMode.value = mode
+                                    settings.putString("answerSwitchMode", mode)
+                                    answerSwitchExpanded = false
+                                    userMessages.showShortMessage("已设置为：$label")
+                                },
+                            )
                         },
                     )
                 }
@@ -982,7 +971,7 @@ fun AppearanceSettingsScreen(
                         ),
                     )
                 }
-                AnimatedVisibility(isAnswerSwipeSupported && answerSwitchMode.value != "off") {
+                AnimatedVisibility(isAnswerSwipeSupported && answerSwitchMode.value != "off", enter = settingRowEnter, exit = settingRowExit) {
                     SettingItem(
                         title = { Text("回答切换灵敏度") },
                         description = {
@@ -1028,36 +1017,25 @@ fun AppearanceSettingsScreen(
                     highlightedKey = settingKey,
                     bringIntoViewRequester = requesterFor(ANSWER_DOUBLE_TAP_ACTION_PREFERENCE_KEY),
                     endAction = {
-                        ExposedDropdownMenuBox(
+                        SettingItemDropdownOptions(
                             expanded = answerDoubleTapExpanded,
                             onExpandedChange = { answerDoubleTapExpanded = it },
-                        ) {
-                            ZhihuDropdownAnchor(
-                                value = answerDoubleTapAction.value.label,
-                                modifier = Modifier
-                                    .width(160.dp)
-                                    .testTag(APPEARANCE_SETTINGS_ANSWER_DOUBLE_TAP_TAG),
-                            )
-                            ExposedDropdownMenu(
-                                expanded = answerDoubleTapExpanded,
-                                onDismissRequest = { answerDoubleTapExpanded = false },
-                            ) {
-                                AnswerDoubleTapAction.entries.forEach { action ->
-                                    DropdownMenuItem(
-                                        text = { Text(action.label) },
-                                        onClick = {
-                                            answerDoubleTapAction.value = action
-                                            settings.putString(
-                                                ANSWER_DOUBLE_TAP_ACTION_PREFERENCE_KEY,
-                                                action.preferenceValue,
-                                            )
-                                            answerDoubleTapExpanded = false
-                                            userMessages.showShortMessage("已设置为：${action.label}")
-                                        },
-                                    )
-                                }
-                            }
-                        }
+                            options = AnswerDoubleTapAction.entries.map { it.preferenceValue to it.label },
+                            selectedKey = answerDoubleTapAction.value.preferenceValue,
+                            defaultLabel = answerDoubleTapAction.value.label,
+                            anchorModifier = Modifier
+                                .width(160.dp)
+                                .testTag(APPEARANCE_SETTINGS_ANSWER_DOUBLE_TAP_TAG),
+                            onSelect = { mode, label ->
+                                answerDoubleTapAction.value = AnswerDoubleTapAction.entries.first { it.preferenceValue == mode }
+                                settings.putString(
+                                    ANSWER_DOUBLE_TAP_ACTION_PREFERENCE_KEY,
+                                    mode,
+                                )
+                                answerDoubleTapExpanded = false
+                                userMessages.showShortMessage("已设置为：$label")
+                            },
+                        )
                     },
                 )
             }
@@ -1137,39 +1115,28 @@ fun AppearanceSettingsScreen(
                     title = { Text("应用启动默认页面") },
                     description = { Text("仅可选择已在底部导航栏中显示的页面。") },
                     endAction = {
-                        ExposedDropdownMenuBox(
+                        SettingItemDropdownOptions(
                             expanded = startDestinationExpanded,
                             onExpandedChange = {
                                 if (startDestinationItems.isNotEmpty()) {
                                     startDestinationExpanded = it
                                 }
                             },
-                        ) {
-                            ZhihuDropdownAnchor(
-                                value = startDestinationItems.find { it.first == startDestinationKey }?.second ?: "主页",
-                                enabled = startDestinationItems.isNotEmpty(),
-                                modifier = Modifier
-                                    .width(160.dp)
-                                    .testTag(APPEARANCE_SETTINGS_START_DESTINATION_TAG),
-                            )
-                            ExposedDropdownMenu(
-                                expanded = startDestinationExpanded,
-                                onDismissRequest = { startDestinationExpanded = false },
-                            ) {
-                                startDestinationItems.forEach { (key, label) ->
-                                    DropdownMenuItem(
-                                        modifier = Modifier.testTag("appearanceSettings:startDestination:option:$key"),
-                                        text = { Text(label) },
-                                        onClick = {
-                                            startDestinationKey = key
-                                            settings.putString(START_DESTINATION_PREFERENCE_KEY, key)
-                                            startDestinationExpanded = false
-                                            userMessages.showShortMessage("已设置启动页：$label，重启后生效")
-                                        },
-                                    )
-                                }
-                            }
-                        }
+                            options = startDestinationItems,
+                            selectedKey = startDestinationKey,
+                            defaultLabel = "主页",
+                            anchorModifier = Modifier
+                                .width(160.dp)
+                                .testTag(APPEARANCE_SETTINGS_START_DESTINATION_TAG),
+                            anchorEnabled = startDestinationItems.isNotEmpty(),
+                            itemModifier = { key -> Modifier.testTag("appearanceSettings:startDestination:option:$key") },
+                            onSelect = { key, label ->
+                                startDestinationKey = key
+                                settings.putString(START_DESTINATION_PREFERENCE_KEY, key)
+                                startDestinationExpanded = false
+                                userMessages.showShortMessage("已设置启动页：$label，重启后生效")
+                            },
+                        )
                     },
                 )
 
@@ -1464,31 +1431,19 @@ fun AppearanceSettingsScreen(
                     highlightedKey = settingKey,
                     bringIntoViewRequester = requesterFor("shareAction"),
                     endAction = {
-                        ExposedDropdownMenuBox(
+                        SettingItemDropdownOptions(
                             expanded = shareActionExpanded,
                             onExpandedChange = { shareActionExpanded = it },
-                        ) {
-                            ZhihuDropdownAnchor(
-                                value = shareActionOptions.find { it.first == shareActionMode.value }?.second ?: "询问",
-                                modifier = Modifier.width(160.dp),
-                            )
-                            ExposedDropdownMenu(
-                                expanded = shareActionExpanded,
-                                onDismissRequest = { shareActionExpanded = false },
-                            ) {
-                                shareActionOptions.forEach { (mode, label) ->
-                                    DropdownMenuItem(
-                                        text = { Text(label) },
-                                        onClick = {
-                                            shareActionMode.value = mode
-                                            settings.putString("shareActionMode", mode)
-                                            shareActionExpanded = false
-                                            userMessages.showShortMessage("已设置为：$label")
-                                        },
-                                    )
-                                }
-                            }
-                        }
+                            options = shareActionOptions,
+                            selectedKey = shareActionMode.value,
+                            defaultLabel = "询问",
+                            onSelect = { mode, label ->
+                                shareActionMode.value = mode
+                                settings.putString("shareActionMode", mode)
+                                shareActionExpanded = false
+                                userMessages.showShortMessage("已设置为：$label")
+                            },
+                        )
                     },
                 )
             }
@@ -1677,7 +1632,7 @@ fun AppearanceSettingsScreen(
                         highlightedKey = settingKey,
                         bringIntoViewRequester = requesterFor(DUO3_TIQIAN_MARKDOWN_PREFERENCE_KEY),
                     )
-                    AnimatedVisibility(visible = duo3TiqianMarkdown.value) {
+                    AnimatedVisibility(visible = duo3TiqianMarkdown.value, enter = settingRowEnter, exit = settingRowExit) {
                         SettingItemWithSwitch(
                             title = { Text("正文：使用非衬线数学字体") },
                             description = { Text("默认公式使用非衬线的 Lete Sans Math；关闭后改用衬线的 STIX Two Math。") },
@@ -1727,7 +1682,7 @@ fun AppearanceSettingsScreen(
                     },
                 )
 
-                AnimatedVisibility(visible = duo3CardLayout.value) {
+                AnimatedVisibility(visible = duo3CardLayout.value, enter = settingRowEnter, exit = settingRowExit) {
                     SettingItemWithSwitch(
                         title = { Text("信息流卡片：使用更大的标题字体") },
                         description = { Text("默认关闭，标题与官方一致为 16sp；开启后放大一档。") },
@@ -1749,7 +1704,7 @@ fun AppearanceSettingsScreen(
                     },
                 )
 
-                AnimatedVisibility(visible = duo3ArticleBar.value) {
+                AnimatedVisibility(visible = duo3ArticleBar.value, enter = settingRowEnter, exit = settingRowExit) {
                     SettingItemWithSwitch(
                         title = { Text("文章阅读页：更改操作栏样式") },
                         description = { Text("底栏操作按钮用药丸包裹；分隔赞同/反对按钮并添加动画。") },

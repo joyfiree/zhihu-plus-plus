@@ -106,6 +106,7 @@ import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.platform.rememberZhihuWebUrlOpener
 import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
+import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.components.BounceOnChange
 import com.github.zly2006.zhihu.ui.components.CommentScreenComponent
 import com.github.zly2006.zhihu.ui.components.FeedCard
@@ -371,8 +372,8 @@ private fun QuestionTopBar(
             AnimatedContent(
                 targetState = showTitle,
                 transitionSpec = {
-                    (fadeIn() + slideInVertically(initialOffsetY = { it / 2 })) togetherWith
-                        (fadeOut() + slideOutVertically(targetOffsetY = { -it / 2 }))
+                    (fadeIn(Motion.fadeTween()) + slideInVertically(Motion.fadeTween()) { it / 2 }) togetherWith
+                        (fadeOut(Motion.fadeTween()) + slideOutVertically(Motion.fadeTween()) { -it / 2 })
                 },
                 label = "question_top_bar_title",
             ) { shouldShowTitle ->
@@ -415,8 +416,7 @@ private fun QuestionHeaderSection(
         SelectionContainer(modifier = Modifier.questionSelectionWorkaround()) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                style = ZhihuTypography.ContentTitle,
                 modifier = Modifier.testTag(QUESTION_TITLE_TAG),
             )
         }
@@ -440,7 +440,7 @@ private fun QuestionHeaderSection(
             ) {
                 Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "评论")
                 Spacer(Modifier.width(8.dp))
-                Text("$commentCount")
+                Text("评论")
             }
         }
     }

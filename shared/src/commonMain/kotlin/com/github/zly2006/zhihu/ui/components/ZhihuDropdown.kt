@@ -20,10 +20,13 @@ package com.github.zly2006.zhihu.ui.components
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuBoxScope
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +81,51 @@ fun ExposedDropdownMenuBoxScope.ZhihuDropdownAnchor(
                 contentDescription = null,
                 modifier = Modifier.size(ZhihuSizes.IconSmall),
             )
+        }
+    }
+}
+
+/**
+ * 设置行内「下拉选一项」的完整套件：锚点 + 菜单 + 选项点击。
+ *
+ * 外观设置页里这套 `ExposedDropdownMenuBox` + [ZhihuDropdownAnchor] + [ExposedDropdownMenu] +
+ * [DropdownMenuItem] 组合被原样抄了 5 遍（信息流样式、回答切换手势相关的双击动作、启动页、分享操作……），
+ * 只有 options 列表和点击后要写哪个 preference key 不同。这里把「怎么展示下拉」收进一个组件，
+ * 调用方只需要给 options 和一个 `onSelect` 回调，不用每次重新摆布 anchor/menu 的层级关系。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingItemDropdownOptions(
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    options: List<Pair<String, String>>,
+    selectedKey: String,
+    defaultLabel: String,
+    onSelect: (key: String, label: String) -> Unit,
+    anchorModifier: Modifier = Modifier.width(160.dp),
+    anchorEnabled: Boolean = true,
+    itemModifier: (key: String) -> Modifier = { Modifier },
+) {
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = onExpandedChange,
+    ) {
+        ZhihuDropdownAnchor(
+            value = options.find { it.first == selectedKey }?.second ?: defaultLabel,
+            enabled = anchorEnabled,
+            modifier = anchorModifier,
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) },
+        ) {
+            options.forEach { (key, label) ->
+                DropdownMenuItem(
+                    modifier = itemModifier(key),
+                    text = { Text(label) },
+                    onClick = { onSelect(key, label) },
+                )
+            }
         }
     }
 }

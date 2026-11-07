@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.IntrinsicMeasurable
@@ -91,9 +92,31 @@ import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastMaxOfOrNull
 import androidx.compose.ui.util.fastSumBy
+import com.github.zly2006.zhihu.theme.ZhihuTypography
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
+
+/**
+ * 两行顶栏里"暂不可见"的那一行（展开态淡出的大标题 / 收起态淡出的小标题）只靠
+ * [androidx.compose.ui.graphics.graphicsLayer] 的 `alpha = 0` 隐藏——这只影响绘制，不影响命中测试。
+ * 如果标题/副标题内容自带 `clickable`（例如回答页标题点击跳问题页），折叠过程中会出现
+ * "看不见但能点中" 的区域。这里在该行判定为隐藏时，于 `Initial` pass 吞掉所有指针事件，
+ * 阻止事件继续派发到被隐藏的子节点；判定恢复为可见时自动停止吞掉（`pointerInput` 的 key 变化
+ * 会取消并重启协程）。
+ */
+private fun Modifier.consumeInputWhenHidden(hidden: Boolean): Modifier =
+    if (hidden) {
+        this.pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+                }
+            }
+        }
+    } else {
+        this
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,7 +138,7 @@ fun ZhihuTwoRowsTopAppBar(
     }
     TwoRowsTopAppBar(
         title = { title(true) },
-        titleTextStyle = MaterialTheme.typography.headlineMedium,
+        titleTextStyle = ZhihuTypography.ContentTitle,
         titleBottomPadding = 0.dp,
         smallTitle = { title(false) },
         smallTitleTextStyle = MaterialTheme.typography.titleLarge,
@@ -440,7 +463,8 @@ private fun TopAppBarLayout(
                                 } else {
                                     Modifier
                                 },
-                            ).graphicsLayer { alpha = titleAlpha() },
+                            ).consumeInputWhenHidden(hideTitleSemantics)
+                            .graphicsLayer { alpha = titleAlpha() },
                     horizontalAlignment = titleHorizontalAlignment,
                 ) {
                     CompositionLocalProvider(LocalContentColor provides titleContentColor) {
@@ -462,7 +486,8 @@ private fun TopAppBarLayout(
                                 } else {
                                     Modifier
                                 },
-                            ).graphicsLayer { alpha = titleAlpha() },
+                            ).consumeInputWhenHidden(hideTitleSemantics)
+                            .graphicsLayer { alpha = titleAlpha() },
                 ) {
                     CompositionLocalProvider(LocalContentColor provides titleContentColor) {
                         ProvideTextStyle(titleTextStyle, title)

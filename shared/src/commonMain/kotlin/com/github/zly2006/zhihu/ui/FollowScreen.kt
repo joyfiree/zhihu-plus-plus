@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,10 +74,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.data.Feed
+import com.github.zly2006.zhihu.data.FeedDisplayItem
 import com.github.zly2006.zhihu.data.target
 import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.navigation.Person
 import com.github.zly2006.zhihu.platform.UserMessageDuration
+import com.github.zly2006.zhihu.platform.UserMessageSink
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
@@ -94,6 +97,8 @@ import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberNestedHorizontalPagerConnection
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.topLevelReselectAction
+import com.github.zly2006.zhihu.viewmodel.PaginationEnvironment
+import com.github.zly2006.zhihu.viewmodel.feed.BaseFeedViewModel
 import com.github.zly2006.zhihu.viewmodel.feed.FollowRecommendViewModel
 import com.github.zly2006.zhihu.viewmodel.feed.FollowViewModel
 import com.github.zly2006.zhihu.viewmodel.feed.RecentMomentsViewModel
@@ -112,12 +117,82 @@ const val FOLLOW_RECOMMEND_REFRESH_BUTTON_TAG = "follow_recommend_refresh_button
 const val FOLLOW_DYNAMIC_LIST_TAG = "follow_dynamic_list"
 const val FOLLOW_DYNAMIC_REFRESH_BUTTON_TAG = "follow_dynamic_refresh_button"
 
+/** 推荐、动态两个子页共用的 tab 标题，避免两处各写一份而错位。 */
+internal val FOLLOW_TAB_TITLES = listOf("推荐", "动态")
+
 /** A preloaded inner page may own page-turn input only while the outer Follow page is visible. */
 internal fun isFollowPageTurnTargetActive(
     followScreenActive: Boolean,
     selectedPage: Int,
     page: Int,
 ): Boolean = followScreenActive && selectedPage == page
+
+/**
+ * 「屏蔽用户 / 屏蔽提问者 / 按主题屏蔽」这组菜单项，推荐页和动态页逐字重复了一份。
+ * 两边把各自的 viewModel（都继承 [BaseFeedViewModel]）、环境和回调传进来即可。
+ */
+@Composable
+private fun ColumnScope.FeedBlockMenuItems(
+    viewModel: BaseFeedViewModel,
+    environment: PaginationEnvironment,
+    userMessages: UserMessageSink,
+    item: FeedDisplayItem,
+    dismissMenu: () -> Unit,
+    onShowBlockDialog: (FeedAuthorBlockRequest) -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text("屏蔽用户") },
+        onClick = {
+            dismissMenu()
+            viewModel.handleBlockUser(environment, userMessages, item) { authorInfo ->
+                onShowBlockDialog(
+                    FeedAuthorBlockRequest(
+                        FeedAuthorBlockType.CONTENT_AUTHOR,
+                        authorInfo.first,
+                        authorInfo.second,
+                    ),
+                )
+            }
+        },
+    )
+    val canBlockQuestionAuthor = when (item.feed?.target) {
+        is Feed.AnswerTarget, is Feed.QuestionTarget -> true
+        else -> item.raw is DataHolder.Answer || item.raw is DataHolder.Question
+    }
+    if (canBlockQuestionAuthor) {
+        DropdownMenuItem(
+            text = { Text("屏蔽提问者") },
+            onClick = {
+                dismissMenu()
+                viewModel.handleBlockQuestionAuthor(environment, userMessages, item) { authorInfo ->
+                    onShowBlockDialog(
+                        FeedAuthorBlockRequest(
+                            FeedAuthorBlockType.QUESTION_AUTHOR,
+                            authorInfo.first,
+                            authorInfo.second,
+                        ),
+                    )
+                }
+            },
+        )
+    }
+    val topics = when (val raw = item.raw) {
+        is DataHolder.Answer -> raw.question.topics
+        is DataHolder.Question -> raw.topics
+        is DataHolder.Article -> raw.topics ?: emptyList()
+        is DataHolder.Pin -> raw.topics ?: emptyList()
+        else -> emptyList()
+    }
+    topics.forEach { topic ->
+        DropdownMenuItem(
+            text = { Text("屏蔽「${topic.name}」") },
+            onClick = {
+                dismissMenu()
+                viewModel.handleBlockTopic(userMessages, topic.id, topic.name)
+            },
+        )
+    }
+}
 
 /**
  * 关注顶层页的生产入口。
@@ -153,7 +228,7 @@ private fun FollowScreenContent(
     isActive: Boolean,
 ) {
     val viewModel = viewModel { FollowScreenData() }
-    val titles = listOf("推荐", "动态")
+    val titles = FOLLOW_TAB_TITLES
     val pagerState = rememberPagerState(
         initialPage = viewModel.selectedTabIndex,
         pageCount = { titles.size },
@@ -214,7 +289,7 @@ private fun FollowTabRow(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val titles = listOf("推荐", "动态")
+    val titles = FOLLOW_TAB_TITLES
     val tabs: @Composable () -> Unit = {
         titles.forEachIndexed { index, title ->
             Tab(
@@ -415,54 +490,14 @@ fun FollowRecommendScreen(
                     readingQueueSourceId = readingQueueSourceId.takeIf { isActive },
                     modifier = Modifier.testTag("follow_recommend_item_${item.stableKey}"),
                     menuItems = { dismissMenu ->
-                        DropdownMenuItem(
-                            text = { Text("屏蔽用户") },
-                            onClick = {
-                                dismissMenu()
-                                viewModel.handleBlockUser(environment, userMessages, item) { authorInfo ->
-                                    feedAuthorBlockRequest = FeedAuthorBlockRequest(
-                                        FeedAuthorBlockType.CONTENT_AUTHOR,
-                                        authorInfo.first,
-                                        authorInfo.second,
-                                    )
-                                }
-                            },
+                        FeedBlockMenuItems(
+                            viewModel = viewModel,
+                            environment = environment,
+                            userMessages = userMessages,
+                            item = item,
+                            dismissMenu = dismissMenu,
+                            onShowBlockDialog = { feedAuthorBlockRequest = it },
                         )
-                        val canBlockQuestionAuthor = when (item.feed?.target) {
-                            is Feed.AnswerTarget, is Feed.QuestionTarget -> true
-                            else -> item.raw is DataHolder.Answer || item.raw is DataHolder.Question
-                        }
-                        if (canBlockQuestionAuthor) {
-                            DropdownMenuItem(
-                                text = { Text("屏蔽提问者") },
-                                onClick = {
-                                    dismissMenu()
-                                    viewModel.handleBlockQuestionAuthor(environment, userMessages, item) { authorInfo ->
-                                        feedAuthorBlockRequest = FeedAuthorBlockRequest(
-                                            FeedAuthorBlockType.QUESTION_AUTHOR,
-                                            authorInfo.first,
-                                            authorInfo.second,
-                                        )
-                                    }
-                                },
-                            )
-                        }
-                        val topics = when (val raw = item.raw) {
-                            is DataHolder.Answer -> raw.question.topics
-                            is DataHolder.Question -> raw.topics
-                            is DataHolder.Article -> raw.topics ?: emptyList()
-                            is DataHolder.Pin -> raw.topics ?: emptyList()
-                            else -> emptyList()
-                        }
-                        topics.forEach { topic ->
-                            DropdownMenuItem(
-                                text = { Text("屏蔽「${topic.name}」") },
-                                onClick = {
-                                    dismissMenu()
-                                    viewModel.handleBlockTopic(userMessages, topic.id, topic.name)
-                                },
-                            )
-                        }
                     },
                 )
             }
@@ -570,54 +605,14 @@ fun FollowDynamicScreen(
                     modifier = Modifier.testTag("follow_dynamic_item_${item.stableKey}"),
                     showSourceLabel = true,
                     menuItems = { dismissMenu ->
-                        DropdownMenuItem(
-                            text = { Text("屏蔽用户") },
-                            onClick = {
-                                dismissMenu()
-                                viewModel.handleBlockUser(environment, userMessages, item) { authorInfo ->
-                                    feedAuthorBlockRequest = FeedAuthorBlockRequest(
-                                        FeedAuthorBlockType.CONTENT_AUTHOR,
-                                        authorInfo.first,
-                                        authorInfo.second,
-                                    )
-                                }
-                            },
+                        FeedBlockMenuItems(
+                            viewModel = viewModel,
+                            environment = environment,
+                            userMessages = userMessages,
+                            item = item,
+                            dismissMenu = dismissMenu,
+                            onShowBlockDialog = { feedAuthorBlockRequest = it },
                         )
-                        val canBlockQuestionAuthor = when (item.feed?.target) {
-                            is Feed.AnswerTarget, is Feed.QuestionTarget -> true
-                            else -> item.raw is DataHolder.Answer || item.raw is DataHolder.Question
-                        }
-                        if (canBlockQuestionAuthor) {
-                            DropdownMenuItem(
-                                text = { Text("屏蔽提问者") },
-                                onClick = {
-                                    dismissMenu()
-                                    viewModel.handleBlockQuestionAuthor(environment, userMessages, item) { authorInfo ->
-                                        feedAuthorBlockRequest = FeedAuthorBlockRequest(
-                                            FeedAuthorBlockType.QUESTION_AUTHOR,
-                                            authorInfo.first,
-                                            authorInfo.second,
-                                        )
-                                    }
-                                },
-                            )
-                        }
-                        val topics = when (val raw = item.raw) {
-                            is DataHolder.Answer -> raw.question.topics
-                            is DataHolder.Question -> raw.topics
-                            is DataHolder.Article -> raw.topics ?: emptyList()
-                            is DataHolder.Pin -> raw.topics ?: emptyList()
-                            else -> emptyList()
-                        }
-                        topics.forEach { topic ->
-                            DropdownMenuItem(
-                                text = { Text("屏蔽「${topic.name}」") },
-                                onClick = {
-                                    dismissMenu()
-                                    viewModel.handleBlockTopic(userMessages, topic.id, topic.name)
-                                },
-                            )
-                        }
                     },
                 )
             }

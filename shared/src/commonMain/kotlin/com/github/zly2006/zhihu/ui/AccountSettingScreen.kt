@@ -195,7 +195,7 @@ fun AccountSettingScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = zhihuSurfaces.page,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -244,7 +244,7 @@ fun AccountSettingScreen(
                     ) {
                         AsyncImage(
                             model = data.avatarUrl,
-                            contentDescription = "头像",
+                            contentDescription = null,
                             modifier = Modifier
                                 .size(72.dp)
                                 .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
@@ -278,7 +278,7 @@ fun AccountSettingScreen(
                         if (launchQrScanner != null) {
                             FilledTonalIconButton(
                                 onClick = launchQrScanner,
-                                modifier = Modifier.size(44.dp).testTag(ACCOUNT_SETTINGS_SCAN_TAG),
+                                modifier = Modifier.size(48.dp).testTag(ACCOUNT_SETTINGS_SCAN_TAG),
                             ) {
                                 Icon(Icons.Default.QrCodeScanner, contentDescription = "扫码登录")
                             }
@@ -288,7 +288,7 @@ fun AccountSettingScreen(
                             onClick = {
                                 showLogoutDialog = true
                             },
-                            modifier = Modifier.size(44.dp),
+                            modifier = Modifier.size(48.dp),
                             colors = IconButtonDefaults.iconButtonColors().copy(
                                 containerColor = MaterialTheme.colorScheme.errorContainer,
                                 contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -474,7 +474,7 @@ fun AccountSettingScreen(
             Column(Modifier.padding(horizontal = 16.dp)) {
                 Surface(
                     modifier = Modifier
-                        .height(36.dp)
+                        .height(48.dp)
                         .testTag(ACCOUNT_SETTINGS_SEARCH_TAG),
                     shape = RoundedCornerShape(24.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHighest,

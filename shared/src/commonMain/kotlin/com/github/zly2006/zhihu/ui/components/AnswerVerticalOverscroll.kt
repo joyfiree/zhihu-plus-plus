@@ -339,7 +339,7 @@ fun AnswerVerticalOverscroll(
         if (showPreviousCard && previousAnswer != null) {
             AnswerPreviewCard(
                 authorName = previousAnswer.authorName,
-                excerpt = previousAnswer.title,
+                excerpt = previousAnswer.content.toPlainExcerpt(),
                 avatarUrl = previousAnswer.authorAvatarUrl,
                 label = "${previousAnswer.sourceLabel}的上一个回答",
                 icon = Icons.Filled.ArrowUpward,
@@ -356,7 +356,7 @@ fun AnswerVerticalOverscroll(
         if (showNextCard && nextAnswer != null) {
             AnswerPreviewCard(
                 authorName = nextAnswer.authorName,
-                excerpt = nextAnswer.title,
+                excerpt = nextAnswer.content.toPlainExcerpt(),
                 avatarUrl = nextAnswer.authorAvatarUrl,
                 label = "${nextAnswer.sourceLabel}的下一个回答",
                 icon = Icons.Filled.ArrowDownward,
@@ -374,6 +374,7 @@ fun AnswerVerticalOverscroll(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
                 .offset { IntOffset(0, overscrollOffset.value.roundToInt()) },
         ) {
             content()
@@ -426,7 +427,8 @@ private fun AnswerPreviewCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = label,
+                    // 图标纯装饰，旁边的 Text 已经把 label 念出来了，避免无障碍重复朗读。
+                    contentDescription = null,
                     tint = contentColor,
                     modifier = Modifier.size(16.dp),
                 )
@@ -496,4 +498,15 @@ internal fun dampedOverscrollOffset(
 ): Float {
     val sign = if (rawDelta >= 0) 1f else -1f
     return sign * maxOverscrollPx * tanh(abs(rawDelta) / (maxOverscrollPx * dampingFactor))
+}
+
+/**
+ * 预览卡摘要只是给用户一个"这是哪个回答"的提示，不需要完整渲染 HTML。
+ * 去掉标签与多余空白，截取前 60 个字符即可。
+ */
+private fun String.toPlainExcerpt(maxLength: Int = 60): String {
+    val plain = replace(Regex("<[^>]*>"), "")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+    return if (plain.length > maxLength) plain.take(maxLength) + "…" else plain
 }
