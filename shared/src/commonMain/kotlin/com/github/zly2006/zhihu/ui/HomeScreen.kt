@@ -100,6 +100,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import com.github.zly2006.zhihu.account.SKIP_LOGIN_PROMPT_PREFERENCE_KEY
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.data.Feed
 import com.github.zly2006.zhihu.data.MOBILE_NOTIFICATION_MESSAGE_URL
@@ -377,7 +378,11 @@ fun HomeScreen(
             ) {
                 remoteHistory.start(homeState.viewModelScope, baseEnvironment)
             }
-            if (!account.login && settings.getBoolean("loginForRecommendation", true)) {
+            if (
+                !account.login &&
+                settings.getBoolean("loginForRecommendation", true) &&
+                !settings.getBoolean(SKIP_LOGIN_PROMPT_PREFERENCE_KEY, false)
+            ) {
                 requestLoginNavigation()
             } else if (viewModel.displayItems.isEmpty()) {
                 val cachedItems = if (autoRefreshOnStartup) {

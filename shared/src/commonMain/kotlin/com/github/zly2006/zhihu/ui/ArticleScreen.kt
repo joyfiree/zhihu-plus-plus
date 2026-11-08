@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -603,9 +604,12 @@ fun ArticleScreen(
                                 Row(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(50))
+                                        // 胶囊底色必须和内部按钮的容器色一致：赞同/反对按钮按 48dp 填满后，
+                                        // 这层底色只在两端圆角处露出。用赞同蓝叠加透明度会在深色主题下
+                                        // 露出一圈比按钮更暗的描边，浅色主题下几乎看不出来。
                                         .background(
                                             color = if (viewModel.voteUpState == VoteUpState.Neutral) {
-                                                voteUpNeutralContent().copy(alpha = 0.1f)
+                                                MaterialTheme.colorScheme.secondaryContainer
                                             } else {
                                                 voteUpNeutralContent()
                                             },
@@ -618,6 +622,7 @@ fun ArticleScreen(
                                                 onClick = { viewModel.toggleVoteUp(environment, VoteUpState.Up) },
                                                 colors = voteUpNeutralButtonColors(),
                                                 shape = RectangleShape,
+                                                modifier = Modifier.fillMaxHeight(),
                                                 contentPadding = PaddingValues(horizontal = 0.dp),
                                             ) {
                                                 Spacer(modifier = Modifier.width(4.dp))
@@ -641,6 +646,7 @@ fun ArticleScreen(
                                                 onClick = { viewModel.toggleVoteUp(environment, VoteUpState.Neutral) },
                                                 colors = voteUpActiveButtonColors(),
                                                 shape = RectangleShape,
+                                                modifier = Modifier.fillMaxHeight(),
                                                 contentPadding = PaddingValues(horizontal = 0.dp),
                                             ) {
                                                 Spacer(modifier = Modifier.width(4.dp))

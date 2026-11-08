@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.platform.rememberExternalUrlOpener
+import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 
 enum class LoginMethod(
@@ -68,6 +69,7 @@ fun LoginScreen(
     onOpenTelemetrySettings: () -> Unit,
 ) {
     val openExternalUrl = rememberExternalUrlOpener()
+    val settings = rememberSettingsStore()
     var noticeStep by rememberSaveable {
         mutableIntStateOf(0)
     }
@@ -75,7 +77,11 @@ fun LoginScreen(
         mutableStateOf(supportedLoginMethods.first())
     }
     var loggedInUsername by remember { mutableStateOf<String?>(null) }
-    val onLoginSuccess: (String) -> Unit = { username -> loggedInUsername = username }
+    val onLoginSuccess: (String) -> Unit = { username ->
+        // 用户主动登录成功后恢复「未登录时自动提示登录」的默认行为。
+        settings.putBoolean(SKIP_LOGIN_PROMPT_PREFERENCE_KEY, false)
+        loggedInUsername = username
+    }
 
     if (noticeStep < LOGIN_NOTICE_COUNT) {
         val notice = loginNotices[noticeStep]
@@ -123,6 +129,20 @@ fun LoginScreen(
                     LoginMethod.Qr -> QrLoginPane(onLoginSuccess)
                     LoginMethod.Web -> WebLoginPane(onLoginSuccess)
                 }
+            }
+
+            // 未登录也能浏览信息流和详情；跳过时记住选择，HomeScreen 读同一个偏好，
+            // 下次启动不再把用户自动带到登录页。账号页仍保留登录入口。
+            TextButton(
+                onClick = {
+                    settings.putBoolean(SKIP_LOGIN_PROMPT_PREFERENCE_KEY, true)
+                    onLoginComplete()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("login_skip"),
+            ) {
+                Text("跳过登录，先浏览")
             }
         }
     }
@@ -234,6 +254,9 @@ private data class LoginNotice(
 )
 
 private const val LOGIN_NOTICE_COUNT = 3
+
+/** 用户选择「跳过登录」后不再自动弹出登录页的偏好。 */
+internal const val SKIP_LOGIN_PROMPT_PREFERENCE_KEY = "skipLoginPrompt"
 
 private val loginNotices = listOf(
     LoginNotice(
