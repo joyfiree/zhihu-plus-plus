@@ -18,20 +18,13 @@
 package com.github.zly2006.zhihu.ui
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,39 +35,32 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowCircleUp
 import androidx.compose.material.icons.filled.CopyAll
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.MarkUnreadChatAlt
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.MailOutline
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -82,16 +68,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
@@ -99,12 +91,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil3.compose.AsyncImage
+import com.github.zly2006.zhihu.account.SKIP_LOGIN_PROMPT_PREFERENCE_KEY
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.data.Feed
+import com.github.zly2006.zhihu.data.FeedDisplayItem
 import com.github.zly2006.zhihu.data.MOBILE_NOTIFICATION_MESSAGE_URL
 import com.github.zly2006.zhihu.data.MobileNotificationMessageOverview
 import com.github.zly2006.zhihu.data.RecommendationMode
+import com.github.zly2006.zhihu.data.navDestination
 import com.github.zly2006.zhihu.data.target
 import com.github.zly2006.zhihu.filter.RemoteHistorySync
 import com.github.zly2006.zhihu.navigation.Account
@@ -113,8 +107,8 @@ import com.github.zly2006.zhihu.navigation.ArticleType
 import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.navigation.Notification
 import com.github.zly2006.zhihu.navigation.Pin
+import com.github.zly2006.zhihu.navigation.Question
 import com.github.zly2006.zhihu.navigation.Search
-import com.github.zly2006.zhihu.navigation.WritePin
 import com.github.zly2006.zhihu.navigation.requestLoginNavigation
 import com.github.zly2006.zhihu.notification.HOME_NOTIFICATION_ACTION_OPEN_ANSWER
 import com.github.zly2006.zhihu.notification.HOME_NOTIFICATION_ACTION_OPEN_ARTICLE
@@ -135,17 +129,15 @@ import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.platform.rememberWebViewUrlOpener
 import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
-import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.components.AnnouncementCard
 import com.github.zly2006.zhihu.ui.components.AnnouncementCardDefaults
 import com.github.zly2006.zhihu.ui.components.BlockByKeywordsDialog
+import com.github.zly2006.zhihu.ui.components.ContentFeedCard
 import com.github.zly2006.zhihu.ui.components.DraggableRefreshButton
 import com.github.zly2006.zhihu.ui.components.FeedAuthorBlockConfirmDialog
 import com.github.zly2006.zhihu.ui.components.FeedAuthorBlockRequest
 import com.github.zly2006.zhihu.ui.components.FeedAuthorBlockType
-import com.github.zly2006.zhihu.ui.components.FeedCard
 import com.github.zly2006.zhihu.ui.components.FeedPullToRefresh
-import com.github.zly2006.zhihu.ui.components.MyModalBottomSheet
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
@@ -153,11 +145,7 @@ import com.github.zly2006.zhihu.ui.components.feedKeywordExtractionAvailable
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.designsystem.Motion
-import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
-import com.github.zly2006.zhihu.ui.designsystem.pressScale
-import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
-import com.github.zly2006.zhihu.ui.subscreens.DEFAULT_FAB_OPACITY
-import com.github.zly2006.zhihu.ui.subscreens.PREF_FAB_OPACITY
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
 import com.github.zly2006.zhihu.ui.subscreens.rememberSystemUpdateState
 import com.github.zly2006.zhihu.util.Log
@@ -165,8 +153,11 @@ import com.github.zly2006.zhihu.util.json
 import com.github.zly2006.zhihu.viewmodel.QUALITY_FILTER_MODE_PREFERENCE_KEY
 import com.github.zly2006.zhihu.viewmodel.QualityFilterMode
 import com.github.zly2006.zhihu.viewmodel.feed.BaseFeedViewModel
+import com.github.zly2006.zhihu.viewmodel.feed.FollowViewModel
 import com.github.zly2006.zhihu.viewmodel.feed.HomeFeedInteractionViewModel
 import com.github.zly2006.zhihu.viewmodel.feed.HomeFeedViewModel
+import com.github.zly2006.zhihu.viewmodel.feed.ZHIHU_HOT_SEARCH_URL
+import com.github.zly2006.zhihu.viewmodel.getOrFetchContentDetail
 import com.github.zly2006.zhihu.viewmodel.local.LocalHomeFeedViewModel
 import com.github.zly2006.zhihu.viewmodel.rememberPaginationEnvironment
 import com.github.zly2006.zhihu.viewmodel.za.AndroidHomeFeedViewModel
@@ -177,6 +168,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.io.buffered
 import kotlinx.io.files.Path
@@ -187,6 +179,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlin.time.Clock
@@ -195,27 +188,54 @@ const val PREFERENCE_NAME = "com.github.zly2006.zhihu_preferences"
 const val ARTICLE_USE_WEBVIEW_PREFERENCE_KEY = "webviewRenderLegacy"
 const val HOME_TOP_ACTIONS_TAG = "home_top_actions"
 const val HOME_SEARCH_BUTTON_TAG = "home_search_button"
-const val HOME_CREATE_FAB_TAG = "home_create_fab"
-const val HOME_CREATE_MENU_TAG = "home_create_menu"
-const val HOME_WRITE_QUESTION_BUTTON_TAG = "home_write_question_button"
-const val HOME_WRITE_ANSWER_BUTTON_TAG = "home_write_answer_button"
-const val HOME_WRITE_PIN_BUTTON_TAG = "home_write_pin_button"
-const val HOME_NOTIFICATION_BUTTON_TAG = "home_notification_button"
-const val HOME_NOTIFICATION_BUTTON_CONTENT_TAG = "home_notification_button_content"
-const val HOME_NOTIFICATION_BADGE_TAG = "home_notification_badge"
-const val HOME_ACCOUNT_BUTTON_TAG = "home_account_button"
+const val HOME_SEARCH_ACTION_TAG = "home_search_action"
+const val HOME_SEARCH_PLACEHOLDER_TAG = "home_search_placeholder"
+const val HOME_CATEGORY_TAB_TAG_PREFIX = "home_category_tab"
 const val HOME_FEED_LIST_TAG = "home_feed_list"
 const val HOME_REFRESH_BUTTON_TAG = "home_refresh_button"
 const val HOME_AUTHOR_POLL_ANNOUNCEMENT_TAG = "home_author_poll_announcement"
 const val HOME_ONLINE_NOTIFICATION_TAG = "home_online_notification"
 const val HOME_PIN_ANNOUNCEMENT_READ_KEY_PREFIX = "readHomePinAnnouncement_"
+const val HOME_NOTIFICATION_BUTTON_TAG = "home_notification_button"
+const val HOME_NOTIFICATION_BUTTON_CONTENT_TAG = "home_notification_button_content"
+const val HOME_NOTIFICATION_BADGE_TAG = "home_notification_badge"
+
 private const val MAX_HOME_PIN_ANNOUNCEMENTS = 3
+
+/** 搜索区的视觉与触控尺寸，集中在这里是为了让「24×26 的消息方框」和 52dp 的搜索区高度对得上。 */
+private val SearchAreaHeight = 52.dp
+private val MessageEntryVisualWidth = 24.dp
+private val MessageEntryVisualHeight = 26.dp
+private val MessageEntryShape = RoundedCornerShape(4.dp)
 
 fun homeAuthorPollAnnouncementTag(pinId: Long): String = "$HOME_AUTHOR_POLL_ANNOUNCEMENT_TAG:$pinId"
 
 fun homeOnlineNotificationTag(uuid: String): String = "$HOME_ONLINE_NOTIFICATION_TAG:$uuid"
 
 fun homePinAnnouncementReadKey(pinId: Long): String = "$HOME_PIN_ANNOUNCEMENT_READ_KEY_PREFIX$pinId"
+
+fun homeCategoryTabTag(label: String): String = "$HOME_CATEGORY_TAB_TAG_PREFIX:$label"
+
+/**
+ * 首页分类 Tab（产品设计稿 §1.3.2）。
+ *
+ * 只有关注 / 推荐 / 日报三个，点击切换、不支持横滑；默认停在推荐。
+ */
+private enum class HomeCategoryTab(
+    val label: String,
+) {
+    Following("关注"),
+    Recommend("推荐"),
+    Daily("日报"),
+}
+
+private val HomeCategoryTabs = listOf(
+    HomeCategoryTab.Following,
+    HomeCategoryTab.Recommend,
+    HomeCategoryTab.Daily,
+)
+
+private const val DEFAULT_HOME_CATEGORY_TAB_INDEX = 1
 
 // Pager can dispose this page while its feed ViewModels survive. Keep the header rows and
 // synchronization owner alive too, so restoring a saved list index does not shift the visible card.
@@ -229,11 +249,16 @@ private class HomeScreenState(
 }
 
 /**
- * 首页信息流页面。
+ * 首页信息流页面（产品设计稿 §一）。
  *
- * 页面顶部承载搜索、通知、账号入口等高频操作，主体是可分页的推荐信息流，底部可按设置显示可拖动刷新 FAB。
- * 设计上首页同时响应推荐算法、Duo3 账号入口迁移、更新公告、在线通知、作者动态和未读通知等状态，因此 UI 改动时要同时检查
- * `recommendationMode`、`duo3_home_account`、`showRefreshFab` 和账号面板相关路径。
+ * 自上而下五段式：状态栏 → 搜索区（消息方框 + 搜索框 + 搜索按钮）→ 分类 Tab（关注 / 推荐 / 日报）
+ * → 内容卡片流 → 底部 Tab（由主壳承载）。
+ *
+ * 页面本身只负责「搜索区 + 分类 Tab + 当前分类的内容」，消息入口从底栏移到了搜索区，
+ * 创作入口按产品策略移到「我的」页，因此这里不再有悬浮发布按钮。
+ *
+ * 改动时同时检查 `recommendationMode`、`showRefreshFab`、`showUnreadBadge` 与三类内容
+ * （推荐流 / 关注流 / 日报）的加载与回到顶部路径。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -243,6 +268,7 @@ fun HomeScreen(
     showTopActions: Boolean = true,
     isActive: Boolean = true,
 ) {
+    val colors = contentFirstColors
     val readingPlayerOverlayPadding = LocalReadingPlayerOverlayPadding.current
     val navigator = LocalNavigator.current
     val baseEnvironment = rememberPaginationEnvironment(allowGuestAccess = true)
@@ -256,16 +282,16 @@ fun HomeScreen(
     val openExternalUrl = rememberExternalUrlOpener()
     val openWebViewUrl = rememberWebViewUrlOpener()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
 
-    val duo3HomeAccount = settings.getBoolean("duo3_home_account", false)
     val showRefreshFab = settings.getBoolean("showRefreshFab", true)
+    val showFeedThumbnail by rememberObservedSetting(settings, "showFeedThumbnail") {
+        getBoolean("showFeedThumbnail", true)
+    }
     val autoRefreshOnStartup = settings.getBoolean(AUTO_REFRESH_HOME_ON_STARTUP_PREFERENCE_KEY, true)
     val showUnreadBadge = notificationSettings.getUnreadBadgeEnabled()
-    var showAccountBottomSheet by remember { mutableStateOf(false) }
-    var showCreateMenu by remember { mutableStateOf(false) }
-    // 创作菜单遮罩：淡入由 AnimatedVisibility 的 fadeIn 负责，这里只决定最终浓度。
-    // 0.32 相当于「比原来的 0.16 深一档」，补上取消整页模糊后损失的层级感。
-    val createMenuScrimAlpha = 0.32f
+    var selectedCategoryIndex by rememberSaveable { mutableIntStateOf(DEFAULT_HOME_CATEGORY_TAB_INDEX) }
+    val selectedCategory = HomeCategoryTabs.getOrElse(selectedCategoryIndex) { HomeCategoryTab.Recommend }
 
     // 获取当前推荐算法设置
     val currentRecommendationMode =
@@ -304,6 +330,46 @@ fun HomeScreen(
         RecommendationMode.MIXED -> viewModel { MixedHomeFeedViewModel() }
     }
     val localHomeViewModel = viewModel as? LocalHomeFeedViewModel
+    // 卡片点击：能确定所属问题就直接进「该问题下的回答瀑布流」；手机版推荐卡片只带回答 id，
+    // 先取一次回答详情拿到 question.id 再跳，取不到才退回单条回答详情页。
+    val openItem: (FeedDisplayItem) -> Unit = { item ->
+        val feed = item.feed
+        if (feed != null) {
+            (viewModel as? HomeFeedInteractionViewModel)?.onUiContentClick(paginationEnvironment, feed, item)
+        } else {
+            localHomeViewModel?.onLocalItemOpened(item)
+        }
+        val questionTarget = item.feed?.target.let { target ->
+            when (target) {
+                is Feed.AnswerTarget -> Question(target.question.id, target.question.title)
+                is Feed.QuestionTarget -> Question(target.id, target.title)
+                else -> null
+            }
+        }
+        val fallback = item.navDestination
+        if (questionTarget != null) {
+            navigator.onNavigate(questionTarget)
+        } else {
+            val answerId = (fallback as? Article)?.takeIf { it.type == ArticleType.Answer }?.id
+            if (answerId == null) {
+                fallback?.let { navigator.onNavigate(it) }
+            } else {
+                scope.launch {
+                    val detail = paginationEnvironment.getOrFetchContentDetail(
+                        Article(type = ArticleType.Answer, id = answerId),
+                    ) as? DataHolder.Answer
+                    val question = detail?.question
+                    if (question != null) {
+                        navigator.onNavigate(Question(question.id, question.title))
+                    } else {
+                        // 匿名访问 answers 接口会被知乎要求登录，拿不到 question.id 时跳单条回答页
+                        // 只会看到「没有知识存在的荒原」，不如留在原地给出明确提示。
+                        userMessages.showShortMessage("暂时无法打开这条回答，登录后可查看所属问题")
+                    }
+                }
+            }
+        }
+    }
     val readingQueueSourceId = "home:${currentRecommendationMode.name}"
     RegisterReadingQueueSource(
         sourceId = readingQueueSourceId,
@@ -312,6 +378,8 @@ fun HomeScreen(
 
     var dismissedUpdateVersion by homeState.dismissedUpdateVersion
     var authorPinAnnouncements by homeState.authorPinAnnouncements
+    var dismissedFeedKeys by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var hotSearchWord by remember { mutableStateOf("") }
 
     val listState = rememberLazyListState()
     var cachedScrollToTopTrigger by remember { mutableIntStateOf(scrollToTopTrigger) }
@@ -340,6 +408,28 @@ fun HomeScreen(
         } catch (_: Exception) {
             // 忽略错误
         }
+    }
+
+    // 搜索框占位用当前热搜第一条（产品设计稿 §1.3.1）。取不到时退回固定文案，不阻塞首屏。
+    LaunchedEffect(account.login) {
+        if (!account.login) return@LaunchedEffect
+        val word = try {
+            paginationEnvironment
+                .fetchJson(ZHIHU_HOT_SEARCH_URL, "")
+                ?.get("hot_search_queries")
+                ?.jsonArray
+                ?.firstOrNull()
+                ?.jsonObject
+                ?.get("query")
+                ?.jsonPrimitive
+                ?.contentOrNull
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("HomeScreen", "Failed to load hot search word", e)
+            null
+        }
+        if (!word.isNullOrBlank()) hotSearchWord = word
     }
 
     val latestLoadedDisplayItems = viewModel.latestLoadedDisplayItems.value
@@ -377,7 +467,10 @@ fun HomeScreen(
             ) {
                 remoteHistory.start(homeState.viewModelScope, baseEnvironment)
             }
-            if (!account.login && settings.getBoolean("loginForRecommendation", true)) {
+            if (!account.login &&
+                !settings.getBoolean(SKIP_LOGIN_PROMPT_PREFERENCE_KEY, false) &&
+                settings.getBoolean("loginForRecommendation", true)
+            ) {
                 requestLoginNavigation()
             } else if (viewModel.displayItems.isEmpty()) {
                 val cachedItems = if (autoRefreshOnStartup) {
@@ -493,637 +586,338 @@ fun HomeScreen(
     val pageTurnTarget = rememberPageTurnTarget(
         listState = listState,
         enabled = isActive &&
-            !showAccountBottomSheet &&
-            !showCreateMenu &&
+            selectedCategory == HomeCategoryTab.Recommend &&
             feedAuthorBlockRequest == null &&
             !showBlockByKeywordsDialog &&
             (!account.login || account.hasRequiredCookie),
     )
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            // 打开创作菜单时不再对整页做 Modifier.blur()：整屏实时模糊在中低端机上是纯 GPU 开销，
-            // 而且会让下方内容每一帧重新渲染。改为加深 scrim（见下方遮罩层），
-            // 视觉上同样把「当前层」压下去，但只动一层半透明矩形。
-            modifier = if (duo3HomeAccount) {
-                Modifier.fillMaxSize()
-            } else {
-                // master旧版需要pad掉状态栏
-                Modifier
-                    .fillMaxSize()
-                    .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
-            },
-            topBar = {
-                if (!showTopActions) {
-                    return@Scaffold
-                }
-                if (duo3HomeAccount) {
-                    Box {
-                        Surface(
-                            modifier = Modifier
-                                .height(
-                                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp + 56.dp + 8.dp,
-                                ).fillMaxWidth(),
-                        ) { }
-                        Row(
-                            modifier = Modifier
-                                .testTag(HOME_TOP_ACTIONS_TAG)
-                                .fillMaxWidth()
-                                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
-                                .padding(16.dp, 8.dp, 16.dp, 0.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(56.dp)
-                                    .testTag(HOME_SEARCH_BUTTON_TAG),
-                                shape = ZhihuShapeTokens.Pill,
-                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                onClick = {
-                                    navigator.onNavigate(
-                                        Search(query = ""),
-                                    )
-                                },
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(start = 16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        Icons.Default.Search,
-                                        contentDescription = "搜索",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "搜索",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier.weight(1f),
-                                    )
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = colors.page,
+        topBar = {
+            if (!showTopActions) {
+                return@Scaffold
+            }
+            // Scaffold 的 topBar 槽位会把多个子项叠在同一位置，因此这里显式竖排。
+            Column(modifier = Modifier.fillMaxWidth()) {
+                HomeSearchArea(
+                    hotSearchWord = hotSearchWord,
+                    unreadCount = if (showUnreadBadge) unreadCount else 0,
+                    onOpenNotifications = { navigator.onNavigate(Notification) },
+                    onOpenSearch = { navigator.onNavigate(Search(query = "")) },
+                )
+                HomeCategoryTabRow(
+                    selected = selectedCategory,
+                    onSelect = { tab ->
+                        selectedCategoryIndex = HomeCategoryTabs.indexOf(tab)
+                    },
+                )
+            }
+        },
+    ) { scaffoldPadding ->
+        val contentTopPadding = scaffoldPadding.calculateTopPadding()
+        when (selectedCategory) {
+            HomeCategoryTab.Recommend -> {
+                FeedPullToRefresh(viewModel, PaddingValues(top = contentTopPadding)) {
+                    PaginatedList(
+                        items = viewModel.displayItems.filterNot { it.stableKey in dismissedFeedKeys },
+                        listState = listState,
+                        modifier = Modifier
+                            .pageTurnViewportWithGuide(pageTurnTarget)
+                            .testTag(HOME_FEED_LIST_TAG),
+                        contentPadding = PaddingValues(
+                            top = contentTopPadding,
+                            bottom = innerPadding.calculateBottomPadding() + readingPlayerOverlayPadding,
+                        ),
+                        onLoadMore = { viewModel.loadMore(paginationEnvironment) },
+                        isEnd = { viewModel.isEnd },
+                        footer = ProgressIndicatorFooter,
+                        key = { item -> item.stableKey },
+                        topContent = {
+                            item {
+                                val availableUpdate = updateAnnouncement
 
-                                    IconButton(
-                                        onClick = { showAccountBottomSheet = true },
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .testTag(HOME_ACCOUNT_BUTTON_TAG),
-                                    ) {
-                                        Box(Modifier.padding(8.dp)) {
-                                            BadgedBox(
-                                                badge = {
-                                                    if (showUnreadBadge && unreadCount > 0) {
-                                                        Badge { }
-                                                    }
-                                                },
-                                            ) {
-                                                val avatarUrl = account.avatarUrl
-                                                if (avatarUrl != null) {
-                                                    AsyncImage(
-                                                        model = avatarUrl,
-                                                        contentDescription = "账号",
-                                                        contentScale = ContentScale.Crop,
-                                                        modifier = Modifier
-                                                            .size(32.dp)
-                                                            .border(
-                                                                0.5.dp,
-                                                                MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
-                                                                CircleShape,
-                                                            ).clip(CircleShape),
-                                                    )
-                                                } else {
-                                                    Icon(
-                                                        Icons.Default.AccountCircle,
-                                                        contentDescription = "账号",
-                                                        tint = MaterialTheme.colorScheme.onSurface,
-                                                        modifier = Modifier.size(32.dp),
-                                                    )
-                                                }
-                                            }
+                                AnnouncementCard(
+                                    visible = availableUpdate != null && dismissedUpdateVersion != availableUpdate.version,
+                                    title = "发现新版本：${availableUpdate?.version}${if (availableUpdate?.isNightly == true) " (Nightly)" else ""}",
+                                    leadingIcon = { Icon(Icons.Default.ArrowCircleUp, contentDescription = null) },
+                                    accept = { Text("查看更新") },
+                                    onAccept = {
+                                        navigator.onNavigate(Account.SystemAndUpdateSettings())
+                                    },
+                                    dismiss = { Text("以后") },
+                                    onDismiss = {
+                                        availableUpdate?.version?.let { versionStr ->
+                                            dismissedUpdateVersion = versionStr
                                         }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 0.dp) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier
-                                    .testTag(HOME_TOP_ACTIONS_TAG)
-                                    .fillMaxWidth()
-                                    .padding(start = 20.dp, end = 8.dp, top = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = "知乎",
-                                    style = ZhihuTypography.ContentTitle,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f),
+                                    },
+                                    colors = AnnouncementCardDefaults.colorsImportant(),
                                 )
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .testTag(HOME_NOTIFICATION_BUTTON_TAG)
-                                        .clickable(role = Role.Button) {
-                                            navigator.onNavigate(Notification)
-                                        },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    // 点击盒与内容盒分离，避免 IconButton 的裁剪边界截掉 BadgedBox 的 badge。
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .testTag(HOME_NOTIFICATION_BUTTON_CONTENT_TAG),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        BadgedBox(
-                                            badge = {
-                                                if (showUnreadBadge && unreadCount > 0) {
-                                                    Badge(modifier = Modifier.testTag(HOME_NOTIFICATION_BADGE_TAG)) {
-                                                        Text("$unreadCount")
+                            }
+                            onlineNotifications.forEach { notification ->
+                                val markRead = {
+                                    onlineNotificationRepository.markRead(notification)
+                                    onlineNotifications = onlineNotifications.filterNot { it.uuid == notification.uuid }
+                                }
+                                item(notification.uuid) {
+                                    Box(modifier = Modifier.animateItem()) {
+                                        AnnouncementCard(
+                                            modifier = Modifier.testTag(homeOnlineNotificationTag(notification.uuid)),
+                                            visible = true,
+                                            title = notification.title,
+                                            leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null) },
+                                            content = notification.content,
+                                            accept = notification.accept?.let { accept ->
+                                                { Text(accept.text) }
+                                            },
+                                            onAccept = {
+                                                val accept = notification.accept
+                                                markRead()
+                                                when (accept?.key) {
+                                                    HOME_NOTIFICATION_ACTION_OPEN_URL -> {
+                                                        accept.value
+                                                            ?.jsonPrimitive
+                                                            ?.contentOrNull
+                                                            ?.let(openExternalUrl::invoke)
                                                     }
+                                                    HOME_NOTIFICATION_ACTION_OPEN_WEBVIEW -> {
+                                                        accept.value
+                                                            ?.jsonPrimitive
+                                                            ?.contentOrNull
+                                                            ?.let(openWebViewUrl::invoke)
+                                                    }
+                                                    HOME_NOTIFICATION_ACTION_OPEN_UPDATE_SETTINGS -> {
+                                                        navigator.onNavigate(Account.SystemAndUpdateSettings())
+                                                    }
+                                                    HOME_NOTIFICATION_ACTION_OPEN_PIN -> {
+                                                        accept.value?.jsonPrimitive?.contentOrNull?.toLongOrNull()?.let {
+                                                            navigator.onNavigate(Pin(it))
+                                                        }
+                                                    }
+                                                    HOME_NOTIFICATION_ACTION_OPEN_ANSWER -> {
+                                                        accept.value?.jsonPrimitive?.contentOrNull?.toLongOrNull()?.let {
+                                                            navigator.onNavigate(Article(type = ArticleType.Answer, id = it))
+                                                        }
+                                                    }
+                                                    HOME_NOTIFICATION_ACTION_OPEN_ARTICLE -> {
+                                                        accept.value?.jsonPrimitive?.contentOrNull?.toLongOrNull()?.let {
+                                                            navigator.onNavigate(Article(type = ArticleType.Article, id = it))
+                                                        }
+                                                    }
+                                                    HOME_NOTIFICATION_ACTION_SET_SETTING -> {
+                                                        val setting = accept.value?.jsonObject
+                                                        val name = setting?.get("setting_name")?.jsonPrimitive?.contentOrNull
+                                                        when (setting?.get("value_type")?.jsonPrimitive?.contentOrNull) {
+                                                            "boolean" -> setting["value"]?.jsonPrimitive?.booleanOrNull?.let {
+                                                                settings.putBoolean(name!!, it)
+                                                            }
+                                                            "string" -> setting["value"]?.jsonPrimitive?.contentOrNull?.let {
+                                                                settings.putString(name!!, it)
+                                                            }
+                                                            "int" -> setting["value"]?.jsonPrimitive?.intOrNull?.let {
+                                                                settings.putInt(name!!, it)
+                                                            }
+                                                        }
+                                                    }
+                                                    else -> userMessages.showShortMessage("当前版本不支持此通知操作")
                                                 }
                                             },
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Notifications,
-                                                contentDescription = "通知",
-                                                tint = MaterialTheme.colorScheme.onSurface,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
-                                    .height(56.dp)
-                                    .testTag(HOME_SEARCH_BUTTON_TAG),
-                                shape = ZhihuShapeTokens.Pill,
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                onClick = {
-                                    navigator.onNavigate(
-                                        Search(query = ""),
-                                    )
-                                },
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 20.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        Icons.Default.Search,
-                                        contentDescription = "搜索",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "搜索知乎",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-        ) { scaffoldPadding ->
-            if (duo3HomeAccount && showAccountBottomSheet) {
-                MyModalBottomSheet(
-                    onDismissRequest = { showAccountBottomSheet = false },
-                    containerColor = zhihuSurfaces.page,
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                ) {
-                    AccountSettingScreen(
-                        innerPadding = PaddingValues(0.dp),
-                        unreadCount = unreadCount,
-                        showUnreadBadge = showUnreadBadge,
-                        onDismissRequest = { showAccountBottomSheet = false },
-                    )
-                }
-            }
-
-            FeedPullToRefresh(viewModel, PaddingValues(top = scaffoldPadding.calculateTopPadding())) {
-                PaginatedList(
-                    items = viewModel.displayItems,
-                    listState = listState,
-                    modifier = Modifier
-                        .pageTurnViewportWithGuide(pageTurnTarget)
-                        .testTag(HOME_FEED_LIST_TAG),
-                    contentPadding = PaddingValues(
-                        top = scaffoldPadding.calculateTopPadding() + 8.dp,
-                        bottom = innerPadding.calculateBottomPadding() + readingPlayerOverlayPadding,
-                    ),
-                    onLoadMore = { viewModel.loadMore(paginationEnvironment) },
-                    isEnd = { viewModel.isEnd },
-                    footer = ProgressIndicatorFooter,
-                    key = { item -> item.stableKey },
-                    topContent = {
-                        item {
-                            val availableUpdate = updateAnnouncement
-
-                            AnnouncementCard(
-                                visible = availableUpdate != null && dismissedUpdateVersion != availableUpdate.version,
-                                title = "发现新版本：${availableUpdate?.version}${if (availableUpdate?.isNightly == true) " (Nightly)" else ""}",
-                                leadingIcon = { Icon(Icons.Default.ArrowCircleUp, contentDescription = null) },
-                                accept = { Text("查看更新") },
-                                onAccept = {
-                                    navigator.onNavigate(Account.SystemAndUpdateSettings())
-                                },
-                                dismiss = { Text("以后") },
-                                onDismiss = {
-                                    availableUpdate?.version?.let { versionStr ->
-                                        dismissedUpdateVersion = versionStr
-                                    }
-                                },
-                                colors = AnnouncementCardDefaults.colorsImportant(),
-                            )
-                        }
-                        onlineNotifications.forEach { notification ->
-                            val markRead = {
-                                onlineNotificationRepository.markRead(notification)
-                                onlineNotifications = onlineNotifications.filterNot { it.uuid == notification.uuid }
-                            }
-                            item(notification.uuid) {
-                                Box(modifier = Modifier.animateItem()) {
-                                    AnnouncementCard(
-                                        modifier = Modifier.testTag(homeOnlineNotificationTag(notification.uuid)),
-                                        visible = true,
-                                        title = notification.title,
-                                        leadingIcon = { Icon(Icons.Default.Notifications, contentDescription = null) },
-                                        content = notification.content,
-                                        accept = notification.accept?.let { accept ->
-                                            { Text(accept.text) }
-                                        },
-                                        onAccept = {
-                                            val accept = notification.accept
-                                            markRead()
-                                            when (accept?.key) {
-                                                HOME_NOTIFICATION_ACTION_OPEN_URL -> {
-                                                    accept.value
-                                                        ?.jsonPrimitive
-                                                        ?.contentOrNull
-                                                        ?.let(openExternalUrl::invoke)
-                                                }
-                                                HOME_NOTIFICATION_ACTION_OPEN_WEBVIEW -> {
-                                                    accept.value
-                                                        ?.jsonPrimitive
-                                                        ?.contentOrNull
-                                                        ?.let(openWebViewUrl::invoke)
-                                                }
-                                                HOME_NOTIFICATION_ACTION_OPEN_UPDATE_SETTINGS -> {
-                                                    navigator.onNavigate(Account.SystemAndUpdateSettings())
-                                                }
-                                                HOME_NOTIFICATION_ACTION_OPEN_PIN -> {
-                                                    accept.value?.jsonPrimitive?.contentOrNull?.toLongOrNull()?.let {
-                                                        navigator.onNavigate(Pin(it))
-                                                    }
-                                                }
-                                                HOME_NOTIFICATION_ACTION_OPEN_ANSWER -> {
-                                                    accept.value?.jsonPrimitive?.contentOrNull?.toLongOrNull()?.let {
-                                                        navigator.onNavigate(Article(type = ArticleType.Answer, id = it))
-                                                    }
-                                                }
-                                                HOME_NOTIFICATION_ACTION_OPEN_ARTICLE -> {
-                                                    accept.value?.jsonPrimitive?.contentOrNull?.toLongOrNull()?.let {
-                                                        navigator.onNavigate(Article(type = ArticleType.Article, id = it))
-                                                    }
-                                                }
-                                                HOME_NOTIFICATION_ACTION_SET_SETTING -> {
-                                                    val setting = accept.value?.jsonObject
-                                                    val name = setting?.get("setting_name")?.jsonPrimitive?.contentOrNull
-                                                    when (setting?.get("value_type")?.jsonPrimitive?.contentOrNull) {
-                                                        "boolean" -> setting["value"]?.jsonPrimitive?.booleanOrNull?.let {
-                                                            settings.putBoolean(name!!, it)
-                                                        }
-                                                        "string" -> setting["value"]?.jsonPrimitive?.contentOrNull?.let {
-                                                            settings.putString(name!!, it)
-                                                        }
-                                                        "int" -> setting["value"]?.jsonPrimitive?.intOrNull?.let {
-                                                            settings.putInt(name!!, it)
-                                                        }
-                                                    }
-                                                }
-                                                else -> userMessages.showShortMessage("当前版本不支持此通知操作")
-                                            }
-                                        },
-                                        dismiss = { Text(notification.dismiss) },
-                                        onDismiss = markRead,
-                                    )
-                                }
-                            }
-                        }
-                        authorPinAnnouncements.forEach { announcement ->
-                            item(announcement.pinId) {
-                                AnnouncementCard(
-                                    modifier = Modifier.testTag(homeAuthorPollAnnouncementTag(announcement.pinId)),
-                                    visible = true,
-                                    title = if (announcement.kind == HomePinAnnouncementKind.Poll) {
-                                        "请给未来的知乎++提出建议"
-                                    } else {
-                                        "知乎++新动态"
-                                    },
-                                    leadingIcon = { Icon(Icons.Default.Flag, contentDescription = null) },
-                                    content = buildString {
-                                        append(announcement.title)
-                                        val details = buildList {
-                                            if (announcement.optionCount > 0) {
-                                                add("${announcement.optionCount} 个选项")
-                                            }
-                                            if (announcement.memberCount > 0) {
-                                                add("${announcement.memberCount} 人已参与")
-                                            }
-                                        }
-                                        if (details.isNotEmpty()) {
-                                            append("\n")
-                                            append(details.joinToString(" · "))
-                                        }
-                                    },
-                                    accept = {
-                                        Text(if (announcement.kind == HomePinAnnouncementKind.Poll) "去投票" else "查看")
-                                    },
-                                    onAccept = {
-                                        settings.putBoolean(homePinAnnouncementReadKey(announcement.pinId), true)
-                                        authorPinAnnouncements = authorPinAnnouncements.filterNot {
-                                            it.pinId == announcement.pinId
-                                        }
-                                        navigator.onNavigate(Pin(announcement.pinId))
-                                    },
-                                    dismiss = { Text("关闭") },
-                                    onDismiss = {
-                                        settings.putBoolean(homePinAnnouncementReadKey(announcement.pinId), true)
-                                        authorPinAnnouncements = authorPinAnnouncements.filterNot {
-                                            it.pinId == announcement.pinId
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                    },
-                ) { item ->
-                    FeedCard(
-                        item,
-                        readingQueueSourceId = readingQueueSourceId,
-                        thumbnailUrl = when (val target = item.feed?.target) {
-                            is Feed.AnswerTarget -> target.thumbnail
-                            else -> null
-                        },
-                        menuItems = { dismissMenu ->
-                            if (feedKeywordExtractionAvailable) {
-                                DropdownMenuItem(
-                                    text = { Text("按关键词屏蔽") },
-                                    onClick = {
-                                        dismissMenu()
-                                        viewModel.handleBlockByKeywords(paginationEnvironment, userMessages, item) { (_, contentInfo) ->
-                                            feedToBlockByKeywords = contentInfo.first to contentInfo.second
-                                            showBlockByKeywordsDialog = true
-                                        }
-                                    },
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text("屏蔽用户") },
-                                onClick = {
-                                    dismissMenu()
-                                    viewModel.handleBlockUser(paginationEnvironment, userMessages, item) { authorInfo ->
-                                        feedAuthorBlockRequest = FeedAuthorBlockRequest(
-                                            type = FeedAuthorBlockType.CONTENT_AUTHOR,
-                                            userId = authorInfo.first,
-                                            userName = authorInfo.second,
+                                            dismiss = { Text(notification.dismiss) },
+                                            onDismiss = markRead,
                                         )
                                     }
-                                },
-                            )
-                            val canBlockQuestionAuthor = when (item.feed?.target) {
-                                is Feed.AnswerTarget, is Feed.QuestionTarget -> true
-                                else -> item.raw is DataHolder.Answer || item.raw is DataHolder.Question
+                                }
                             }
-                            if (canBlockQuestionAuthor) {
+                            authorPinAnnouncements.forEach { announcement ->
+                                item(announcement.pinId) {
+                                    AnnouncementCard(
+                                        modifier = Modifier.testTag(homeAuthorPollAnnouncementTag(announcement.pinId)),
+                                        visible = true,
+                                        title = if (announcement.kind == HomePinAnnouncementKind.Poll) {
+                                            "请给未来的知乎++提出建议"
+                                        } else {
+                                            "知乎++新动态"
+                                        },
+                                        leadingIcon = { Icon(Icons.Default.Flag, contentDescription = null) },
+                                        content = buildString {
+                                            append(announcement.title)
+                                            val details = buildList {
+                                                if (announcement.optionCount > 0) {
+                                                    add("${announcement.optionCount} 个选项")
+                                                }
+                                                if (announcement.memberCount > 0) {
+                                                    add("${announcement.memberCount} 人已参与")
+                                                }
+                                            }
+                                            if (details.isNotEmpty()) {
+                                                append("\n")
+                                                append(details.joinToString(" · "))
+                                            }
+                                        },
+                                        accept = {
+                                            Text(if (announcement.kind == HomePinAnnouncementKind.Poll) "去投票" else "查看")
+                                        },
+                                        onAccept = {
+                                            settings.putBoolean(homePinAnnouncementReadKey(announcement.pinId), true)
+                                            authorPinAnnouncements = authorPinAnnouncements.filterNot {
+                                                it.pinId == announcement.pinId
+                                            }
+                                            navigator.onNavigate(Pin(announcement.pinId))
+                                        },
+                                        dismiss = { Text("关闭") },
+                                        onDismiss = {
+                                            settings.putBoolean(homePinAnnouncementReadKey(announcement.pinId), true)
+                                            authorPinAnnouncements = authorPinAnnouncements.filterNot {
+                                                it.pinId == announcement.pinId
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        },
+                    ) { item ->
+                        ContentFeedCard(
+                            item = item,
+                            showImages = showFeedThumbnail,
+                            onClick = { openItem(item) },
+                            onDismiss = {
+                                // 不感兴趣：卡片原位移除，并把负反馈交给当前推荐链路。
+                                dismissedFeedKeys = dismissedFeedKeys + item.stableKey
+                                viewModel.displayItems.removeAll { it.stableKey == item.stableKey }
+                                localHomeViewModel?.onLocalItemDismissed(item)
+                            },
+                            menuItems = { dismissMenu ->
+                                if (feedKeywordExtractionAvailable) {
+                                    DropdownMenuItem(
+                                        text = { Text("按关键词屏蔽") },
+                                        onClick = {
+                                            dismissMenu()
+                                            viewModel.handleBlockByKeywords(paginationEnvironment, userMessages, item) { (_, contentInfo) ->
+                                                feedToBlockByKeywords = contentInfo.first to contentInfo.second
+                                                showBlockByKeywordsDialog = true
+                                            }
+                                        },
+                                    )
+                                }
                                 DropdownMenuItem(
-                                    text = { Text("屏蔽提问者") },
+                                    text = { Text("屏蔽用户") },
                                     onClick = {
                                         dismissMenu()
-                                        viewModel.handleBlockQuestionAuthor(paginationEnvironment, userMessages, item) { authorInfo ->
+                                        viewModel.handleBlockUser(paginationEnvironment, userMessages, item) { authorInfo ->
                                             feedAuthorBlockRequest = FeedAuthorBlockRequest(
-                                                type = FeedAuthorBlockType.QUESTION_AUTHOR,
+                                                type = FeedAuthorBlockType.CONTENT_AUTHOR,
                                                 userId = authorInfo.first,
                                                 userName = authorInfo.second,
                                             )
                                         }
                                     },
                                 )
-                            }
-                            val topics = when (val raw = item.raw) {
-                                is DataHolder.Answer -> raw.question.topics
-                                is DataHolder.Question -> raw.topics
-                                is DataHolder.Article -> raw.topics ?: emptyList()
-                                is DataHolder.Pin -> raw.topics ?: emptyList()
-                                else -> emptyList()
-                            }
-                            topics.forEach { topic ->
-                                DropdownMenuItem(
-                                    text = { Text("屏蔽「${topic.name}」") },
-                                    onClick = {
-                                        dismissMenu()
-                                        viewModel.handleBlockTopic(userMessages, topic.id, topic.name)
-                                    },
-                                )
-                            }
-                        },
-                    ) { clickedItem, destination ->
-                        val feed = clickedItem.feed
-                        if (feed != null) {
-//                            DataHolder.putFeed(feed)
-                            (viewModel as? HomeFeedInteractionViewModel)
-                                ?.onUiContentClick(paginationEnvironment, feed, clickedItem)
-                        } else {
-                            localHomeViewModel?.onLocalItemOpened(clickedItem)
-                        }
-                        if (destination != null) {
-                            navigator.onNavigate(destination)
-                        }
-                    }
-                }
-
-                if (showRefreshFab) {
-                    if (isDebuggable) {
-                        DraggableRefreshButton(
-                            onClick = {
-                                val data = Json.encodeToString(viewModel.debugData)
-                                paginationEnvironment.setPlainTextClipboard("data", data)
-                                userMessages.showShortMessage("已复制调试数据")
-                            },
-                            preferenceName = "copyAll",
-                            bottomAvoidance = readingPlayerOverlayPadding,
-                        ) {
-                            Icon(Icons.Default.CopyAll, contentDescription = "复制")
-                        }
-                    }
-                    DraggableRefreshButton(
-                        modifier = Modifier.testTag(HOME_REFRESH_BUTTON_TAG),
-                        bottomAvoidance = readingPlayerOverlayPadding,
-                        onClick = { viewModel.refresh(paginationEnvironment) },
-                    ) {
-                        // 刷新图标 ↔ 转圈：容器尺寸固定 30dp，两者在同一格内交叉淡入淡出，
-                        // 避免「转圈比图标大 10dp」导致的 FAB 内容跳动。
-                        Box(
-                            modifier = Modifier.size(30.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            AnimatedContent(
-                                targetState = viewModel.isLoading,
-                                transitionSpec = {
-                                    fadeIn(Motion.fadeTween()) togetherWith fadeOut(Motion.fadeTween())
-                                },
-                                label = "refresh_fab_content",
-                            ) { loading ->
-                                if (loading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.fillMaxSize(),
-                                        strokeWidth = 3.dp,
+                                val canBlockQuestionAuthor = when (item.feed?.target) {
+                                    is Feed.AnswerTarget, is Feed.QuestionTarget -> true
+                                    else -> item.raw is DataHolder.Answer || item.raw is DataHolder.Question
+                                }
+                                if (canBlockQuestionAuthor) {
+                                    DropdownMenuItem(
+                                        text = { Text("屏蔽提问者") },
+                                        onClick = {
+                                            dismissMenu()
+                                            viewModel.handleBlockQuestionAuthor(paginationEnvironment, userMessages, item) { authorInfo ->
+                                                feedAuthorBlockRequest = FeedAuthorBlockRequest(
+                                                    type = FeedAuthorBlockType.QUESTION_AUTHOR,
+                                                    userId = authorInfo.first,
+                                                    userName = authorInfo.second,
+                                                )
+                                            }
+                                        },
                                     )
-                                } else {
-                                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                                }
+                                val topics = when (val raw = item.raw) {
+                                    is DataHolder.Answer -> raw.question.topics
+                                    is DataHolder.Question -> raw.topics
+                                    is DataHolder.Article -> raw.topics ?: emptyList()
+                                    is DataHolder.Pin -> raw.topics ?: emptyList()
+                                    else -> emptyList()
+                                }
+                                topics.forEach { topic ->
+                                    DropdownMenuItem(
+                                        text = { Text("屏蔽「${topic.name}」") },
+                                        onClick = {
+                                            dismissMenu()
+                                            viewModel.handleBlockTopic(userMessages, topic.id, topic.name)
+                                        },
+                                    )
+                                }
+                            },
+                        )
+                    }
+
+                    if (showRefreshFab) {
+                        if (isDebuggable) {
+                            DraggableRefreshButton(
+                                onClick = {
+                                    val data = Json.encodeToString(viewModel.debugData)
+                                    paginationEnvironment.setPlainTextClipboard("data", data)
+                                    userMessages.showShortMessage("已复制调试数据")
+                                },
+                                preferenceName = "copyAll",
+                                bottomAvoidance = readingPlayerOverlayPadding,
+                            ) {
+                                Icon(Icons.Default.CopyAll, contentDescription = "复制")
+                            }
+                        }
+                        DraggableRefreshButton(
+                            modifier = Modifier.testTag(HOME_REFRESH_BUTTON_TAG),
+                            bottomAvoidance = readingPlayerOverlayPadding,
+                            onClick = { viewModel.refresh(paginationEnvironment) },
+                        ) {
+                            // 刷新图标 ↔ 转圈：容器尺寸固定 30dp，两者在同一格内交叉淡入淡出，
+                            // 避免「转圈比图标大 10dp」导致的 FAB 内容跳动。
+                            Box(
+                                modifier = Modifier.size(30.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                AnimatedContent(
+                                    targetState = viewModel.isLoading,
+                                    transitionSpec = {
+                                        fadeIn(Motion.fadeTween()) togetherWith fadeOut(Motion.fadeTween())
+                                    },
+                                    label = "refresh_fab_content",
+                                ) { loading ->
+                                    if (loading) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.fillMaxSize(),
+                                            strokeWidth = 3.dp,
+                                        )
+                                    } else {
+                                        Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-
-        AnimatedVisibility(
-            visible = showCreateMenu,
-            enter = fadeIn(animationSpec = tween(Motion.DURATION_SHORT)),
-            exit = fadeOut(animationSpec = tween(Motion.DURATION_SHORT)),
-        ) {
-            Box(
+            HomeCategoryTab.Following -> HomeFollowingFeed(
+                innerPadding = innerPadding,
+                contentTopPadding = contentTopPadding,
+                isActive = isActive && selectedCategory == HomeCategoryTab.Following,
+                onOpenItem = openItem,
+            )
+            HomeCategoryTab.Daily -> Box(
+                // Scaffold 的 content 自己承担内边距：日报是完整页面而不是分页列表，
+                // 直接让出搜索区与底栏高度，避免列表钻到分类 Tab 底下。
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = createMenuScrimAlpha))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) {
-                        showCreateMenu = false
-                    },
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + readingPlayerOverlayPadding + 16.dp,
-                ),
-            horizontalAlignment = Alignment.End,
-        ) {
-            AnimatedVisibility(
-                visible = showCreateMenu,
-                enter = fadeIn(animationSpec = tween(Motion.DURATION_SHORT)) +
-                    scaleIn(
-                        initialScale = 0.92f,
-                        transformOrigin = TransformOrigin(1f, 1f),
-                        animationSpec = tween(Motion.DURATION_SHORT),
-                    ) +
-                    slideInVertically(animationSpec = tween(Motion.DURATION_SHORT)) { it / 8 },
-                exit = fadeOut(animationSpec = tween(Motion.DURATION_SHORT)) +
-                    scaleOut(
-                        targetScale = 0.96f,
-                        transformOrigin = TransformOrigin(1f, 1f),
-                        animationSpec = tween(Motion.DURATION_SHORT),
-                    ) +
-                    slideOutVertically(animationSpec = tween(Motion.DURATION_SHORT)) { it / 8 },
+                    .padding(
+                        top = contentTopPadding,
+                        bottom = innerPadding.calculateBottomPadding(),
+                    ),
             ) {
-                Column(horizontalAlignment = Alignment.End) {
-                    Surface(
-                        modifier = Modifier
-                            .width(180.dp)
-                            .testTag(HOME_CREATE_MENU_TAG),
-                        shape = ZhihuShapeTokens.Card,
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        tonalElevation = 6.dp,
-                        shadowElevation = 6.dp,
-                    ) {
-                        Column {
-                            DropdownMenuItem(
-                                modifier = Modifier.testTag(HOME_WRITE_QUESTION_BUTTON_TAG),
-                                text = { Text("提问题") },
-                                leadingIcon = {
-                                    Icon(Icons.AutoMirrored.Default.HelpOutline, contentDescription = null)
-                                },
-                                onClick = {
-                                    showCreateMenu = false
-                                    userMessages.showShortMessage("正在施工")
-                                },
-                            )
-                            DropdownMenuItem(
-                                modifier = Modifier.testTag(HOME_WRITE_ANSWER_BUTTON_TAG),
-                                text = { Text("写回答") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Edit, contentDescription = null)
-                                },
-                                onClick = {
-                                    showCreateMenu = false
-                                    userMessages.showShortMessage("正在施工")
-                                },
-                            )
-                            DropdownMenuItem(
-                                modifier = Modifier.testTag(HOME_WRITE_PIN_BUTTON_TAG),
-                                text = { Text("发想法") },
-                                leadingIcon = {
-                                    Icon(Icons.Default.MarkUnreadChatAlt, contentDescription = null)
-                                },
-                                onClick = {
-                                    showCreateMenu = false
-                                    navigator.onNavigate(WritePin())
-                                },
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-            }
-            val createFabOpacity = remember(settings) {
-                settings.getInt(PREF_FAB_OPACITY, DEFAULT_FAB_OPACITY).coerceIn(10, 100) / 100f
-            }
-            // 菜单展开时「+」转成「×」：45° 是视觉上最省的一次旋转（正好把加号的两笔转成叉），
-            // 用 springSnappy 而不是 tween，收尾带一点点弹性，手感更接近按钮被「拧开」。
-            val createFabInteraction = remember { MutableInteractionSource() }
-            val addIconRotation by animateFloatAsState(
-                targetValue = if (showCreateMenu) 45f else 0f,
-                animationSpec = Motion.springSnappy(),
-                label = "create_fab_icon_rotation",
-            )
-            FloatingActionButton(
-                modifier = Modifier
-                    .testTag(HOME_CREATE_FAB_TAG)
-                    .pressScale(createFabInteraction),
-                onClick = { showCreateMenu = !showCreateMenu },
-                interactionSource = createFabInteraction,
-                shape = CircleShape,
-                containerColor = FloatingActionButtonDefaults.containerColor.copy(alpha = createFabOpacity),
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = createFabOpacity),
-                elevation = if (createFabOpacity < 1f) {
-                    FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
-                } else {
-                    FloatingActionButtonDefaults.elevation()
-                },
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "创作",
-                    modifier = Modifier.graphicsLayer { rotationZ = addIconRotation },
+                DailyScreen(
+                    scrollToTopTrigger = scrollToTopTrigger,
+                    isActive = isActive && selectedCategory == HomeCategoryTab.Daily,
+                    embedded = true,
                 )
             }
         }
@@ -1155,5 +949,261 @@ fun HomeScreen(
                 feedToBlockByKeywords = null
             },
         )
+    }
+}
+
+/** 搜索区（§1.3.1）：消息方框 + 胶囊搜索框 + 搜索按钮，整行高度 52dp。 */
+@Composable
+private fun HomeSearchArea(
+    hotSearchWord: String,
+    unreadCount: Int,
+    onOpenNotifications: () -> Unit,
+    onOpenSearch: () -> Unit,
+) {
+    val colors = contentFirstColors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.page)
+            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
+    ) {
+        Row(
+            modifier = Modifier
+                .testTag(HOME_TOP_ACTIONS_TAG)
+                .fillMaxWidth()
+                .height(SearchAreaHeight)
+                .padding(start = 16.dp, end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            HomeMessageEntryButton(
+                unreadCount = unreadCount,
+                onClick = onOpenNotifications,
+            )
+            Spacer(Modifier.width(4.dp))
+            HomeSearchField(
+                hotSearchWord = hotSearchWord,
+                onClick = onOpenSearch,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
+            HomeSearchActionButton(onClick = onOpenSearch)
+        }
+    }
+}
+
+/** 消息方框：24×26 圆角方框 + 信封线性图标，右上角红色数字角标。 */
+@Composable
+private fun HomeMessageEntryButton(
+    unreadCount: Int,
+    onClick: () -> Unit,
+) {
+    val colors = contentFirstColors
+    // 点击盒比视觉方框大一圈（40×48），保证拇指可点；方框本身贴 16dp 内容边距。
+    Box(
+        modifier = Modifier
+            .size(width = 40.dp, height = 48.dp)
+            .testTag(HOME_NOTIFICATION_BUTTON_TAG)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = if (unreadCount > 0) "消息，$unreadCount 条未读" else "消息" },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 40.dp, height = 34.dp)
+                .testTag(HOME_NOTIFICATION_BUTTON_CONTENT_TAG),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            // 外框不裁剪，角标才能压在方框右上角而不被切掉；描边画在等尺寸的内层。
+            Box(modifier = Modifier.size(width = MessageEntryVisualWidth, height = MessageEntryVisualHeight)) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(MessageEntryShape)
+                        .border(1.dp, colors.secondaryText, MessageEntryShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.MailOutline,
+                        contentDescription = null,
+                        tint = colors.primaryText,
+                        modifier = Modifier.size(13.dp),
+                    )
+                }
+                if (unreadCount > 0) {
+                    Badge(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 8.dp, y = (-6).dp)
+                            .testTag(HOME_NOTIFICATION_BADGE_TAG),
+                        containerColor = colors.badge,
+                        contentColor = Color.White,
+                    ) {
+                        Text(
+                            text = if (unreadCount > 99) "99+" else "$unreadCount",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 搜索框：胶囊形，内置热搜词占位（灰）与右侧麦克风。 */
+@Composable
+private fun HomeSearchField(
+    hotSearchWord: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = contentFirstColors
+    val placeholder = hotSearchWord.ifBlank { "搜索知乎内容" }
+    Row(
+        modifier = modifier
+            .height(36.dp)
+            .clip(CircleShape)
+            .background(colors.functionalSurface)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(HOME_SEARCH_BUTTON_TAG)
+            .padding(start = 14.dp, end = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = placeholder,
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.secondaryText,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .testTag(HOME_SEARCH_PLACEHOLDER_TAG),
+        )
+        Icon(
+            imageVector = Icons.Outlined.Mic,
+            contentDescription = "语音搜索",
+            tint = colors.secondaryText,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+/** 搜索按钮：小圆角、主题蓝底白字。 */
+@Composable
+private fun HomeSearchActionButton(onClick: () -> Unit) {
+    val colors = contentFirstColors
+    Box(
+        modifier = Modifier
+            .height(32.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(colors.accent)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(HOME_SEARCH_ACTION_TAG)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "搜索",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+            color = Color.White,
+        )
+    }
+}
+
+/** 分类 Tab（§1.3.2）：三个、水平居中、等间距；选中加粗并带 2dp 主题蓝短下划线。 */
+@Composable
+private fun HomeCategoryTabRow(
+    selected: HomeCategoryTab,
+    onSelect: (HomeCategoryTab) -> Unit,
+) {
+    val colors = contentFirstColors
+    Column(modifier = Modifier.fillMaxWidth().background(colors.page)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp),
+            horizontalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            HomeCategoryTabs.forEach { tab ->
+                val isSelected = tab == selected
+                Column(
+                    modifier = Modifier
+                        .clickable(role = Role.Tab) { onSelect(tab) }
+                        .testTag(homeCategoryTabTag(tab.label))
+                        .semantics { this.selected = isSelected }
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = tab.label,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                        ),
+                        color = if (isSelected) colors.primaryText else colors.secondaryText,
+                    )
+                    Spacer(Modifier.height(3.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(width = 16.dp, height = 2.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) colors.accent else Color.Transparent),
+                    )
+                }
+            }
+        }
+        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+    }
+}
+
+/**
+ * 关注分类的内容：用与推荐流相同的内容卡片呈现在关注的人的动态。
+ *
+ * 关注流只有一条时间线（不再有「推荐 / 动态」二级 Tab），因此这里直接复用 [FollowViewModel] 的分页能力。
+ */
+@Composable
+private fun HomeFollowingFeed(
+    innerPadding: PaddingValues,
+    contentTopPadding: Dp,
+    isActive: Boolean,
+    onOpenItem: (FeedDisplayItem) -> Unit,
+) {
+    val readingPlayerOverlayPadding = LocalReadingPlayerOverlayPadding.current
+    val navigator = LocalNavigator.current
+    val settings = rememberSettingsStore()
+    val showFeedThumbnail by rememberObservedSetting(settings, "showFeedThumbnail") {
+        getBoolean("showFeedThumbnail", true)
+    }
+    val environment = rememberPaginationEnvironment(allowGuestAccess = true)
+    val viewModel: FollowViewModel = viewModel { FollowViewModel() }
+    val listState = rememberLazyListState()
+    RegisterReadingQueueSource(sourceId = "home:following", items = viewModel.displayItems)
+    LaunchedEffect(isActive) {
+        if (isActive && viewModel.displayItems.isEmpty() && !viewModel.isLoading) {
+            viewModel.refresh(environment)
+        }
+    }
+    FeedPullToRefresh(viewModel, environment, PaddingValues(top = contentTopPadding)) {
+        PaginatedList(
+            items = viewModel.displayItems,
+            listState = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                top = contentTopPadding,
+                bottom = innerPadding.calculateBottomPadding() + readingPlayerOverlayPadding,
+            ),
+            onLoadMore = { viewModel.loadMore(environment) },
+            isEnd = { viewModel.isEnd },
+            // 关注流没有登录态时接口会失败，给重试入口比一直转骨架屏更明确。
+            errorMessage = viewModel.errorMessage,
+            onRetry = { viewModel.refresh(environment) },
+            footer = ProgressIndicatorFooter,
+            key = { item -> item.stableKey },
+        ) { item ->
+            ContentFeedCard(
+                item = item,
+                showImages = showFeedThumbnail,
+                onClick = { onOpenItem(item) },
+            )
+        }
     }
 }

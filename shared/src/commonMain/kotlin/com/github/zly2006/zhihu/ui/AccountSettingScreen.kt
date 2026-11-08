@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.History
@@ -89,6 +90,7 @@ import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.navigation.Notification
 import com.github.zly2006.zhihu.navigation.OnlineHistory
 import com.github.zly2006.zhihu.navigation.Person
+import com.github.zly2006.zhihu.navigation.WritePin
 import com.github.zly2006.zhihu.navigation.requestLoginNavigation
 import com.github.zly2006.zhihu.platform.platformBottomBarItemLimit
 import com.github.zly2006.zhihu.platform.rememberPlainTextClipboard
@@ -122,6 +124,7 @@ const val ACCOUNT_SETTINGS_LOGIN_ITEM_TAG = "accountSettings.loginItem"
 const val ACCOUNT_SETTINGS_PROFILE_HEADER_TAG = "accountSettings.profileHeader"
 const val ACCOUNT_SETTINGS_PROFILE_NAME_TAG = "accountSettings.profileName"
 const val ACCOUNT_SETTINGS_SCAN_TAG = "accountSettings.scan"
+const val ACCOUNT_SETTINGS_WRITE_PIN_TAG = "accountSettings.writePin"
 const val ACCOUNT_SETTINGS_SHORTCUT_COLLECTIONS_TAG = "accountSettings.shortcutCollections"
 const val ACCOUNT_SETTINGS_SHORTCUT_SUBSCRIPTIONS_TAG = "accountSettings.shortcutSubscriptions"
 const val ACCOUNT_SETTINGS_SHORTCUT_NOTIFICATION_TAG = "accountSettings.shortcutNotification"
@@ -172,9 +175,8 @@ fun AccountSettingScreen(
         normalizeBottomBarSelection(
             settings.getStringSet(
                 BOTTOM_BAR_ITEMS_PREFERENCE_KEY,
-                defaultBottomBarSelectionKeys(useDuo3HomeAccount, platformBottomBarItemLimit),
+                defaultBottomBarSelectionKeys(platformBottomBarItemLimit),
             ),
-            useDuo3HomeAccount,
             enforceMinimumSelection = true,
             maximumSelection = platformBottomBarItemLimit,
         )
@@ -311,6 +313,20 @@ fun AccountSettingScreen(
                         onClick = {
                             requestLogin()
                         },
+                    )
+                }
+            }
+
+            // 首页已按产品设计稿移除悬浮「＋」发布按钮，创作入口迁到「我的」。
+            if (data.login) {
+                Spacer(Modifier.height(16.dp))
+                SettingItemGroup {
+                    SettingItem(
+                        title = { Text("发想法") },
+                        description = { Text("写一条想法并发布到知乎") },
+                        icon = { Icon(Icons.Default.Edit, null) },
+                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_WRITE_PIN_TAG),
+                        onClick = { navigator.onNavigate(WritePin()) },
                     )
                 }
             }

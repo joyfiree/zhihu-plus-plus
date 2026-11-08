@@ -53,6 +53,13 @@ object ZhihuSizes {
     val TopAppBarHeight = 64.dp
     val MediumTopAppBarHeight = 112.dp
     val LargeTopAppBarHeight = 152.dp
+
+    /**
+     * 底部导航栏高度（不含系统手势区）。
+     *
+     * 产品设计稿给的是「约 50pt + 安全区」；Android 上图标 + 文字标签的一行导航项低于 64dp
+     * 会压到标签基线，因此仍取 64dp，视觉密度与设计稿一致而不用牺牲可读性。
+     */
     val NavigationBarHeight = 64.dp
     val Icon = 24.dp
     val IconSmall = 20.dp

@@ -22,9 +22,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import com.github.zly2006.zhihu.ui.designsystem.LocalContentFirstColors
 import com.github.zly2006.zhihu.ui.designsystem.LocalExtendedColors
 import com.github.zly2006.zhihu.ui.designsystem.LocalZhihuSurfaceColors
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapes
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColorsFor
 import com.github.zly2006.zhihu.ui.designsystem.extendedColorsFor
 import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaceColorsFor
 import com.materialkolor.dynamicColorScheme
@@ -89,6 +91,7 @@ fun ZhihuTheme(content: @Composable () -> Unit) {
     CompositionLocalProvider(
         LocalExtendedColors provides extended,
         LocalZhihuSurfaceColors provides surfaces,
+        LocalContentFirstColors provides contentFirstColorsFor(darkTheme),
     ) {
         MaterialTheme(
             colorScheme = pageScheme,

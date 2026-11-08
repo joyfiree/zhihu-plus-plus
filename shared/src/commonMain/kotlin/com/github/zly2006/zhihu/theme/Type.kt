@@ -93,4 +93,21 @@ object ZhihuTypography {
      */
     val FeedAuthorName = style(13, 18, FontWeight.Medium)
     val FeedMeta = style(12, 16, FontWeight.Medium)
+
+    /**
+     * 内容优先信息流（首页推荐卡片）的问题标题。
+     *
+     * 产品稿要求 16–17sp 加粗、最多两行；`titleMedium` 是 Medium 字重，视觉上压不住摘要，
+     * 所以单独给一档 Bold，避免为了首页把全局 `titleMedium` 加重。
+     */
+    val FeedTitle = style(17, 24, FontWeight.Bold)
+
+    /** 内容优先信息流的摘要：12sp、次要色，2–3 行后以省略号折叠。 */
+    val FeedSummary = style(12, 19)
+
+    /** 回答瀑布流的作者名。 */
+    val ContentAuthor = style(14, 20, FontWeight.Medium)
+
+    /** 回答瀑布流的作者签名。 */
+    val ContentSignature = style(12, 17)
 }

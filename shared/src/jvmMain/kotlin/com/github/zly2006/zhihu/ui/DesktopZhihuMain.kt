@@ -264,9 +264,8 @@ private fun rememberDesktopZhihuMainPreferenceState(): ZhihuMainPreferenceState 
         val selectedKeys = normalizeBottomBarSelection(
             settings.getStringSet(
                 BOTTOM_BAR_ITEMS_PREFERENCE_KEY,
-                defaultBottomBarSelectionKeys(duo3HomeAccount, platformBottomBarItemLimit),
+                defaultBottomBarSelectionKeys(platformBottomBarItemLimit),
             ),
-            duo3HomeAccount,
             enforceMinimumSelection = true,
             maximumSelection = platformBottomBarItemLimit,
         )

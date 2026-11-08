@@ -90,6 +90,27 @@ class LocalHomeFeedViewModel :
         }
     }
 
+    /**
+     * 记录「不感兴趣」。
+     *
+     * 首页卡片的 ✕ 需要把负反馈交给推荐模型；Web/Android 推荐流由服务端负责，这里只处理本地推荐：
+     * 对同一条内容写入 dislike，后续排序会按负权重下调同类内容。
+     */
+    fun onLocalItemDismissed(item: FeedDisplayItem) {
+        val result = recommendationResults[item.stableKey] ?: return
+        if (!::recommendationEngine.isInitialized) {
+            return
+        }
+        viewModelScope.launch(Dispatchers.Default) {
+            recommendationEngine.recordRecommendationFeedback(
+                feedId = null,
+                contentId = result.contentId,
+                reason = result.reason,
+                feedback = -1.0,
+            )
+        }
+    }
+
     private suspend fun ensureEngine(environment: LocalRecommendationEnvironment): LocalRecommendationEngine {
         if (!::recommendationEngine.isInitialized) {
             recommendationEngine = environment.localRecommendationEngine()

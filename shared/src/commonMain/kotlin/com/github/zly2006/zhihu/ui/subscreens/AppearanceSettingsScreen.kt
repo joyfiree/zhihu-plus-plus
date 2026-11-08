@@ -191,65 +191,48 @@ internal fun resolveValidStartDestinationKey(
     else -> Home.name
 }
 
+/**
+ * 底栏默认项目。
+ *
+ * 产品设计稿规定底栏只有「首页 / 我的」两项：关注与日报作为首页内的分类 Tab 存在，
+ * 消息入口在搜索区，创作入口在「我的」页。桌面端不限制数量时仍展示全部入口。
+ */
 internal fun defaultBottomBarSelectionKeys(
-    duo3HomeAccount: Boolean,
     maximumSelection: Int? = 5,
 ): Set<String> = if (maximumSelection == null) {
-    if (duo3HomeAccount) {
-        linkedSetOf(Home.name, Follow.name, HotList.name, Daily.name, OnlineHistory.name, MyCollections.name)
-    } else {
-        linkedSetOf(Home.name, Follow.name, HotList.name, Daily.name, OnlineHistory.name, MyCollections.name, Account.name)
-    }
-} else if (duo3HomeAccount) {
-    linkedSetOf(Home.name, Follow.name, Daily.name)
+    linkedSetOf(Home.name, Follow.name, HotList.name, Daily.name, OnlineHistory.name, MyCollections.name, Account.name)
 } else {
-    linkedSetOf(Home.name, Follow.name, Daily.name, OnlineHistory.name, Account.name)
+    linkedSetOf(Home.name, Account.name)
 }
 
 internal fun normalizeBottomBarSelection(
     selectedKeys: Collection<String>,
-    duo3HomeAccount: Boolean,
     enforceMinimumSelection: Boolean = false,
     maximumSelection: Int? = 5,
 ): Set<String> {
     val allowedKeys = topLevelDestinationsInOrder.map { it.first }.toSet()
     val normalized = selectedKeys
         .filterTo(linkedSetOf()) { it in allowedKeys }
-        .ifEmpty { defaultBottomBarSelectionKeys(duo3HomeAccount, maximumSelection).toMutableSet() }
+        .ifEmpty { defaultBottomBarSelectionKeys(maximumSelection).toMutableSet() }
 
-    if (duo3HomeAccount) {
-        if (Home.name in normalized) {
-            normalized.remove(Account.name)
-        } else {
-            normalized.add(Account.name)
-        }
-    } else {
-        normalized.add(Account.name)
-        while (maximumSelection != null && normalized.size > maximumSelection) {
-            val removableKey = listOf(
-                HotList.name,
-                MyCollections.name,
-                OnlineHistory.name,
-                Daily.name,
-                Follow.name,
-                Home.name,
-            ).firstOrNull { it in normalized } ?: break
-            normalized.remove(removableKey)
-        }
+    // 「我的」承载账号、设置与创作入口，任何配置下都必须存在。
+    normalized.add(Account.name)
+    while (maximumSelection != null && normalized.size > maximumSelection) {
+        val removableKey = listOf(
+            HotList.name,
+            MyCollections.name,
+            OnlineHistory.name,
+            Daily.name,
+            Follow.name,
+            Home.name,
+        ).firstOrNull { it in normalized } ?: break
+        normalized.remove(removableKey)
     }
 
     if (enforceMinimumSelection) {
-        val fillOrder = if (duo3HomeAccount) {
-            if (Home.name in normalized) {
-                listOf(Follow.name, Daily.name, HotList.name, OnlineHistory.name)
-            } else {
-                listOf(Follow.name, Daily.name, HotList.name, OnlineHistory.name, Home.name)
-            }
-        } else {
-            listOf(Home.name, Follow.name, Daily.name, HotList.name, OnlineHistory.name, MyCollections.name, Account.name)
-        }
-        fillOrder.forEach { key ->
-            if (normalized.size < 3) {
+        // 底栏最少两项：首页 + 我的。
+        listOf(Home.name, Account.name).forEach { key ->
+            if (normalized.size < 2) {
                 normalized.add(key)
             }
         }
@@ -343,9 +326,8 @@ fun AppearanceSettingsScreen(
         val normalizedSelection = normalizeBottomBarSelection(
             settings.getStringSet(
                 BOTTOM_BAR_ITEMS_PREFERENCE_KEY,
-                defaultBottomBarSelectionKeys(duo3HomeAccount.value, platformBottomBarItemLimit),
+                defaultBottomBarSelectionKeys(platformBottomBarItemLimit),
             ),
-            duo3HomeAccount.value,
             enforceMinimumSelection = true,
             maximumSelection = platformBottomBarItemLimit,
         )
@@ -1061,13 +1043,9 @@ fun AppearanceSettingsScreen(
                 )
             }
 
-            fun persistBottomBarSelection(
-                currentOrderKeys: List<String>,
-                duo3HomeAccountEnabled: Boolean = duo3HomeAccount.value,
-            ) {
+            fun persistBottomBarSelection(currentOrderKeys: List<String>) {
                 val normalizedSet = normalizeBottomBarSelection(
                     currentOrderKeys,
-                    duo3HomeAccountEnabled,
                     enforceMinimumSelection = true,
                     maximumSelection = platformBottomBarItemLimit,
                 )
@@ -1181,8 +1159,8 @@ fun AppearanceSettingsScreen(
                                         .height(bottomBarSettingItemHeight)
                                         .clickable(enabled = isEnabled) {
                                             when {
-                                                isChecked && selectedBottomBarItemKeys.value.size <= 3 -> {
-                                                    userMessages.showShortMessage("至少保留3项")
+                                                isChecked && selectedBottomBarItemKeys.value.size <= 2 -> {
+                                                    userMessages.showShortMessage("至少保留2项")
                                                 }
 
                                                 !isChecked -> {
@@ -1556,7 +1534,7 @@ fun AppearanceSettingsScreen(
                 } else {
                     selectedBottomBarItemKeys.value
                 }
-                persistBottomBarSelection(updatedSelection, duo3HomeAccountEnabled = true)
+                persistBottomBarSelection(updatedSelection)
             }
 
             fun disableAllSubs() {
@@ -1574,7 +1552,7 @@ fun AppearanceSettingsScreen(
                 duo3CardLayout.value = false
                 duo3ArticleBar.value = false
                 duo3ArticleActions.value = false
-                persistBottomBarSelection(selectedBottomBarItemKeys.value, duo3HomeAccountEnabled = false)
+                persistBottomBarSelection(selectedBottomBarItemKeys.value)
             }
 
             SettingItemGroup(
@@ -1646,9 +1624,13 @@ fun AppearanceSettingsScreen(
                     }
                 }
 
+                // 首页搜索区与底栏已按产品设计稿固定为「消息框 + 搜索 + 搜索按钮」和「首页 / 我的」，
+                // 这个开关只剩账号页快捷入口的作用，文案随之收敛，避免出现点了没有反应的设置项。
                 SettingItemWithSwitch(
-                    title = { Text("主页：账号入口迁移至顶部头像") },
-                    description = { Text("搜索栏样式变更；点击头像弹出账号与设置；「历史」入口可挪入账号设置页。") },
+                    title = { Text("账号页：显示快捷入口") },
+                    description = {
+                        Text("在「我的」页顶部用快捷入口展示收藏夹、关注订阅、通知与浏览历史；关闭后这些入口收进设置分组。")
+                    },
                     checked = duo3HomeAccount.value,
                     onCheckedChange = {
                         duo3HomeAccount.value = it
@@ -1658,7 +1640,7 @@ fun AppearanceSettingsScreen(
                         } else {
                             selectedBottomBarItemKeys.value
                         }
-                        persistBottomBarSelection(updatedSelection, it)
+                        persistBottomBarSelection(updatedSelection)
                     },
                 )
 
