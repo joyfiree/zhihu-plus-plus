@@ -34,7 +34,7 @@ import com.github.zly2006.zhihu.test.ZhihuMockApi
 import com.github.zly2006.zhihu.test.resetAppPreferences
 import com.github.zly2006.zhihu.test.setScreenContent
 import com.github.zly2006.zhihu.ui.HOME_NOTIFICATION_BADGE_TAG
-import com.github.zly2006.zhihu.ui.HOME_NOTIFICATION_BUTTON_CONTENT_TAG
+import com.github.zly2006.zhihu.ui.HOME_NOTIFICATION_BUTTON_TAG
 import com.github.zly2006.zhihu.ui.HomeScreen
 import com.github.zly2006.zhihu.ui.PREFERENCE_NAME
 import io.ktor.http.HttpMethod
@@ -43,10 +43,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.roundToInt
 
 @RunWith(AndroidJUnit4::class)
 class HomeNotificationPixelInstrumentedTest {
@@ -87,7 +85,10 @@ class HomeNotificationPixelInstrumentedTest {
      * Regression: https://github.com/zly2006/zhihu-plus-plus/issues/696
      * Fixed by: https://github.com/zly2006/zhihu-plus-plus/pull/709
      * Target state: an unread notification badge is fully visible with rounded corners.
-     * Verifies the badge's rendered pixels, so restoring the clipped IconButton fails.
+     *
+     * 产品设计稿把消息入口从底栏移到搜索区左侧的 24×26 方框，角标改压在方框右上角。
+     * 断言因此改为「角标完整落在可点区域内部」——这正是原回归（父级裁剪掉角标）的契约，
+     * 同时保留像素级检查：角标必须有实心填充、四边描边可见、两个上角保持圆角。
      */
     @Test
     fun unreadNotificationBadgeIsRenderedWithoutParentClipping() {
@@ -101,46 +102,21 @@ class HomeNotificationPixelInstrumentedTest {
             .onNodeWithTag(HOME_NOTIFICATION_BADGE_TAG, useUnmergedTree = true)
             .fetchSemanticsNode()
             .boundsInRoot
-        val contentBounds = composeRule
-            .onNodeWithTag(HOME_NOTIFICATION_BUTTON_CONTENT_TAG, useUnmergedTree = true)
+        val buttonBounds = composeRule
+            .onNodeWithTag(HOME_NOTIFICATION_BUTTON_TAG, useUnmergedTree = true)
             .fetchSemanticsNode()
             .boundsInRoot
+        assertTrue(
+            "Badge must stay inside its message entry button; badge=$badgeBounds button=$buttonBounds",
+            badgeBounds.left >= buttonBounds.left - 0.5f &&
+                badgeBounds.top >= buttonBounds.top - 0.5f &&
+                badgeBounds.right <= buttonBounds.right + 0.5f &&
+                badgeBounds.bottom <= buttonBounds.bottom + 0.5f,
+        )
+
         val rootImage = composeRule.onRoot().captureToImage()
         val pixels = rootImage.toPixelMap()
-        val left = contentBounds.left.roundToInt().coerceIn(0, pixels.width - 1)
-        val top = contentBounds.top.roundToInt().coerceIn(0, pixels.height - 1)
-        val right = ceil(contentBounds.right).toInt().coerceIn(left + 1, pixels.width) - 1
-        val bottom = ceil(contentBounds.bottom).toInt().coerceIn(top + 1, pixels.height) - 1
-        val backgroundX = (left - 12).coerceAtLeast(0)
-        val backgroundY = ((top + bottom) / 2).coerceIn(0, pixels.height - 1)
-        val background = pixels[backgroundX, backgroundY]
 
-        val contentCorners = listOf(
-            left + 1 to top + 1,
-            right - 1 to top + 1,
-            left + 1 to bottom - 1,
-            right - 1 to bottom - 1,
-        ).filterNot { (x, y) ->
-            x.toFloat() in badgeBounds.left..badgeBounds.right &&
-                y.toFloat() in badgeBounds.top..badgeBounds.bottom
-        }
-        contentCorners.forEach { (x, y) ->
-            val corner = pixels[x.coerceIn(0, pixels.width - 1), y.coerceIn(0, pixels.height - 1)]
-            assertTrue(
-                "Notification icon content box corners must stay on the app-bar background; corner=$corner background=$background",
-                isCloseTo(corner, background),
-            )
-        }
-
-        val foregroundPixels = (top + 2..bottom - 2).sumOf { y ->
-            (left + 2..right - 2).count { x ->
-                !isCloseTo(pixels[x, y], background)
-            }
-        }
-        assertTrue(
-            "Notification icon content box must contain visible foreground pixels for the icon/badge; found $foregroundPixels",
-            foregroundPixels >= 80,
-        )
         val badgeLeft = floor(badgeBounds.left).toInt().coerceIn(0, pixels.width - 1)
         val badgeRight = ceil(badgeBounds.right).toInt().minus(1).coerceIn(badgeLeft, pixels.width - 1)
         val badgeTop = floor(badgeBounds.top).toInt().coerceIn(0, pixels.height - 1)
@@ -156,15 +132,6 @@ class HomeNotificationPixelInstrumentedTest {
         assertTrue("badge top-left corner must remain rounded", !foreground(badgeLeft, badgeTop))
         assertTrue("badge top-right corner must remain rounded", !foreground(badgeRight, badgeTop))
     }
-
-    private fun isCloseTo(
-        first: androidx.compose.ui.graphics.Color,
-        second: androidx.compose.ui.graphics.Color,
-    ): Boolean =
-        abs(first.red - second.red) < 0.08f &&
-            abs(first.green - second.green) < 0.08f &&
-            abs(first.blue - second.blue) < 0.08f &&
-            abs(first.alpha - second.alpha) < 0.08f
 
     private fun isBadgeForeground(color: Color): Boolean =
         color.alpha > 0.5f &&

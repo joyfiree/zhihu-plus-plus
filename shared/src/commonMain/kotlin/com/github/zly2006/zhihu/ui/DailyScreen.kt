@@ -112,6 +112,11 @@ import kotlin.time.Instant
 fun DailyScreen(
     scrollToTopTrigger: Int = 0,
     isActive: Boolean = true,
+    /**
+     * 作为首页「日报」分类的内容嵌入时置 true：不画完整顶栏，只保留一行日期与日期选择，
+     * 避免和首页的搜索区 + 分类 Tab 叠成两层页头。
+     */
+    embedded: Boolean = false,
 ) {
     val navigator = LocalNavigator.current
     val httpClient = rememberPaginationEnvironment(allowGuestAccess = false).httpClient()
@@ -244,36 +249,59 @@ fun DailyScreen(
 
     Scaffold(
         topBar = {
-            ZhihuTopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            "知乎日报",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.testTag(DAILY_SCREEN_TITLE_TAG),
-                        )
-                        if (currentViewingDate.isNotEmpty()) {
-                            Text(
-                                currentViewingDate,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                ),
-                                modifier = Modifier.testTag(DAILY_SCREEN_CURRENT_DATE_TAG),
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    if (!isLiteVariant) {
+            if (embedded) {
+                // 嵌入首页时不再重复展示日期（列表里已有分组日期标题），只保留日期选择入口；
+                // 精简版没有日期选择，因此完全不占高度，让列表紧贴分类 Tab。
+                if (!isLiteVariant) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(end = 4.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         IconButton(
                             onClick = { showDatePicker = true },
                             modifier = Modifier.testTag(DAILY_SCREEN_DATE_PICKER_BUTTON_TAG),
                         ) {
-                            Icon(Icons.Filled.DateRange, contentDescription = "选择日期")
+                            Icon(
+                                Icons.Filled.DateRange,
+                                contentDescription = "选择日期",
+                                modifier = Modifier.size(18.dp),
+                            )
                         }
                     }
-                },
-            )
+                }
+            } else {
+                ZhihuTopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                "知乎日报",
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.testTag(DAILY_SCREEN_TITLE_TAG),
+                            )
+                            if (currentViewingDate.isNotEmpty()) {
+                                Text(
+                                    currentViewingDate,
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    modifier = Modifier.testTag(DAILY_SCREEN_CURRENT_DATE_TAG),
+                                )
+                            }
+                        }
+                    },
+                    actions = {
+                        if (!isLiteVariant) {
+                            IconButton(
+                                onClick = { showDatePicker = true },
+                                modifier = Modifier.testTag(DAILY_SCREEN_DATE_PICKER_BUTTON_TAG),
+                            ) {
+                                Icon(Icons.Filled.DateRange, contentDescription = "选择日期")
+                            }
+                        }
+                    },
+                )
+            }
         },
     ) { scaffoldPadding ->
         PullToRefreshBox(

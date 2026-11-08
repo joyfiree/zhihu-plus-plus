@@ -22,9 +22,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -42,9 +45,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.github.zly2006.zhihu.platform.PlatformBackHandler
 import com.github.zly2006.zhihu.platform.rememberExternalUrlOpener
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
+import com.github.zly2006.zhihu.ui.rememberAppVersionInfo
+
+/** 「跳过登录」偏好：为 true 时首页不再强制拉起登录页。 */
+const val SKIP_LOGIN_PROMPT_PREFERENCE_KEY = "skipLoginPrompt"
 
 enum class LoginMethod(
     val label: String,
@@ -69,19 +77,28 @@ fun LoginScreen(
     onOpenTelemetrySettings: () -> Unit,
 ) {
     val openExternalUrl = rememberExternalUrlOpener()
-    val settings = rememberSettingsStore()
     var noticeStep by rememberSaveable {
         mutableIntStateOf(0)
     }
     var selectedMethod by rememberSaveable(supportedLoginMethods) {
         mutableStateOf(supportedLoginMethods.first())
     }
+    val settings = rememberSettingsStore()
     var loggedInUsername by remember { mutableStateOf<String?>(null) }
     val onLoginSuccess: (String) -> Unit = { username ->
-        // 用户主动登录成功后恢复「未登录时自动提示登录」的默认行为。
+        // 用户主动登录成功后，恢复「未登录时自动提示登录」的默认行为。
         settings.putBoolean(SKIP_LOGIN_PROMPT_PREFERENCE_KEY, false)
         loggedInUsername = username
     }
+    // 「跳过登录」只关掉「强制拉起登录页」这一件事：skipLoginPrompt=true 后首页直接以游客身份浏览。
+    // 不动 loginForRecommendation，是为了让用户以后真的登录时，推荐请求仍然携带登录凭证。
+    val skipLogin: () -> Unit = {
+        settings.putBoolean(SKIP_LOGIN_PROMPT_PREFERENCE_KEY, true)
+        onLoginComplete()
+    }
+    // 返回键等同「跳过登录」：否则从登录页按返回会先回到首页，首页又立刻把登录页拉起来，
+    // 形成「返回 → 首页 → 又弹出登录」的死循环。
+    PlatformBackHandler(enabled = true, onBack = skipLogin)
 
     if (noticeStep < LOGIN_NOTICE_COUNT) {
         val notice = loginNotices[noticeStep]
@@ -97,6 +114,7 @@ fun LoginScreen(
                 }
             },
             onConfirm = { noticeStep++ },
+            onSkipLogin = skipLogin,
         )
     } else {
         Column(
@@ -131,19 +149,13 @@ fun LoginScreen(
                 }
             }
 
-            // 未登录也能浏览信息流和详情；跳过时记住选择，HomeScreen 读同一个偏好，
-            // 下次启动不再把用户自动带到登录页。账号页仍保留登录入口。
             TextButton(
-                onClick = {
-                    settings.putBoolean(SKIP_LOGIN_PROMPT_PREFERENCE_KEY, true)
-                    onLoginComplete()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("login_skip"),
+                onClick = skipLogin,
+                modifier = Modifier.fillMaxWidth().testTag("login_skip"),
             ) {
-                Text("跳过登录，先浏览")
+                Text("跳过登录，先随便逛逛")
             }
+            LoginBuildStamp()
         }
     }
 
@@ -196,12 +208,26 @@ private fun LoginNoticeScreen(
     secondaryButtonText: String,
     onConfirm: () -> Unit,
     onSecondaryAction: () -> Unit,
+    onSkipLogin: () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .testTag(stepTag),
     ) {
+        // 提示页是登录流程的第一步，跳过入口必须在这里就能点到，不能逼用户先点三次「确认」。
+        // 登录页本身不套 Scaffold，顶栏内边距要自己让开状态栏，否则按钮会压在时间/信号图标上。
+        TextButton(
+            onClick = onSkipLogin,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(
+                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 4.dp,
+                    end = 8.dp,
+                ).testTag("login_skip"),
+        ) {
+            Text("跳过登录")
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -243,9 +269,29 @@ private fun LoginNoticeScreen(
                 ) {
                     Text("确认")
                 }
+                LoginBuildStamp()
             }
         }
     }
+}
+
+/**
+ * 登录页底部的构建标识。
+ *
+ * 用来分辨「现在跑的到底是哪个包」——同一台设备上可能同时存在 full 与 lite 两个应用，
+ * 或者安装被系统拒绝后仍在跑旧版本。字号压到最小、只出现在登录页，不影响正常阅读。
+ */
+@Composable
+private fun LoginBuildStamp() {
+    Text(
+        text = rememberAppVersionInfo(),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("login_build_stamp"),
+    )
 }
 
 private data class LoginNotice(
@@ -254,9 +300,6 @@ private data class LoginNotice(
 )
 
 private const val LOGIN_NOTICE_COUNT = 3
-
-/** 用户选择「跳过登录」后不再自动弹出登录页的偏好。 */
-internal const val SKIP_LOGIN_PROMPT_PREFERENCE_KEY = "skipLoginPrompt"
 
 private val loginNotices = listOf(
     LoginNotice(

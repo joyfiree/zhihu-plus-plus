@@ -433,13 +433,13 @@ fun ZhihuMain(
     }
 
     val allBottomBarItems = listOf(
-        BottomBarTab(Home, "主页", Icons.Filled.Home, Icons.Outlined.Home),
+        BottomBarTab(Home, "首页", Icons.Filled.Home, Icons.Outlined.Home),
         BottomBarTab(Follow, "关注", Icons.Filled.Group, Icons.Outlined.Group),
         BottomBarTab(HotList, "热榜", Icons.Filled.Whatshot, Icons.Outlined.Whatshot),
         BottomBarTab(Daily, "日报", Icons.Filled.Newspaper, Icons.Outlined.Newspaper),
         BottomBarTab(OnlineHistory, "历史", Icons.Filled.History, Icons.Outlined.History),
         BottomBarTab(MyCollections, "收藏夹", Icons.Filled.Bookmarks, Icons.Outlined.Bookmarks),
-        BottomBarTab(Account, "账号", Icons.Filled.ManageAccounts, Icons.Outlined.ManageAccounts),
+        BottomBarTab(Account, "我的", Icons.Filled.ManageAccounts, Icons.Outlined.ManageAccounts),
     )
     val bottomBarItems = selectedBottomBarItemKeys.mapNotNull { key ->
         allBottomBarItems.firstOrNull { it.destination.name == key }

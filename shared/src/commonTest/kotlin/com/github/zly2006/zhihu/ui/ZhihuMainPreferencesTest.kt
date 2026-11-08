@@ -36,14 +36,10 @@ import kotlin.test.assertTrue
 
 class ZhihuMainPreferencesTest {
     @Test
-    fun defaultBottomBarSelectionMatchesNavigationMode() {
+    fun defaultBottomBarSelectionIsHomeAndAccount() {
         assertEquals(
-            linkedSetOf(Home.name, Follow.name, Daily.name),
-            defaultBottomBarSelectionKeys(duo3HomeAccount = true),
-        )
-        assertEquals(
-            linkedSetOf(Home.name, Follow.name, Daily.name, OnlineHistory.name, Account.name),
-            defaultBottomBarSelectionKeys(duo3HomeAccount = false),
+            linkedSetOf(Home.name, Account.name),
+            defaultBottomBarSelectionKeys(),
         )
     }
 
@@ -51,19 +47,14 @@ class ZhihuMainPreferencesTest {
     fun desktopDefaultSelectionIncludesAllTopLevelDestinations() {
         assertEquals(
             linkedSetOf(Home.name, Follow.name, HotList.name, Daily.name, OnlineHistory.name, MyCollections.name, Account.name),
-            defaultBottomBarSelectionKeys(duo3HomeAccount = false, maximumSelection = null),
-        )
-        assertEquals(
-            linkedSetOf(Home.name, Follow.name, HotList.name, Daily.name, OnlineHistory.name, MyCollections.name),
-            defaultBottomBarSelectionKeys(duo3HomeAccount = true, maximumSelection = null),
+            defaultBottomBarSelectionKeys(maximumSelection = null),
         )
     }
 
     @Test
-    fun normalizeBottomBarSelectionKeepsAccountAsSeparateTabWhenHomeAccountIsOff() {
+    fun normalizeBottomBarSelectionAlwaysKeepsAccountTab() {
         val normalized = normalizeBottomBarSelection(
             selectedKeys = linkedSetOf(Home.name, Follow.name, HotList.name, Daily.name, OnlineHistory.name),
-            duo3HomeAccount = false,
         )
 
         assertEquals(5, normalized.size)
@@ -72,16 +63,24 @@ class ZhihuMainPreferencesTest {
     }
 
     @Test
-    fun normalizeBottomBarSelectionReplacesAccountWithHomeAccountWhenEnabled() {
+    fun normalizeBottomBarSelectionFillsToTwoItemsWhenEnforced() {
         val normalized = normalizeBottomBarSelection(
-            selectedKeys = linkedSetOf(Home.name, Account.name),
-            duo3HomeAccount = true,
+            selectedKeys = linkedSetOf(Account.name),
             enforceMinimumSelection = true,
         )
 
-        assertTrue(Home.name in normalized)
-        assertFalse(Account.name in normalized)
-        assertEquals(3, normalized.size)
+        assertEquals(linkedSetOf(Home.name, Account.name), normalized)
+    }
+
+    @Test
+    fun normalizeBottomBarSelectionKeepsExactlyTwoDefaultItems() {
+        val normalized = normalizeBottomBarSelection(
+            selectedKeys = defaultBottomBarSelectionKeys(),
+            enforceMinimumSelection = true,
+            maximumSelection = 5,
+        )
+
+        assertEquals(linkedSetOf(Home.name, Account.name), normalized)
     }
 
     @Test
@@ -99,12 +98,11 @@ class ZhihuMainPreferencesTest {
     fun normalizeBottomBarSelectionAllowsCollectionsEntry() {
         val normalized = normalizeBottomBarSelection(
             selectedKeys = linkedSetOf(Home.name, HotList.name, MyCollections.name),
-            duo3HomeAccount = true,
             enforceMinimumSelection = true,
         )
 
         assertTrue(MyCollections.name in normalized)
-        assertEquals(3, normalized.size)
+        assertEquals(4, normalized.size)
     }
 
     @Test

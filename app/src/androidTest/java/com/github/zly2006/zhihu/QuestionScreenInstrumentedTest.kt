@@ -57,7 +57,6 @@ import com.github.zly2006.zhihu.viewmodel.feed.QuestionFeedViewModel
 import com.github.zly2006.zhihu.viewmodel.filter.BlockedUser
 import com.github.zly2006.zhihu.viewmodel.filter.getContentFilterDatabase
 import com.github.zly2006.zhihu.viewmodel.paginationEnvironment
-import com.github.zly2006.zhihu.viewmodel.sharedArticleAnswerSwitchState
 import io.ktor.http.HttpMethod
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
@@ -147,13 +146,11 @@ class QuestionScreenInstrumentedTest {
         composeRule.onNodeWithTag(clickedItemTag).performClick()
 
         assertTrue("Scrolling near the end should trigger the seeded load-more path", viewModel.loadMoreCount > 0)
-        assertEquals(
-            listOf(Article(type = ArticleType.Answer, id = 7003L)),
-            navigator.destinations,
+        // 回答瀑布流里正文已经完整呈现，点卡片不再跳转到单条回答详情页。
+        assertTrue(
+            "Answer card taps should stay on the question page, got ${navigator.destinations}",
+            navigator.destinations.isEmpty(),
         )
-        val pendingNavigator = sharedArticleAnswerSwitchState.pendingNavigator
-        assertEquals(7002L, pendingNavigator?.previousAnswerPreview?.article?.id)
-        assertEquals(7004L, runBlocking { pendingNavigator?.loadNext()?.id })
     }
 
     /**
