@@ -36,6 +36,15 @@ import com.github.zly2006.zhihu.viewmodel.ZhihuApiEnvironment
 import com.github.zly2006.zhihu.viewmodel.deleteSigned
 import com.github.zly2006.zhihu.viewmodel.postSigned
 
+/**
+ * 问题回答列表的 include。
+ *
+ * 必须显式请求 `favorite_count`：默认 include 只带 content/excerpt/headline 与作者徽章，
+ * 卡片操作行的收藏数会因此恒为 0（详情接口另有 favlists_count，见 ContentDetailCache）。
+ */
+internal const val QUESTION_ANSWER_LIST_INCLUDE =
+    "data[*].content,excerpt,headline,favorite_count,comment_count,voteup_count,target.author.badge_v2"
+
 open class QuestionFeedViewModel(
     private val questionId: Long,
 ) : BaseFeedViewModel() {
@@ -54,6 +63,9 @@ open class QuestionFeedViewModel(
 
     override val initialUrl: String
         get() = zhihuQuestionFeedsUrl(questionId, limit = 20, order = sortOrder)
+
+    override val include: String
+        get() = QUESTION_ANSWER_LIST_INCLUDE
 
     fun updateSortOrder(order: String) {
         if (sortOrder != order) {
