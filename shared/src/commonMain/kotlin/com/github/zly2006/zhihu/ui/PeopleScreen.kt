@@ -21,39 +21,46 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -67,20 +74,22 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.ViewModel
 import coil3.compose.AsyncImage
 import com.fleeksoft.ksoup.Ksoup
@@ -91,6 +100,7 @@ import com.github.zly2006.zhihu.data.ZhihuJson
 import com.github.zly2006.zhihu.data.officialBadge
 import com.github.zly2006.zhihu.data.officialBadgeDetails
 import com.github.zly2006.zhihu.data.toFeedDisplayItemNavDestinationJson
+import com.github.zly2006.zhihu.navigation.Account
 import com.github.zly2006.zhihu.navigation.Article
 import com.github.zly2006.zhihu.navigation.ArticleType
 import com.github.zly2006.zhihu.navigation.CollectionContent
@@ -98,11 +108,13 @@ import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.navigation.Person
 import com.github.zly2006.zhihu.navigation.Pin
 import com.github.zly2006.zhihu.navigation.Question
+import com.github.zly2006.zhihu.navigation.withReadingQueueSource
 import com.github.zly2006.zhihu.platform.rememberExternalUrlOpener
 import com.github.zly2006.zhihu.platform.rememberImagePreviewOpener
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.platform.rememberZhihuWebUrlOpener
 import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
+import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.components.AuthorBadge
 import com.github.zly2006.zhihu.ui.components.FeedCard
 import com.github.zly2006.zhihu.ui.components.PageTurnTarget
@@ -111,7 +123,12 @@ import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.util.Log
+import com.github.zly2006.zhihu.util.formatCompactCount
+import com.github.zly2006.zhihu.util.formatRelativeTime
 import com.github.zly2006.zhihu.util.jsonObject
 import com.github.zly2006.zhihu.util.raiseForStatus
 import com.github.zly2006.zhihu.viewmodel.ContentBlocklistEnvironment
@@ -502,45 +519,43 @@ class PersonViewModel(
     }
 }
 
-private fun DataHolder.Answer.toPeopleAnswerDisplayItem(): FeedDisplayItem {
-    val destination = Article(
-        type = ArticleType.Answer,
-        id = id,
-        title = question.title,
-        authorName = author.name,
-        authorBio = author.headline,
-        avatarSrc = author.avatarUrl,
-        excerpt = excerpt,
-    )
-    return FeedDisplayItem(
-        title = question.title,
-        summary = excerpt,
-        details = "回答 · $voteupCount 赞同 · $commentCount 评论",
-        feed = null,
-        navDestinationJson = destination.toFeedDisplayItemNavDestinationJson(),
-        raw = this,
-    )
-}
+private fun DataHolder.Answer.toPeopleDestination() = Article(
+    type = ArticleType.Answer,
+    id = id,
+    title = question.title,
+    authorName = author.name,
+    authorBio = author.headline,
+    avatarSrc = author.avatarUrl,
+    excerpt = excerpt,
+)
 
-private fun DataHolder.Article.toPeopleArticleDisplayItem(): FeedDisplayItem {
-    val destination = Article(
-        type = ArticleType.Article,
-        id = id,
-        title = title,
-        authorName = author.name,
-        authorBio = author.headline,
-        avatarSrc = author.avatarUrl,
-        excerpt = excerpt,
-    )
-    return FeedDisplayItem(
-        title = title,
-        summary = excerpt,
-        details = "文章 · $voteupCount 赞同 · $commentCount 评论",
-        feed = null,
-        navDestinationJson = destination.toFeedDisplayItemNavDestinationJson(),
-        raw = this,
-    )
-}
+private fun DataHolder.Article.toPeopleDestination() = Article(
+    type = ArticleType.Article,
+    id = id,
+    title = title,
+    authorName = author.name,
+    authorBio = author.headline,
+    avatarSrc = author.avatarUrl,
+    excerpt = excerpt,
+)
+
+private fun DataHolder.Answer.toPeopleAnswerDisplayItem(): FeedDisplayItem = FeedDisplayItem(
+    title = question.title,
+    summary = excerpt,
+    details = "回答 · $voteupCount 赞同 · $commentCount 评论",
+    feed = null,
+    navDestinationJson = toPeopleDestination().toFeedDisplayItemNavDestinationJson(),
+    raw = this,
+)
+
+private fun DataHolder.Article.toPeopleArticleDisplayItem(): FeedDisplayItem = FeedDisplayItem(
+    title = title,
+    summary = excerpt,
+    details = "文章 · $voteupCount 赞同 · $commentCount 评论",
+    feed = null,
+    navDestinationJson = toPeopleDestination().toFeedDisplayItemNavDestinationJson(),
+    raw = this,
+)
 
 private fun DataHolder.Pin.toPeoplePinDisplayItem(): FeedDisplayItem? {
     val pinId = id.toLongOrNull() ?: return null
@@ -599,6 +614,7 @@ const val PEOPLE_SCREEN_BLOCK_BUTTON_TAG = "people_screen_block_button"
 const val PEOPLE_SCREEN_RECOMMENDATION_BLOCK_BUTTON_TAG = "people_screen_recommendation_block_button"
 const val PEOPLE_SCREEN_QUESTION_AUTHOR_BLOCK_BUTTON_TAG = "people_screen_question_author_block_button"
 const val PEOPLE_SCREEN_SEARCH_BUTTON_TAG = "people_screen_search_button"
+const val PEOPLE_SCREEN_BACK_BUTTON_TAG = "people_screen_back_button"
 const val PEOPLE_SCREEN_GITHUB_STARS_TAG = "people_screen_github_stars"
 const val PEOPLE_SCREEN_ANSWER_SORT_HOT_TAG = "people_screen_answer_sort_voteups"
 const val PEOPLE_SCREEN_ANSWER_SORT_TIME_TAG = "people_screen_answer_sort_created"
@@ -695,6 +711,13 @@ fun PeopleScreen(
         )
     }
 
+    // 自己的主页不显示关注/拉黑/屏蔽，这些动作对自己没有意义。
+    val selfAccount = rememberAccountSettingsAccountState().value
+    val isSelfProfile = selfAccount.login &&
+        (
+            (person.id.isNotBlank() && person.id == selfAccount.id) ||
+                (person.urlToken.isNotBlank() && person.urlToken == selfAccount.urlToken)
+        )
     LaunchedEffect(viewModel) {
         try {
             viewModel.load(paginationEnvironment)
@@ -730,6 +753,19 @@ fun PeopleScreen(
         }
     }
     val collapsedFraction = scrollBehavior.state.collapsedFraction
+    val onSearch: (() -> Unit)? = if (viewModel.memberHashId.isNotBlank() && viewModel.memberHashId != Person.EMPTY_ID) {
+        val memberName = viewModel.name.takeIf { it.isNotBlank() } ?: person.name
+        {
+            navigator.onNavigate(
+                SearchDestination(
+                    restrictedMemberHashId = viewModel.memberHashId,
+                    restrictedMemberName = memberName,
+                ),
+            )
+        }
+    } else {
+        null
+    }
 
     Scaffold(
         modifier = Modifier
@@ -737,109 +773,70 @@ fun PeopleScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection)
             .fillMaxSize(),
         topBar = {
-            Box(
+            Column(
                 modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
             ) {
-                Column {
-                    CollapsibleHeader(
-                        collapsedFraction = collapsedFraction,
-                        onExpandedHeightChanged = { expandedHeaderHeightPx = it },
-                    ) {
-                        UserInfoHeader(
-                            viewModel = viewModel,
-                            pagerState = pagerState,
-                            modifier = Modifier
-                                .padding(horizontal = 8.dp)
-                                .testTag(PEOPLE_SCREEN_HEADER_TAG),
-                            onFollowToggle = {
-                                coroutineScope.launch {
-                                    try {
-                                        viewModel.toggleFollow(paginationEnvironment)
-                                    } catch (e: Exception) {
-                                        userMessages.showShortMessage("操作失败: ${e.message}")
-                                    }
+                PeopleToolRow(
+                    onBack = navigator.onNavigateBack,
+                    onSearch = onSearch,
+                )
+                CollapsibleHeader(
+                    collapsedFraction = collapsedFraction,
+                    onExpandedHeightChanged = { expandedHeaderHeightPx = it },
+                ) {
+                    UserInfoHeader(
+                        viewModel = viewModel,
+                        pagerState = pagerState,
+                        isSelfProfile = isSelfProfile,
+                        modifier = Modifier.testTag(PEOPLE_SCREEN_HEADER_TAG),
+                        onFollowToggle = {
+                            coroutineScope.launch {
+                                try {
+                                    viewModel.toggleFollow(paginationEnvironment)
+                                } catch (e: Exception) {
+                                    userMessages.showShortMessage("操作失败: ${e.message}")
                                 }
-                            },
-                            onBlockToggle = {
-                                coroutineScope.launch {
-                                    try {
-                                        viewModel.toggleBlock(paginationEnvironment)
-                                    } catch (e: Exception) {
-                                        userMessages.showShortMessage("操作失败: ${e.message}")
-                                    }
-                                }
-                            },
-                            onRecommendationBlockToggle = {
-                                coroutineScope.launch {
-                                    try {
-                                        viewModel.toggleRecommendationBlock(paginationEnvironment)
-                                        userMessages.showShortMessage(if (viewModel.isBlockedInRecommendations) "已屏蔽推荐" else "已取消屏蔽推荐")
-                                    } catch (e: Exception) {
-                                        userMessages.showShortMessage("操作失败: ${e.message}")
-                                    }
-                                }
-                            },
-                            onQuestionAuthorBlockToggle = {
-                                coroutineScope.launch {
-                                    try {
-                                        viewModel.toggleQuestionAuthorBlock(paginationEnvironment)
-                                        userMessages.showShortMessage(if (viewModel.isBlockedAsQuestionAuthor) "已屏蔽其提问" else "已取消屏蔽其提问")
-                                    } catch (e: Exception) {
-                                        userMessages.showShortMessage("操作失败: ${e.message}")
-                                    }
-                                }
-                            },
-                        )
-                    }
-                    PrimaryScrollableTabRow(
-                        selectedTabIndex = pagerState.currentPage,
-                        modifier = Modifier.testTag(PEOPLE_SCREEN_TAB_ROW_TAG),
-                    ) {
-                        PEOPLE_SCREEN_TITLES.forEachIndexed { index, title ->
-                            Tab(
-                                selected = pagerState.currentPage == index,
-                                onClick = {
-                                    coroutineScope.launch {
-                                        pagerState.animateScrollToPage(index)
-                                    }
-                                },
-                                modifier = Modifier.testTag("people_screen_tab_$index"),
-                            ) {
-                                Text(
-                                    text = title,
-                                    modifier = Modifier.padding(16.dp),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
                             }
-                        }
-                    }
-                }
-                if (viewModel.memberHashId.isNotBlank() && viewModel.memberHashId != Person.EMPTY_ID) {
-                    IconButton(
-                        onClick = {
-                            val memberName = viewModel.name.takeIf { it.isNotBlank() } ?: person.name
-                            navigator.onNavigate(
-                                SearchDestination(
-                                    restrictedMemberHashId = viewModel.memberHashId,
-                                    restrictedMemberName = memberName,
-                                ),
-                            )
                         },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = lerp(32.dp, 4.dp, collapsedFraction), end = 8.dp)
-                            .graphicsLayer { alpha = collapsedFraction }
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
-                                ),
-                                CircleShape,
-                            ).testTag(PEOPLE_SCREEN_SEARCH_BUTTON_TAG),
-                    ) {
-                        Icon(Icons.Default.Search, contentDescription = "搜索 TA 的创作")
-                    }
+                        onBlockToggle = {
+                            coroutineScope.launch {
+                                try {
+                                    viewModel.toggleBlock(paginationEnvironment)
+                                } catch (e: Exception) {
+                                    userMessages.showShortMessage("操作失败: ${e.message}")
+                                }
+                            }
+                        },
+                        onRecommendationBlockToggle = {
+                            coroutineScope.launch {
+                                try {
+                                    viewModel.toggleRecommendationBlock(paginationEnvironment)
+                                    userMessages.showShortMessage(if (viewModel.isBlockedInRecommendations) "已屏蔽推荐" else "已取消屏蔽推荐")
+                                } catch (e: Exception) {
+                                    userMessages.showShortMessage("操作失败: ${e.message}")
+                                }
+                            }
+                        },
+                        onQuestionAuthorBlockToggle = {
+                            coroutineScope.launch {
+                                try {
+                                    viewModel.toggleQuestionAuthorBlock(paginationEnvironment)
+                                    userMessages.showShortMessage(if (viewModel.isBlockedAsQuestionAuthor) "已屏蔽其提问" else "已取消屏蔽其提问")
+                                } catch (e: Exception) {
+                                    userMessages.showShortMessage("操作失败: ${e.message}")
+                                }
+                            }
+                        },
+                    )
                 }
+                PeopleTabRow(
+                    pagerState = pagerState,
+                    onSelect = { index ->
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    },
+                )
             }
         },
     ) { innerPadding ->
@@ -881,20 +878,23 @@ fun PeopleScreen(
                                 onLoadMore = { viewModel.answersFeedModel.loadMore(paginationEnvironment) },
                                 isEnd = { viewModel.answersFeedModel.isEnd },
                                 footer = ProgressIndicatorFooter,
+                                contentPadding = PaddingValues(
+                                    start = ZhihuSpacing.ExtraSmall,
+                                    end = ZhihuSpacing.ExtraSmall,
+                                    top = ZhihuSpacing.ExtraSmall,
+                                    bottom = ZhihuSpacing.Medium,
+                                ),
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .pageTurnViewportWithGuide(pageTurnTarget)
                                     .testTag(PEOPLE_SCREEN_ANSWERS_LIST_TAG),
                                 key = { it.id },
-                            ) {
-                                FeedCard(
-                                    it.toPeopleAnswerDisplayItem(),
+                            ) { answer ->
+                                PeopleAnswerCard(
+                                    answer = answer,
                                     readingQueueSourceId = readingQueueSourceId,
-                                    modifier = Modifier.testTag("people_screen_answer_item_${it.id}"),
-                                    horizontalPadding = 4.dp,
-                                ) { _, destination ->
-                                    destination?.let(navigator.onNavigate)
-                                }
+                                    itemTag = "people_screen_answer_item_${answer.id}",
+                                )
                             }
                         }
                     }
@@ -918,20 +918,23 @@ fun PeopleScreen(
                                 onLoadMore = { viewModel.articlesFeedModel.loadMore(paginationEnvironment) },
                                 isEnd = { viewModel.articlesFeedModel.isEnd },
                                 footer = ProgressIndicatorFooter,
+                                contentPadding = PaddingValues(
+                                    start = ZhihuSpacing.ExtraSmall,
+                                    end = ZhihuSpacing.ExtraSmall,
+                                    top = ZhihuSpacing.ExtraSmall,
+                                    bottom = ZhihuSpacing.Medium,
+                                ),
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .pageTurnViewportWithGuide(pageTurnTarget)
                                     .testTag(PEOPLE_SCREEN_ARTICLES_LIST_TAG),
                                 key = { it.id },
-                            ) {
-                                FeedCard(
-                                    it.toPeopleArticleDisplayItem(),
+                            ) { article ->
+                                PeopleArticleCard(
+                                    article = article,
                                     readingQueueSourceId = readingQueueSourceId,
-                                    modifier = Modifier.testTag("people_screen_article_item_${it.id}"),
-                                    horizontalPadding = 4.dp,
-                                ) { _, destination ->
-                                    destination?.let(navigator.onNavigate)
-                                }
+                                    itemTag = "people_screen_article_item_${article.id}",
+                                )
                             }
                         }
                     }
@@ -1504,25 +1507,33 @@ private fun PeopleListItem(
 }
 
 @Composable
-private fun StatItem(label: String, value: Int, onClick: () -> Unit = {}, tag: String? = null) {
+private fun StatItem(
+    label: String,
+    value: Int,
+    modifier: Modifier = Modifier,
+    tag: String? = null,
+    onClick: () -> Unit,
+) {
+    val colors = contentFirstColors
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
+        modifier = modifier
             .then(if (tag != null) Modifier.testTag(tag) else Modifier)
-            .clip(ZhihuShapeTokens.Badge)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp),
+            .clip(ZhihuShapeTokens.Card)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = ZhihuSpacing.ExtraSmall),
     ) {
         Text(
             text = value.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = colors.primaryText,
+            maxLines = 1,
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = colors.tertiaryText,
+            maxLines = 1,
         )
     }
 }
@@ -1533,36 +1544,37 @@ private fun OfficialBadgeDetails(
     modifier: Modifier = Modifier,
 ) {
     if (badges.isEmpty()) return
-    Column(modifier = modifier) {
+    val colors = contentFirstColors
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         badges.forEach { badge ->
-            Row(
-                modifier = Modifier.padding(top = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 if (badge.iconUrl.isNotBlank()) {
                     if (badge.iconUrl == DataHolder.ZH_PLUS_AUTHOR_BADGE_ICON) {
                         Image(
                             painter = painterResource(Res.drawable.ic_zh_plus_author_badge),
                             contentDescription = badge.description,
                             modifier = Modifier
-                                .padding(end = 6.dp)
-                                .size(18.dp),
+                                .padding(end = ZhihuSpacing.ExtraSmall)
+                                .size(16.dp),
                         )
                     } else {
                         AsyncImage(
                             model = badge.iconUrl,
                             contentDescription = badge.description,
                             modifier = Modifier
-                                .padding(end = 6.dp)
-                                .size(18.dp),
+                                .padding(end = ZhihuSpacing.ExtraSmall)
+                                .size(16.dp),
                         )
                     }
                 }
                 Text(
                     text = "${badge.peopleDetailTitle}: ${badge.description}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.tertiaryText,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -1586,43 +1598,46 @@ private fun SortBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = ZhihuSpacing.ExtraSmall)
+            .padding(top = ZhihuSpacing.Small, bottom = ZhihuSpacing.ExtraSmall),
+        horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.Small),
     ) {
-        OutlinedButton(
+        SortChip(
+            label = "按热度",
+            selected = currentSort == "voteups",
+            tag = hotTag,
             onClick = { onSortChange("voteups") },
-            modifier = Modifier
-                .weight(1f)
-                .then(if (hotTag != null) Modifier.testTag(hotTag) else Modifier),
-            shape = ZhihuShapeTokens.Badge,
-            colors = if (currentSort == "voteups") {
-                ButtonDefaults.outlinedButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            } else {
-                ButtonDefaults.outlinedButtonColors()
-            },
-        ) {
-            Text("按热度")
-        }
-        OutlinedButton(
+        )
+        SortChip(
+            label = "按时间",
+            selected = currentSort == "created",
+            tag = timeTag,
             onClick = { onSortChange("created") },
-            modifier = Modifier
-                .weight(1f)
-                .then(if (timeTag != null) Modifier.testTag(timeTag) else Modifier),
-            shape = ZhihuShapeTokens.Badge,
-            colors = if (currentSort == "created") {
-                ButtonDefaults.outlinedButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            } else {
-                ButtonDefaults.outlinedButtonColors()
-            },
-        ) {
-            Text("按时间")
-        }
+        )
+    }
+}
+
+@Composable
+private fun SortChip(
+    label: String,
+    selected: Boolean,
+    tag: String?,
+    onClick: () -> Unit,
+) {
+    val colors = contentFirstColors
+    Box(
+        modifier = Modifier
+            .then(if (tag != null) Modifier.testTag(tag) else Modifier)
+            .clip(ZhihuShapeTokens.Pill)
+            .background(if (selected) colors.accent.copy(alpha = 0.12f) else colors.functionalSurface)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = ZhihuSpacing.Medium, vertical = ZhihuSpacing.ExtraSmall),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected) colors.accent else colors.secondaryText,
+        )
     }
 }
 
@@ -1640,52 +1655,168 @@ private fun CollapsibleHeader(
         if (placeable.height > 0) {
             onExpandedHeightChanged(placeable.height)
         }
-        val height = (placeable.height * (1f - collapsedFraction)).roundToInt()
+        // 资料区随折叠整体上移而不是从底部裁切：顶部资料先滑出，底部操作区最后消失，
+        // 视觉上等同于跟随列表一起滚走，收起态不会残留头像/昵称。
+        val visibleHeight = (placeable.height * (1f - collapsedFraction))
+            .coerceIn(0f, placeable.height.toFloat())
+        val height = visibleHeight.roundToInt()
         layout(constraints.maxWidth, height) {
-            placeable.place(0, 0)
+            placeable.place(0, (visibleHeight - placeable.height).roundToInt())
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@Composable
+private fun PeopleToolRow(
+    onBack: () -> Unit,
+    onSearch: (() -> Unit)?,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .padding(horizontal = ZhihuSpacing.Small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ToolCircleButton(
+            icon = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "返回",
+            tag = PEOPLE_SCREEN_BACK_BUTTON_TAG,
+            onClick = onBack,
+        )
+        Spacer(Modifier.weight(1f))
+        if (onSearch != null) {
+            ToolCircleButton(
+                icon = Icons.Default.Search,
+                contentDescription = "搜索 TA 的创作",
+                tag = PEOPLE_SCREEN_SEARCH_BUTTON_TAG,
+                onClick = onSearch,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ToolCircleButton(
+    icon: ImageVector,
+    contentDescription: String,
+    tag: String,
+    onClick: () -> Unit,
+) {
+    val colors = contentFirstColors
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(colors.functionalSurface)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(tag),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = colors.primaryText,
+            modifier = Modifier.size(ZhihuSizes.IconSmall),
+        )
+    }
+}
+
+@Composable
+private fun PeopleTabRow(
+    pagerState: PagerState,
+    onSelect: (Int) -> Unit,
+) {
+    val colors = contentFirstColors
+    val tabListState = rememberLazyListState()
+    LaunchedEffect(pagerState.currentPage) {
+        tabListState.animateScrollToItem(pagerState.currentPage)
+    }
+    LazyRow(
+        state = tabListState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .testTag(PEOPLE_SCREEN_TAB_ROW_TAG),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        itemsIndexed(PEOPLE_SCREEN_TITLES) { index, title ->
+            val selected = pagerState.currentPage == index
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .clip(ZhihuShapeTokens.Section)
+                    .clickable(role = Role.Tab) { onSelect(index) }
+                    .testTag("people_screen_tab_$index")
+                    .semantics { this.selected = selected }
+                    .padding(horizontal = ZhihuSpacing.Small),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = title,
+                    style = ZhihuTypography.FeedAuthorName.copy(
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    ),
+                    color = if (selected) colors.primaryText else colors.tertiaryText,
+                    maxLines = 1,
+                )
+                if (selected) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 2.dp)
+                            .size(width = 24.dp, height = 3.dp)
+                            .clip(ZhihuShapeTokens.Badge)
+                            .background(colors.accent),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun UserInfoHeader(
     viewModel: PersonViewModel,
     pagerState: PagerState,
+    isSelfProfile: Boolean,
     modifier: Modifier = Modifier,
     onFollowToggle: () -> Unit,
     onBlockToggle: () -> Unit,
     onRecommendationBlockToggle: () -> Unit,
     onQuestionAuthorBlockToggle: () -> Unit,
 ) {
+    val colors = contentFirstColors
     val coroutineScope = rememberCoroutineScope()
     val openImagePreview = rememberImagePreviewOpener()
     val openExternalUrl = rememberExternalUrlOpener()
     Column(
-        modifier = modifier.padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = ZhihuSpacing.Medium)
+            .padding(top = ZhihuSpacing.ExtraSmall, bottom = ZhihuSpacing.Medium),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             AsyncImage(
                 model = viewModel.avatar,
                 contentDescription = "查看头像大图",
                 modifier = Modifier
                     .testTag(PEOPLE_SCREEN_AVATAR_TAG)
-                    .padding(end = 16.dp)
-                    .size(80.dp)
+                    .size(72.dp)
                     .clip(CircleShape)
+                    .background(colors.functionalSurface)
                     .clickable {
                         openImagePreview(viewModel.avatar.substringBefore("_") + ".jpg")
                     },
             )
+            Spacer(Modifier.width(ZhihuSpacing.Medium))
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        viewModel.name,
-                        style = MaterialTheme.typography.titleLarge,
+                        text = viewModel.name,
+                        style = ZhihuTypography.ContentTitle,
+                        color = colors.primaryText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
@@ -1694,130 +1825,351 @@ private fun UserInfoHeader(
                         AuthorBadge(
                             badge = badge,
                             modifier = Modifier
-                                .padding(start = 6.dp)
+                                .padding(start = ZhihuSpacing.ExtraSmall)
                                 .testTag(PEOPLE_SCREEN_OFFICIAL_BADGE_TAG),
                         )
                     }
                 }
-                Column(
-                    modifier = Modifier.padding(end = 48.dp), // 空出来搜索按钮的位置。搜索按钮有独特的动画，不受排版约束。
-                ) {
+                if (viewModel.headline.isNotEmpty()) {
                     Text(
-                        viewModel.headline,
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = viewModel.headline,
+                        style = ZhihuTypography.ContentSignature,
+                        color = colors.tertiaryText,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp),
                     )
-                    OfficialBadgeDetails(
-                        badges = viewModel.officialBadgeDetails,
-                        modifier = Modifier.padding(top = 6.dp),
-                    )
-                    viewModel.githubSocial?.let { githubSocial ->
-                        Row(
-                            modifier = Modifier
-                                .padding(top = 4.dp)
-                                .testTag(PEOPLE_SCREEN_GITHUB_STARS_TAG)
-                                .clickable { openExternalUrl(githubSocial.profileUrl) },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            githubSocial.iconUrl?.let { iconUrl ->
-                                AsyncImage(
-                                    model = iconUrl,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            }
-                            Text(
-                                text = githubSocial.title,
-                                modifier = Modifier.weight(1f, fill = false),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = "· ${githubSocial.starCount} stars",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
-                        }
-                    }
                 }
             }
         }
-        FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (viewModel.isFollowing) {
-                FilledTonalButton(
-                    onClick = onFollowToggle,
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                    modifier = Modifier.testTag(PEOPLE_SCREEN_FOLLOW_BUTTON_TAG),
-                ) {
-                    Text("取消关注")
+        OfficialBadgeDetails(
+            badges = viewModel.officialBadgeDetails,
+            modifier = Modifier.padding(top = ZhihuSpacing.Small),
+        )
+        viewModel.githubSocial?.let { githubSocial ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = ZhihuSpacing.ExtraSmall)
+                    .clip(ZhihuShapeTokens.Section)
+                    .clickable { openExternalUrl(githubSocial.profileUrl) }
+                    .testTag(PEOPLE_SCREEN_GITHUB_STARS_TAG)
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.ExtraSmall),
+            ) {
+                githubSocial.iconUrl?.let { iconUrl ->
+                    AsyncImage(
+                        model = iconUrl,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                    )
                 }
-            } else {
-                Button(
-                    onClick = onFollowToggle,
-                    modifier = Modifier.testTag(PEOPLE_SCREEN_FOLLOW_BUTTON_TAG),
-                ) {
-                    Text("关注")
-                }
-            }
-            OutlinedButton(
-                onClick = onBlockToggle,
-                modifier = Modifier.testTag(PEOPLE_SCREEN_BLOCK_BUTTON_TAG),
-            ) {
-                Text(if (viewModel.isBlocking) "取消拉黑" else "拉黑")
-            }
-            OutlinedButton(
-                onClick = onRecommendationBlockToggle,
-                modifier = Modifier.testTag(PEOPLE_SCREEN_RECOMMENDATION_BLOCK_BUTTON_TAG),
-            ) {
-                Text(if (viewModel.isBlockedInRecommendations) "取消屏蔽推荐" else "屏蔽推荐")
-            }
-            OutlinedButton(
-                onClick = onQuestionAuthorBlockToggle,
-                modifier = Modifier.testTag(PEOPLE_SCREEN_QUESTION_AUTHOR_BLOCK_BUTTON_TAG),
-            ) {
-                Text(if (viewModel.isBlockedAsQuestionAuthor) "取消屏蔽其提问" else "屏蔽其提问")
+                Text(
+                    text = githubSocial.title,
+                    style = ZhihuTypography.FeedMeta,
+                    color = colors.secondaryText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "· ${githubSocial.starCount} stars",
+                    style = ZhihuTypography.FeedMeta,
+                    color = colors.tertiaryText,
+                    maxLines = 1,
+                )
             }
         }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
+                .padding(top = ZhihuSpacing.Medium),
         ) {
-            StatItem("回答", viewModel.answerCount, onClick = {
-                coroutineScope.launch {
-                    pagerState.animateScrollToPage(0)
-                }
-            }, tag = PEOPLE_SCREEN_ANSWER_COUNT_TAG)
-            StatItem("文章", viewModel.articleCount, onClick = {
-                coroutineScope.launch {
-                    pagerState.animateScrollToPage(1)
-                }
-            }, tag = PEOPLE_SCREEN_ARTICLE_COUNT_TAG)
-            StatItem("粉丝", viewModel.followerCount, onClick = {
-                coroutineScope.launch {
-                    pagerState.animateScrollToPage(7)
-                }
-            }, tag = PEOPLE_SCREEN_FOLLOWER_COUNT_TAG)
-            StatItem("关注", viewModel.followingCount, onClick = {
-                coroutineScope.launch {
-                    pagerState.animateScrollToPage(8)
-                }
-            }, tag = PEOPLE_SCREEN_FOLLOWING_COUNT_TAG)
+            StatItem(
+                label = "回答",
+                value = viewModel.answerCount,
+                modifier = Modifier.weight(1f),
+                tag = PEOPLE_SCREEN_ANSWER_COUNT_TAG,
+            ) {
+                coroutineScope.launch { pagerState.animateScrollToPage(0) }
+            }
+            StatItem(
+                label = "文章",
+                value = viewModel.articleCount,
+                modifier = Modifier.weight(1f),
+                tag = PEOPLE_SCREEN_ARTICLE_COUNT_TAG,
+            ) {
+                coroutineScope.launch { pagerState.animateScrollToPage(1) }
+            }
+            StatItem(
+                label = "粉丝",
+                value = viewModel.followerCount,
+                modifier = Modifier.weight(1f),
+                tag = PEOPLE_SCREEN_FOLLOWER_COUNT_TAG,
+            ) {
+                coroutineScope.launch { pagerState.animateScrollToPage(7) }
+            }
+            StatItem(
+                label = "关注",
+                value = viewModel.followingCount,
+                modifier = Modifier.weight(1f),
+                tag = PEOPLE_SCREEN_FOLLOWING_COUNT_TAG,
+            ) {
+                coroutineScope.launch { pagerState.animateScrollToPage(8) }
+            }
+        }
+        if (!isSelfProfile) {
+            FlowRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = ZhihuSpacing.Medium),
+                horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.Small),
+                verticalArrangement = Arrangement.spacedBy(ZhihuSpacing.Small),
+            ) {
+                FollowPill(isFollowing = viewModel.isFollowing, onClick = onFollowToggle)
+                ActionChip(
+                    text = if (viewModel.isBlocking) "取消拉黑" else "拉黑",
+                    tag = PEOPLE_SCREEN_BLOCK_BUTTON_TAG,
+                    onClick = onBlockToggle,
+                )
+                ActionChip(
+                    text = if (viewModel.isBlockedInRecommendations) "取消屏蔽推荐" else "屏蔽推荐",
+                    tag = PEOPLE_SCREEN_RECOMMENDATION_BLOCK_BUTTON_TAG,
+                    onClick = onRecommendationBlockToggle,
+                )
+                ActionChip(
+                    text = if (viewModel.isBlockedAsQuestionAuthor) "取消屏蔽其提问" else "屏蔽其提问",
+                    tag = PEOPLE_SCREEN_QUESTION_AUTHOR_BLOCK_BUTTON_TAG,
+                    onClick = onQuestionAuthorBlockToggle,
+                )
+            }
         }
     }
 }
+
+@Composable
+private fun FollowPill(
+    isFollowing: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = contentFirstColors
+    Box(
+        modifier = Modifier
+            .height(36.dp)
+            .clip(ZhihuShapeTokens.Pill)
+            .background(if (isFollowing) colors.functionalSurface else colors.accentFill)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(PEOPLE_SCREEN_FOLLOW_BUTTON_TAG)
+            .padding(horizontal = 18.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (isFollowing) "取消关注" else "关注",
+            style = MaterialTheme.typography.labelLarge,
+            color = if (isFollowing) colors.secondaryText else MaterialTheme.colorScheme.onPrimary,
+        )
+    }
+}
+
+@Composable
+private fun ActionChip(
+    text: String,
+    tag: String,
+    onClick: () -> Unit,
+) {
+    val colors = contentFirstColors
+    Box(
+        modifier = Modifier.height(36.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .height(30.dp)
+                .clip(ZhihuShapeTokens.Pill)
+                .border(1.dp, colors.divider, ZhihuShapeTokens.Pill)
+                .clickable(role = Role.Button, onClick = onClick)
+                .testTag(tag)
+                .padding(horizontal = 10.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.secondaryText,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PeopleAnswerCard(
+    answer: DataHolder.Answer,
+    readingQueueSourceId: String?,
+    itemTag: String,
+) {
+    val navigator = LocalNavigator.current
+    PeopleCompactCard(
+        title = answer.question.title,
+        titleStyle = ZhihuTypography.FeedSummary.copy(fontWeight = FontWeight.SemiBold),
+        summary = answer.excerpt,
+        meta = answer.peopleMetaText(),
+        thumbnailUrl = null,
+        itemTag = itemTag,
+        onClick = {
+            navigator.onNavigate(
+                answer.toPeopleDestination().withReadingQueueSource(readingQueueSourceId),
+            )
+        },
+    )
+}
+
+@Composable
+private fun PeopleArticleCard(
+    article: DataHolder.Article,
+    readingQueueSourceId: String?,
+    itemTag: String,
+) {
+    val navigator = LocalNavigator.current
+    PeopleCompactCard(
+        title = article.title,
+        titleStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+        summary = article.excerpt,
+        meta = article.peopleMetaText(),
+        thumbnailUrl = article.coverThumbnailUrl(),
+        itemTag = itemTag,
+        onClick = {
+            navigator.onNavigate(
+                article.toPeopleDestination().withReadingQueueSource(readingQueueSourceId),
+            )
+        },
+    )
+}
+
+@Composable
+private fun PeopleCompactCard(
+    title: String,
+    titleStyle: TextStyle,
+    summary: String?,
+    meta: String,
+    thumbnailUrl: String?,
+    itemTag: String,
+    onClick: () -> Unit,
+) {
+    val colors = contentFirstColors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = ZhihuSpacing.Small)
+            .testTag(itemTag)
+            .clip(ZhihuShapeTokens.Card)
+            .background(colors.functionalSurface)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = ZhihuSpacing.Medium)
+            .padding(vertical = 14.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    style = titleStyle,
+                    color = colors.primaryText,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                PeopleCardMenu()
+            }
+            if (!summary.isNullOrBlank()) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.secondaryText,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
+            Text(
+                text = meta,
+                style = ZhihuTypography.ActionCount,
+                color = colors.tertiaryText,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = ZhihuSpacing.Small),
+            )
+        }
+        if (thumbnailUrl != null) {
+            Spacer(Modifier.width(ZhihuSpacing.Medium))
+            AsyncImage(
+                model = thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(width = 96.dp, height = 72.dp)
+                    .clip(ZhihuShapeTokens.Thumbnail),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PeopleCardMenu() {
+    val colors = contentFirstColors
+    val navigator = LocalNavigator.current
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .clickable(role = Role.Button) { expanded = true }
+                .semantics { contentDescription = "更多选项" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = null,
+                tint = colors.tertiaryText,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text("外观设置") },
+                onClick = {
+                    expanded = false
+                    navigator.onNavigate(Account.AppearanceSettings())
+                },
+            )
+        }
+    }
+}
+
+private fun compactCountText(count: Int): String = formatCompactCount(count).replace(" ", "")
+
+private fun DataHolder.Answer.peopleMetaText(): String =
+    "${compactCountText(voteupCount)} 赞同 · ${compactCountText(commentCount)} 评论 · ${formatRelativeTime(createdTime)}"
+
+private fun DataHolder.Article.peopleMetaText(): String =
+    "${compactCountText(voteupCount)} 赞同 · ${compactCountText(commentCount)} 评论 · ${formatRelativeTime(created)}"
+
+/** 文章列表的封面字段当前只映射到 `thumbnailInfo`，没有该字段时不显示缩略图。 */
+private fun DataHolder.Article.coverThumbnailUrl(): String? =
+    thumbnailInfo
+        ?.thumbnails
+        ?.firstOrNull()
+        ?.let { thumbnail ->
+            when (thumbnail) {
+                is DataHolder.ThumbnailRich -> thumbnail.url
+                is DataHolder.ThumbnailString -> thumbnail.value
+                is DataHolder.ThumbnailVideo -> thumbnail.url
+            }
+        }?.takeIf { it.isNotBlank() }
