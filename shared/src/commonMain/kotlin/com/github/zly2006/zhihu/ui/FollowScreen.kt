@@ -432,7 +432,7 @@ fun FollowRecommendScreen(
     val environment = rememberPaginationEnvironment(allowGuestAccess = viewModel.allowGuestAccess)
     val settings = rememberSettingsStore()
     val userMessages = rememberUserMessageSink()
-    val showRefreshFab = remember { settings.getBoolean("showRefreshFab", true) }
+    val showRefreshFab = remember { settings.getBoolean("showRefreshFab", false) }
     val listState = rememberLazyListState()
     var cachedScrollToTopTrigger by remember { mutableIntStateOf(scrollToTopTrigger) }
 
@@ -546,7 +546,7 @@ fun FollowDynamicScreen(
     val environment = rememberPaginationEnvironment(allowGuestAccess = viewModel.allowGuestAccess)
     val settings = rememberSettingsStore()
     val userMessages = rememberUserMessageSink()
-    val showRefreshFab = remember { settings.getBoolean("showRefreshFab", true) }
+    val showRefreshFab = remember { settings.getBoolean("showRefreshFab", false) }
     val listState = rememberLazyListState()
     var cachedScrollToTopTrigger by remember { mutableIntStateOf(scrollToTopTrigger) }
 

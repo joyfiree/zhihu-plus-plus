@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.theme.ThemeManager
+import com.github.zly2006.zhihu.theme.ZhihuTypography
 
 private data class ZhihuEndorsementColorToken(
     val light: Color,
@@ -135,7 +136,7 @@ internal fun AnswerEndorsementChip(
         contentColor = contentColor,
     ) {
         Row(
-            modifier = Modifier.padding(start = 10.dp, top = 5.dp, end = 8.dp, bottom = 5.dp),
+            modifier = Modifier.padding(start = 12.dp, top = 6.dp, end = 10.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -152,7 +153,7 @@ internal fun AnswerEndorsementChip(
             }
             Text(
                 text = endorsement.text,
-                style = MaterialTheme.typography.labelMedium,
+                style = ZhihuTypography.AnswerVoteLine,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

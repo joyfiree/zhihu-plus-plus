@@ -34,7 +34,7 @@ import com.github.zly2006.zhihu.ui.designsystem.toHsl
  */
 internal fun isCustomBackground(color: Color, darkTheme: Boolean): Boolean {
     val argb = color.toArgb()
-    return if (darkTheme) argb != 0xFF121212.toInt() else argb != 0xFFFFFFFF.toInt()
+    return if (darkTheme) argb != 0xFF191B1F.toInt() else argb != 0xFFFFFFFF.toInt()
 }
 
 /**

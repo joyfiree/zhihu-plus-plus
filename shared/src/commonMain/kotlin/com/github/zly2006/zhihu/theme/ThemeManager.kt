@@ -28,7 +28,7 @@ data class ThemeSnapshot(
     val useDynamicColor: Boolean = true,
     val customColor: Int = ZhihuSeedColor.toArgb(),
     val backgroundColorLight: Int = 0xFFFFFFFF.toInt(),
-    val backgroundColorDark: Int = 0xFF121212.toInt(),
+    val backgroundColorDark: Int = 0xFF191B1F.toInt(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
 )
 
@@ -36,7 +36,7 @@ object ThemeManager {
     private val useDynamicColor = mutableStateOf(false)
     private val customColorInt = mutableIntStateOf(ZhihuSeedColor.toArgb())
     private val backgroundColorLight = mutableIntStateOf(0xFFFFFFFF.toInt())
-    private val backgroundColorDark = mutableIntStateOf(0xFF121212.toInt())
+    private val backgroundColorDark = mutableIntStateOf(0xFF191B1F.toInt())
     private val themeMode = mutableStateOf(ThemeMode.SYSTEM)
 
     @Composable

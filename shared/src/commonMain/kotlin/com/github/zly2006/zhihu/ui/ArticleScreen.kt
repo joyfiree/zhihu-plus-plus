@@ -117,6 +117,7 @@ import com.github.zly2006.zhihu.platform.isArticleHtmlExportSupported
 import com.github.zly2006.zhihu.platform.isArticleImageExportSupported
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
+import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.AnswerDoubleTapAction
 import com.github.zly2006.zhihu.ui.article.AigcFlagSheet
 import com.github.zly2006.zhihu.ui.article.ArticleActionsMenu
@@ -598,7 +599,7 @@ fun ArticleScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
                                     .padding(bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 8.dp)
-                                    .height(48.dp),
+                                    .height(ZhihuSizes.AnswerActionRowHeight),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Row(
@@ -968,13 +969,13 @@ fun ArticleScreen(
                             Text(
                                 "发布于 " + formatFullDateTime(viewModel.createdAt),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.labelSmall,
+                                style = ZhihuTypography.AnswerMeta,
                             )
                             if (viewModel.createdAt != viewModel.updatedAt) {
                                 Text(
                                     "编辑于 " + formatFullDateTime(viewModel.updatedAt),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = ZhihuTypography.AnswerMeta,
                                 )
                             }
                         }
@@ -990,7 +991,7 @@ fun ArticleScreen(
                             Box(
                                 modifier = Modifier.fillMaxWidth().height(
                                     with(density) {
-                                        MaterialTheme.typography.bodySmall.lineHeight
+                                        ZhihuTypography.AnswerVoteLine.lineHeight
                                             .toDp()
                                     },
                                 ),
@@ -1010,7 +1011,7 @@ fun ArticleScreen(
                                 }
                                 Text(
                                     text = text,
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = ZhihuTypography.AnswerVoteLine,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = votersTextModifier,
                                     maxLines = 1,
@@ -1021,7 +1022,7 @@ fun ArticleScreen(
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "有 ${formatCompactCount(viewModel.aigcSupportVoterCount)} 人认为此${contentLabel}包含AIGC内容",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = ZhihuTypography.AnswerMeta,
                                     color = MaterialTheme.colorScheme.error,
                                 )
                             }
@@ -1089,7 +1090,7 @@ fun ArticleScreen(
                                         Text(
                                             "IP属地：${viewModel.ipInfo}",
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            style = MaterialTheme.typography.labelSmall,
+                                            style = ZhihuTypography.AnswerMeta,
                                         )
                                     }
                                 }
@@ -1104,6 +1105,7 @@ fun ArticleScreen(
                                     selectable = true,
                                     enableScroll = false,
                                     useTiqianRenderer = useTiqianMarkdown,
+                                    bodyTextStyle = if (article.type == ArticleType.Answer) ZhihuTypography.AnswerBody else null,
                                     header = {},
                                     footer = {
                                         ArticleVideoAttachmentContent(viewModel.attachment)
@@ -1118,7 +1120,7 @@ fun ArticleScreen(
                                                 Text(
                                                     "IP属地：${viewModel.ipInfo}",
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    style = MaterialTheme.typography.labelSmall,
+                                                    style = ZhihuTypography.AnswerMeta,
                                                 )
                                             }
                                         }

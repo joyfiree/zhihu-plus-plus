@@ -31,8 +31,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,11 +43,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
-import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 
 private const val SHIMMER_FROM = -600f
 private const val SHIMMER_TO = 1400f
@@ -86,9 +84,7 @@ private fun rememberShimmerOffset(): State<Float> {
     return offset.asState()
 }
 
-/**
- * 骨架占位的高光底色。位移与画刷都在绘制期构造，组合期只透传颜色。
- */
+/** 骨架占位的高光底色。位移与画刷都在绘制期构造，组合期只透传颜色。 */
 private fun Modifier.shimmerPlaceholder(
     shimmer: State<Float>,
     base: Color,
@@ -105,11 +101,11 @@ private fun Modifier.shimmerPlaceholder(
 }
 
 /**
- * 信息流卡片的骨架占位。
+ * 首页信息流卡片的骨架占位。
  *
- * 结构刻意与 [FeedCard] 的官方版式一致（两行标题 / 摘要 + 右侧缩略图 / 底部作者行），
- * 这样加载完成时不会发生跳版。旧的「16:9 通栏封面」版式对应早已下线的 M3 Expressive 卡片，
- * 与真实卡片从未对齐过，加载完成会整卡跳版。
+ * 结构与 [ContentFeedCard] 的官方版式逐段同构：标题 2 行 → 作者行 → 摘要 3 行 → 138dp 图片区
+ * → 操作行，因此加载完成时不会跳版。左右 16dp 内边距由调用方（`PaginatedList`）统一给出，
+ * 这里只负责卡片内部的垂直节奏。
  */
 @Composable
 fun ZhihuSkeletonCard(
@@ -118,47 +114,45 @@ fun ZhihuSkeletonCard(
     val shimmer = rememberShimmerOffset()
     val shimmerBase = MaterialTheme.colorScheme.surfaceContainerHighest
     val shimmerHighlight = MaterialTheme.colorScheme.surfaceContainerLow
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = ZhihuShapeTokens.FeedCard,
-        colors = CardDefaults.cardColors(containerColor = zhihuSurfaces.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 13.dp, bottom = 14.dp),
     ) {
-        Column(modifier = Modifier.padding(ZhihuSpacing.Medium)) {
-            SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(0.92f), height = 20)
-            Spacer(Modifier.height(ZhihuSpacing.Small))
-            SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(0.58f), height = 20)
-            Spacer(Modifier.height(ZhihuSpacing.Medium))
-            Row {
-                Column(modifier = Modifier.weight(1f)) {
-                    SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(), height = 14)
-                    Spacer(Modifier.height(ZhihuSpacing.Small))
-                    SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(0.92f), height = 14)
-                    Spacer(Modifier.height(ZhihuSpacing.Small))
-                    SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(0.68f), height = 14)
-                }
-                Spacer(Modifier.width(ZhihuSpacing.Medium))
-                Box(
-                    modifier = Modifier
-                        .size(width = ZhihuSizes.FeedThumbnailWidth, height = ZhihuSizes.FeedThumbnailHeight)
-                        .clip(ZhihuShapeTokens.Thumbnail)
-                        .shimmerPlaceholder(shimmer, shimmerBase, shimmerHighlight),
-                )
-            }
-            Spacer(Modifier.height(ZhihuSpacing.Medium))
-            // 底部作者行：头像 + 名字，右侧预留赞同/评论计数。
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(ZhihuSizes.AvatarSmall)
-                        .clip(CircleShape)
-                        .shimmerPlaceholder(shimmer, shimmerBase, shimmerHighlight),
-                )
-                Spacer(Modifier.width(ZhihuSpacing.Small))
-                SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.width(72.dp), height = 12)
-                Spacer(Modifier.weight(1f))
-                SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.width(96.dp), height = 12)
-            }
+        SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(0.94f), 18.dp)
+        Spacer(Modifier.height(6.dp))
+        SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(0.62f), 18.dp)
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(ZhihuSizes.FeedAvatarSize)
+                    .clip(CircleShape)
+                    .shimmerPlaceholder(shimmer, shimmerBase, shimmerHighlight),
+            )
+            Spacer(Modifier.width(ZhihuSpacing.Small))
+            SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.width(72.dp), 14.dp)
+        }
+        Spacer(Modifier.height(8.dp))
+        repeat(3) {
+            SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.fillMaxWidth(), 15.dp)
+            Spacer(Modifier.height(6.dp))
+        }
+        Spacer(Modifier.height(2.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ZhihuSizes.FeedImageHeight)
+                .clip(ZhihuShapeTokens.Thumbnail)
+                .shimmerPlaceholder(shimmer, shimmerBase, shimmerHighlight),
+        )
+        Spacer(Modifier.height(ZhihuSpacing.Small))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.width(52.dp), 20.dp)
+            Spacer(Modifier.width(ZhihuSpacing.Large))
+            SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.width(52.dp), 20.dp)
+            Spacer(Modifier.width(ZhihuSpacing.Large))
+            SkeletonBar(shimmer, shimmerBase, shimmerHighlight, Modifier.width(52.dp), 20.dp)
         }
     }
 }
@@ -168,13 +162,13 @@ private fun SkeletonBar(
     shimmer: State<Float>,
     base: Color,
     highlight: Color,
-    width: Modifier,
-    height: Int,
+    modifier: Modifier,
+    height: Dp,
 ) {
     Box(
-        modifier = width
-            .height(height.dp)
-            .clip(RoundedCornerShape(6.dp))
+        modifier = modifier
+            .height(height)
+            .clip(RoundedCornerShape(4.dp))
             .shimmerPlaceholder(shimmer, base, highlight),
     )
 }

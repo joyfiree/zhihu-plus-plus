@@ -88,6 +88,7 @@ import com.github.zly2006.zhihu.navigation.Home
 import com.github.zly2006.zhihu.navigation.HotList
 import com.github.zly2006.zhihu.navigation.LocalNavigator
 import com.github.zly2006.zhihu.navigation.MyCollections
+import com.github.zly2006.zhihu.navigation.NotificationTab
 import com.github.zly2006.zhihu.navigation.OnlineHistory
 import com.github.zly2006.zhihu.navigation.TopLevelDestination
 import com.github.zly2006.zhihu.platform.isAnswerSwipeSupported
@@ -171,6 +172,7 @@ private val topLevelDestinationsInOrder: List<Pair<String, TopLevelDestination>>
     Home.name to Home,
     Follow.name to Follow,
     HotList.name to HotList,
+    NotificationTab.name to NotificationTab,
     Daily.name to Daily,
     OnlineHistory.name to OnlineHistory,
     MyCollections.name to MyCollections,
@@ -194,15 +196,24 @@ internal fun resolveValidStartDestinationKey(
 /**
  * 底栏默认项目。
  *
- * 产品设计稿规定底栏只有「首页 / 我的」两项：关注与日报作为首页内的分类 Tab 存在，
- * 消息入口在搜索区，创作入口在「我的」页。桌面端不限制数量时仍展示全部入口。
+ * 对齐官方 11.14 的五个槽位：首页 / 热榜 / ＋（发布，非 tab）/ 消息 / 我的。
+ * 桌面端不限制数量时仍展示全部入口。
  */
 internal fun defaultBottomBarSelectionKeys(
     maximumSelection: Int? = 5,
 ): Set<String> = if (maximumSelection == null) {
-    linkedSetOf(Home.name, Follow.name, HotList.name, Daily.name, OnlineHistory.name, MyCollections.name, Account.name)
+    linkedSetOf(
+        Home.name,
+        Follow.name,
+        HotList.name,
+        NotificationTab.name,
+        Daily.name,
+        OnlineHistory.name,
+        MyCollections.name,
+        Account.name,
+    )
 } else {
-    linkedSetOf(Home.name, Account.name)
+    linkedSetOf(Home.name, HotList.name, NotificationTab.name, Account.name)
 }
 
 internal fun normalizeBottomBarSelection(
@@ -509,7 +520,7 @@ fun AppearanceSettingsScreen(
                         initialColor = luotianYiColor,
                         presetColors = listOf(
                             Color(0xFF66CCFF),
-                            Color(0xFF056DE8),
+                            Color(0xFF1772F6),
                             Color(0xFF4CAF50),
                             Color(0xFFF44336),
                             Color(0xFFFF9800),
@@ -548,7 +559,7 @@ fun AppearanceSettingsScreen(
                         title = "选择背景颜色",
                         initialColor = backgroundColor,
                         presetColors = listOfNotNull(
-                            Color(if (currentIsDarkTheme) 0xFF121212.toInt() else 0xFFFFFFFF.toInt()),
+                            Color(if (currentIsDarkTheme) 0xFF191B1F.toInt() else 0xFFFFFFFF.toInt()),
                             MaterialTheme.colorScheme.surfaceContainer,
                             if (ThemeManager.isDarkTheme()) Color.Black else null,
                         ),
@@ -1027,6 +1038,7 @@ fun AppearanceSettingsScreen(
                 Home.name to "主页",
                 Follow.name to "关注",
                 HotList.name to "热榜",
+                NotificationTab.name to "消息",
                 Daily.name to "日报",
                 OnlineHistory.name to "历史",
                 MyCollections.name to "收藏夹",

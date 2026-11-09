@@ -27,33 +27,46 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.ThumbDown
-import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -63,36 +76,56 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.data.DataHolder
+import com.github.zly2006.zhihu.data.OfficialBadge
 import com.github.zly2006.zhihu.data.VoteUpState
+import com.github.zly2006.zhihu.data.officialBadge
 import com.github.zly2006.zhihu.markdown.RenderMarkdown
 import com.github.zly2006.zhihu.theme.ZhihuTypography
+import com.github.zly2006.zhihu.ui.AnswerEndorsementChip
 import com.github.zly2006.zhihu.ui.designsystem.ContentFirstColors
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.util.formatCompactCount
 import com.github.zly2006.zhihu.util.formatFullDateTime
+import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.painterResource
+import zhihu.shared.generated.resources.Res
+import zhihu.shared.generated.resources.ic_vote_down_24dp
+import zhihu.shared.generated.resources.ic_vote_up_24dp
 
 const val ANSWER_CARD_TAG_PREFIX = "answer_card"
 const val ANSWER_CARD_EXPAND_TAG_PREFIX = "answer_card_expand"
 const val ANSWER_CARD_CONTENT_TAG_PREFIX = "answer_card_content"
 
-/** 长回答的收起高度：产品设计稿规定内容区最高为屏幕可视高度的 0.618（黄金比）。 */
-private const val COLLAPSED_VIEWPORT_RATIO = 0.618f
+/** 作者行高度（官方实测 47.6dp）。 */
+private val AnswerAuthorRowHeight = 47.6.dp
 
-/** 截断处的渐隐高度：足够让最后一行自然消失，又不会吃掉太多正文。 */
-private val CollapseFadeHeight = 64.dp
+/** 「N 人赞同了该回答」行高度（官方实测 28.6dp）。 */
+private val AnswerVoteLineHeight = 28.6.dp
 
-/** 展开 / 收起动画时长（产品设计稿 §2.3.1 建议 300ms）。 */
+/** 截断处渐变遮罩高度（target-spec §3.3 ⑤：24dp）。 */
+private val CollapseFadeHeight = 24.dp
+
+/** 「欢迎参与讨论」胶囊宽度（官方实测 132dp，高度取 [ZhihuSizes.DiscussPillHeight]）。 */
+private val DiscussPillWidth = 132.dp
+
+/** 展开 / 收起动画时长（target-spec §3.3 ⑤：250–300ms）。 */
 private const val EXPAND_ANIMATION_MILLIS = 300
 
+/** 分享图标的触控区域（视觉 24dp，见 target-spec §3.3 ①）。 */
+private val ShareTouchTarget = 40.dp
+
+/** 热评卡圆角（target-spec §3.3 ⑧：8dp）。 */
+private val HotCommentCornerRadius = 8.dp
+
 /**
- * 回答瀑布流中的单条回答卡片（产品设计稿 §2.2）。
+ * 回答瀑布流中的单条回答卡（target-spec §3.3）。
  *
- * 这是一张逻辑卡片：不画边框、不设底色，与邻居之间只用通栏分割线分界，自上而下依次是
- * 作者行 → 内容区（0.618 屏截断）→ 尾注（时间 · IP 属地）→ 操作栏 → 条件热评。
- *
- * 与回答详情页的分工：这里不做「关注作者 / 分享 / N 人赞同了该回答」这类元信息，
- * 操作栏也只用线性图标 + 数字，视觉上退到正文之后。
+ * 官方 11.14 的回答卡是「扁平连续列表」中的一段：作者行 → 赞同行 → 收录 chip → 正文（0.618 屏后截断）
+ * → 元信息 → 48dp 操作行 → 可选热评卡，卡片之间用通栏发丝线 + 16dp 留白分界，不画卡片底色。
+ * 正文默认 17sp / 24dp 行高，与阅读设置解耦但设置仍可覆盖。
  */
 @Composable
 fun AnswerWaterfallCard(
@@ -101,10 +134,12 @@ fun AnswerWaterfallCard(
     answer: DataHolder.Answer?,
     fallbackAuthorName: String?,
     fallbackAuthorAvatar: String?,
+    fallbackAuthorBadge: DataHolder.BadgeV2?,
     fallbackSummary: String?,
     voteUpState: VoteUpState,
     voteUpCount: Int,
     isFavorited: Boolean,
+    isAuthorFollowed: Boolean,
     hotComment: DataHolder.Comment?,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
@@ -112,18 +147,27 @@ fun AnswerWaterfallCard(
     onVoteDown: () -> Unit,
     onFavorite: () -> Unit,
     onComment: () -> Unit,
+    onShare: () -> Unit,
+    onFollowAuthor: () -> Unit,
     onHotCommentClick: () -> Unit,
     onAuthorClick: () -> Unit,
+    onActionRowPositionChanged: (topPx: Float, bottomPx: Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = contentFirstColors
     val screenHeightPx = LocalWindowInfo.current.containerSize.height
-    val collapsedLimitPx = (screenHeightPx * COLLAPSED_VIEWPORT_RATIO).toInt()
-    val authorName = answer?.author?.name ?: fallbackAuthorName
-    val avatarSrc = answer?.author?.avatarUrl ?: fallbackAuthorAvatar
-    val signature = answer?.author?.headline.orEmpty()
-    val html = answer?.content
-    val plainText = fallbackSummary
+    val collapsedLimitPx = (screenHeightPx * ZhihuSizes.ANSWER_COLLAPSED_HEIGHT_RATIO).toInt()
+    val author = answer?.author
+    val endorsements = answer?.endorsementItems.orEmpty()
+    val meta = answer?.let { loaded ->
+        buildString {
+            append(formatFullDateTime(loaded.createdTime).substringBeforeLast(':'))
+            loaded.ipInfo?.takeIf { it.isNotBlank() }?.let {
+                append(" · ")
+                append(it)
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -131,69 +175,73 @@ fun AnswerWaterfallCard(
             .testTag("$ANSWER_CARD_TAG_PREFIX:$itemStableKey"),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = ZhihuSpacing.ScreenGutter)) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(ZhihuSpacing.Large))
             AnswerAuthorRow(
-                avatarSrc = avatarSrc,
-                authorName = authorName,
-                signature = signature,
+                avatarSrc = author?.avatarUrl ?: fallbackAuthorAvatar,
+                authorName = author?.name ?: fallbackAuthorName,
+                signature = author?.headline.orEmpty(),
+                badge = (author?.badgeV2 ?: fallbackAuthorBadge)?.officialBadge(),
                 colors = colors,
-                onClick = onAuthorClick,
+                isFollowed = isAuthorFollowed,
+                showFollow = author != null,
+                onFollow = onFollowAuthor,
+                onShare = onShare,
+                onAuthorClick = onAuthorClick,
             )
-            Spacer(Modifier.height(12.dp))
-
+            if (voteUpCount > 0) {
+                AnswerVoteSummary(voteUpCount = voteUpCount, colors = colors)
+            }
+            if (endorsements.isNotEmpty()) {
+                Spacer(Modifier.height(ZhihuSpacing.Small))
+                Row(horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.Small)) {
+                    endorsements.take(2).forEach { endorsement ->
+                        AnswerEndorsementChip(endorsement = endorsement)
+                    }
+                }
+            }
+            Spacer(Modifier.height(ZhihuSpacing.Small))
             CollapsibleAnswerBody(
                 contentKey = itemStableKey,
                 answerId = answerId,
-                html = html,
-                plainText = plainText,
+                html = answer?.content,
+                plainText = fallbackSummary,
                 isExpanded = isExpanded,
                 collapsedLimitPx = collapsedLimitPx,
-                oneScreenPx = screenHeightPx,
                 colors = colors,
                 onToggleExpand = onToggleExpand,
             )
-
-            answer?.let { loaded ->
-                Spacer(Modifier.height(10.dp))
+            if (meta != null) {
+                Spacer(Modifier.height(ZhihuSpacing.Small))
                 Text(
-                    text = buildString {
-                        append(formatFullDateTime(loaded.createdTime).substringBefore(' '))
-                        loaded.ipInfo?.takeIf { it.isNotBlank() }?.let {
-                            append(" · IP 属地")
-                            append(it)
-                        }
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.secondaryText,
+                    text = meta,
+                    style = ZhihuTypography.AnswerMeta,
+                    color = colors.tertiaryText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(ZhihuSpacing.Small))
             AnswerActionRow(
+                answerId = answerId,
                 voteUpState = voteUpState,
                 voteUpCount = voteUpCount,
                 isFavorited = isFavorited,
                 commentCount = answer?.commentCount ?: 0,
                 colors = colors,
-                answerId = answerId,
                 onVoteUp = onVoteUp,
                 onVoteDown = onVoteDown,
                 onFavorite = onFavorite,
                 onComment = onComment,
+                onShare = onShare,
+                onActionRowPositionChanged = onActionRowPositionChanged,
             )
-            Spacer(Modifier.height(12.dp))
-
             hotComment?.let { comment ->
-                // 点热评 = 看这条回答的评论区，与操作栏的评论按钮同一入口。
-                AnswerHotComment(
-                    comment = comment,
-                    colors = colors,
-                    onClick = onHotCommentClick,
-                )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(ZhihuSpacing.Medium))
+                AnswerHotComment(comment = comment, colors = colors, onClick = onHotCommentClick)
             }
+            Spacer(Modifier.height(ZhihuSpacing.Large))
         }
-        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+        HorizontalDivider(thickness = ZhihuSizes.DividerThickness, color = colors.divider)
     }
 }
 
@@ -202,57 +250,150 @@ private fun AnswerAuthorRow(
     avatarSrc: String?,
     authorName: String?,
     signature: String,
+    badge: OfficialBadge?,
     colors: ContentFirstColors,
-    onClick: () -> Unit,
+    isFollowed: Boolean,
+    showFollow: Boolean,
+    onFollow: () -> Unit,
+    onShare: () -> Unit,
+    onAuthorClick: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, enabled = !authorName.isNullOrBlank(), onClick = onClick),
+        modifier = Modifier.fillMaxWidth().heightIn(min = AnswerAuthorRowHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (!avatarSrc.isNullOrBlank()) {
-            ZhihuNetworkImage(
-                model = avatarSrc,
-                contentDescription = "作者头像",
-                modifier = Modifier.size(32.dp).clip(CircleShape),
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(colors.functionalSurface),
-            )
-        }
-        Spacer(Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = authorName.orEmpty(),
-                style = ZhihuTypography.ContentAuthor,
-                color = colors.primaryText,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (signature.isNotBlank()) {
-                Text(
-                    text = signature,
-                    style = ZhihuTypography.ContentSignature,
-                    color = colors.secondaryText,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        Row(
+            modifier = Modifier.weight(1f).clickable(role = Role.Button, onClick = onAuthorClick),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Avatar(avatarSrc = avatarSrc, colors = colors)
+            Spacer(Modifier.width(ZhihuSpacing.Small))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = authorName.orEmpty(),
+                        style = ZhihuTypography.ContentAuthor,
+                        color = colors.primaryText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (badge != null) {
+                        Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+                        AuthorBadge(badge = badge)
+                    }
+                }
+                if (signature.isNotBlank()) {
+                    Text(
+                        text = signature,
+                        style = ZhihuTypography.ContentSignature,
+                        color = colors.tertiaryText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
+        }
+        if (showFollow) {
+            Spacer(Modifier.width(ZhihuSpacing.Small))
+            FollowPill(isFollowed = isFollowed, onClick = onFollow)
+        }
+        Box(
+            modifier = Modifier
+                .size(ShareTouchTarget)
+                .clickable(role = Role.Button, onClick = onShare)
+                .semantics { contentDescription = "分享回答" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Share,
+                contentDescription = null,
+                tint = colors.secondaryText,
+                modifier = Modifier.size(ZhihuSizes.Icon),
+            )
         }
     }
 }
 
+/** 未关注：品牌蓝文字 + 12% 蓝底；已关注：次要文字 + 功能底（target-spec §3.3 ①）。 */
+@Composable
+internal fun FollowPill(
+    isFollowed: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = contentFirstColors
+    Row(
+        modifier = modifier
+            .width(ZhihuSizes.FollowPillWidth)
+            .height(ZhihuSizes.FollowPillHeight)
+            .clip(ZhihuShapeTokens.Pill)
+            .background(if (isFollowed) colors.functionalSurface else colors.accent.copy(alpha = 0.12f))
+            .clickable(role = Role.Button, onClick = onClick),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (!isFollowed) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = null,
+                tint = colors.accent,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+        Text(
+            text = if (isFollowed) "已关注" else "关注",
+            style = ZhihuTypography.FeedMeta,
+            color = if (isFollowed) colors.secondaryText else colors.accent,
+        )
+    }
+}
+
+@Composable
+private fun Avatar(avatarSrc: String?, colors: ContentFirstColors) {
+    if (!avatarSrc.isNullOrBlank()) {
+        ZhihuNetworkImage(
+            model = avatarSrc,
+            contentDescription = "作者头像",
+            modifier = Modifier.size(ZhihuSizes.AnswerAvatarSize).clip(CircleShape),
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(ZhihuSizes.AnswerAvatarSize)
+                .clip(CircleShape)
+                .background(colors.functionalSurface),
+        )
+    }
+}
+
+@Composable
+private fun AnswerVoteSummary(voteUpCount: Int, colors: ContentFirstColors) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(AnswerVoteLineHeight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "${formatCompactCount(voteUpCount).replace(" ", "")} 人赞同了该回答",
+            style = ZhihuTypography.AnswerVoteLine,
+            color = colors.tertiaryText,
+            maxLines = 1,
+        )
+        Spacer(Modifier.width(2.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = colors.tertiaryText,
+            modifier = Modifier.size(10.dp),
+        )
+    }
+}
+
 /**
- * 可折叠的回答正文。
+ * 可折叠的回答正文（target-spec §3.3 ④⑤）。
  *
- * 只有「完整高度超过一屏」的回答才截断到 [collapsedLimitPx]：完整高度在一屏以内的短回答直接铺满，
- * 不出现「展开」。展开 / 收起用 `animateContentSize` 驱动 300ms 的高度过渡（产品设计稿 §2.3.1），
- * 因此截断点不会硬切；内容尺寸在测量阶段就能得到，首帧不会先铺满再收起。
+ * 完整高度超过 [collapsedLimitPx] 时截断到 0.618 屏，右下角压渐变遮罩 + 「展开 ⌄」；
+ * 展开后文末出现「收起 ⌃」。高度变化用 [animateContentSize] 驱动 300ms 过渡。
  */
 @Composable
 private fun CollapsibleAnswerBody(
@@ -262,10 +403,19 @@ private fun CollapsibleAnswerBody(
     plainText: String?,
     isExpanded: Boolean,
     collapsedLimitPx: Int,
-    oneScreenPx: Int,
     colors: ContentFirstColors,
     onToggleExpand: () -> Unit,
 ) {
+    // 收起时把「展开」按钮带回视口附近（官方行为：收起后停在该回答的截断处而不是跳回顶部）。
+    val collapseAnchor = remember(contentKey) { BringIntoViewRequester() }
+    var wasExpanded by remember(contentKey) { mutableStateOf(isExpanded) }
+    LaunchedEffect(isExpanded) {
+        if (wasExpanded && !isExpanded) {
+            delay(EXPAND_ANIMATION_MILLIS + 32L)
+            collapseAnchor.bringIntoView()
+        }
+        wasExpanded = isExpanded
+    }
     SubcomposeLayout(
         modifier = Modifier
             .fillMaxWidth()
@@ -280,24 +430,70 @@ private fun CollapsibleAnswerBody(
                     modifier = Modifier.testTag("$ANSWER_CARD_CONTENT_TAG_PREFIX:${answerId ?: contentKey}"),
                     enableScroll = false,
                     selectable = true,
+                    bodyTextStyle = ZhihuTypography.AnswerBody,
                 )
             } else {
                 Text(
                     text = plainText.orEmpty(),
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = ZhihuTypography.AnswerBody,
                     color = colors.primaryText,
                 )
             }
         }.first().measure(looseConstraints)
-        val needsCollapse = bodyPlaceable.height > oneScreenPx
+        val needsCollapse = bodyPlaceable.height > collapsedLimitPx
+        val togglePlaceable = if (needsCollapse) {
+            subcompose("answer_toggle") {
+                if (isExpanded) {
+                    Row(
+                        modifier = Modifier
+                            .clickable(role = Role.Button, onClick = onToggleExpand)
+                            .testTag("$ANSWER_CARD_EXPAND_TAG_PREFIX:${answerId ?: contentKey}")
+                            .padding(start = ZhihuSpacing.Small, top = ZhihuSpacing.ExtraSmall),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(text = "收起", style = ZhihuTypography.AnswerVoteLine, color = colors.accent)
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardArrowUp,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                } else {
+                    // 「展开」压一层横向渐变：官方把按钮放在正文最后一行的右侧，文字从按钮处淡出而不是被硬切。
+                    val overlayBackground = Brush.horizontalGradient(
+                        listOf(Color.Transparent, colors.fadeMask, colors.fadeMask),
+                    )
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp))
+                            .background(overlayBackground)
+                            .bringIntoViewRequester(collapseAnchor)
+                            .clickable(role = Role.Button, onClick = onToggleExpand)
+                            .testTag("$ANSWER_CARD_EXPAND_TAG_PREFIX:${answerId ?: contentKey}")
+                            .padding(start = ZhihuSpacing.Large, end = ZhihuSpacing.ExtraSmall, top = 2.dp, bottom = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(text = "展开", style = ZhihuTypography.AnswerVoteLine, color = colors.accent)
+                        Icon(
+                            imageVector = Icons.Filled.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = colors.accent,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            }.first().measure(looseConstraints)
+        } else {
+            null
+        }
+        val endToggleHeightPx = if (needsCollapse && isExpanded) togglePlaceable?.height ?: 0 else 0
         val layoutHeight = if (needsCollapse && !isExpanded) {
             collapsedLimitPx.coerceAtMost(bodyPlaceable.height)
         } else {
-            bodyPlaceable.height
+            bodyPlaceable.height + endToggleHeightPx
         }
-        val fadeHeightPx = CollapseFadeHeight.roundToPx()
-        val showCollapsedDecorations = needsCollapse && !isExpanded
-        val fadePlaceable = if (showCollapsedDecorations) {
+        val fadePlaceable = if (needsCollapse && !isExpanded) {
             subcompose("answer_fade") {
                 Box(
                     modifier = Modifier
@@ -305,7 +501,7 @@ private fun CollapsibleAnswerBody(
                         .height(CollapseFadeHeight)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Transparent, colors.fadeMask.copy(alpha = 0.9f), colors.fadeMask),
+                                listOf(Color.Transparent, colors.fadeMask.copy(alpha = 0.86f), colors.fadeMask),
                             ),
                         ),
                 )
@@ -313,194 +509,236 @@ private fun CollapsibleAnswerBody(
         } else {
             null
         }
-        val expandPlaceable = if (showCollapsedDecorations) {
-            subcompose("answer_expand") {
-                Row(
-                    modifier = Modifier
-                        .clickable(role = Role.Button, onClick = onToggleExpand)
-                        .testTag("$ANSWER_CARD_EXPAND_TAG_PREFIX:${answerId ?: contentKey}")
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "展开",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = colors.accent,
-                    )
-                    Icon(
-                        imageVector = Icons.Filled.ExpandMore,
-                        contentDescription = null,
-                        tint = colors.accent,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }.first().measure(looseConstraints)
-        } else {
-            null
-        }
         layout(width = constraints.maxWidth, height = layoutHeight) {
             bodyPlaceable.place(0, 0)
-            fadePlaceable?.place(0, (layoutHeight - fadeHeightPx).coerceAtLeast(0))
-            expandPlaceable?.place(0, (layoutHeight - expandPlaceable.height).coerceAtLeast(0))
+            fadePlaceable?.place(0, (layoutHeight - fadePlaceable.height).coerceAtLeast(0))
+            togglePlaceable?.place(
+                x = (constraints.maxWidth - togglePlaceable.width).coerceAtLeast(0),
+                y = if (isExpanded) bodyPlaceable.height else (layoutHeight - togglePlaceable.height).coerceAtLeast(0),
+            )
         }
     }
 }
 
-/**
- * 操作栏（§2.2 ⑤）：赞同 / 点踩 / 收藏 / 评论，四个按钮居左等间距。
- *
- * 数字以小字号排在图标上方（§2.6「数字以小字号悬于图标右上角」），点赞态只把描边变主题蓝、不加底色。
- */
+/** 回答操作行（target-spec §3.3 ⑦）：讨论胶囊 + 赞同/反对/收藏/评论/分享 五组等宽图标。 */
 @Composable
 private fun AnswerActionRow(
+    answerId: Long?,
     voteUpState: VoteUpState,
     voteUpCount: Int,
     isFavorited: Boolean,
     commentCount: Int,
     colors: ContentFirstColors,
-    answerId: Long?,
     onVoteUp: () -> Unit,
     onVoteDown: () -> Unit,
     onFavorite: () -> Unit,
     onComment: () -> Unit,
+    onShare: () -> Unit,
+    onActionRowPositionChanged: (topPx: Float, bottomPx: Float) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(28.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(ZhihuSizes.AnswerActionRowHeight)
+            .onGloballyPositioned { coordinates ->
+                val bounds = coordinates.boundsInWindow()
+                onActionRowPositionChanged(bounds.top, bounds.bottom)
+            },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AnswerActionButton(
-            icon = Icons.Outlined.ThumbUp,
+        DiscussPill(onClick = onComment, colors = colors)
+        Spacer(Modifier.width(ZhihuSpacing.Small))
+        AnswerActionGroup(
+            modifier = Modifier.weight(1f),
             count = voteUpCount,
-            tint = if (voteUpState == VoteUpState.Up) colors.accent else colors.secondaryText,
             label = "赞同",
             tag = "answer_action_vote_up:${answerId ?: 0}",
+            tint = if (voteUpState == VoteUpState.Up) colors.liked else colors.tertiaryText,
             onClick = onVoteUp,
-        )
-        AnswerActionButton(
-            icon = Icons.Outlined.ThumbDown,
+        ) {
+            VoteIcon(up = true)
+        }
+        AnswerActionGroup(
+            modifier = Modifier.weight(1f),
             count = null,
-            tint = if (voteUpState == VoteUpState.Down) colors.accent else colors.secondaryText,
-            label = "点踩",
+            label = "反对",
             tag = "answer_action_vote_down:${answerId ?: 0}",
+            tint = if (voteUpState == VoteUpState.Down) colors.liked else colors.tertiaryText,
             onClick = onVoteDown,
-        )
-        AnswerActionButton(
-            icon = Icons.Outlined.BookmarkBorder,
+        ) {
+            VoteIcon(up = false)
+        }
+        AnswerActionGroup(
+            modifier = Modifier.weight(1f),
             count = null,
-            tint = if (isFavorited) colors.accent else colors.secondaryText,
             label = "收藏",
             tag = "answer_action_favorite:${answerId ?: 0}",
+            tint = if (isFavorited) colors.favorited else colors.tertiaryText,
             onClick = onFavorite,
-        )
-        AnswerActionButton(
-            icon = Icons.Outlined.ChatBubbleOutline,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.StarBorder,
+                contentDescription = null,
+                modifier = Modifier.size(ZhihuSizes.AnswerActionIconSize),
+            )
+        }
+        AnswerActionGroup(
+            modifier = Modifier.weight(1f),
             count = commentCount,
-            tint = colors.secondaryText,
             label = "评论",
             tag = "answer_action_comment:${answerId ?: 0}",
+            tint = colors.tertiaryText,
             onClick = onComment,
-        )
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.ChatBubbleOutline,
+                contentDescription = null,
+                modifier = Modifier.size(ZhihuSizes.AnswerActionIconSize),
+            )
+        }
+        AnswerActionGroup(
+            modifier = Modifier.weight(1f),
+            count = null,
+            label = "分享",
+            tag = "answer_action_share:${answerId ?: 0}",
+            tint = colors.tertiaryText,
+            onClick = onShare,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Share,
+                contentDescription = null,
+                modifier = Modifier.size(ZhihuSizes.AnswerActionIconSize),
+            )
+        }
     }
 }
 
+/**
+ * 操作行的单组图标（数字在上、图标在下）。
+ *
+ * [tint] 同时用于数字与图标：图标通过 `LocalContentColor` 继承，避免每个调用点重复传色。
+ */
 @Composable
-private fun AnswerActionButton(
-    icon: ImageVector,
+internal fun AnswerActionGroup(
     count: Int?,
-    tint: Color,
     label: String,
     tag: String,
+    tint: Color,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
+            .fillMaxHeight()
             .clickable(role = Role.Button, onClick = onClick)
             .testTag(tag)
-            .semantics { contentDescription = if (count != null) "$label $count" else label }
-            .padding(vertical = 2.dp),
+            .semantics {
+                contentDescription = if (count != null) "$label ${formatCompactCount(count)}" else label
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
         if (count != null) {
             Text(
                 text = formatCompactCount(count).replace(" ", ""),
-                style = MaterialTheme.typography.labelSmall,
+                style = ZhihuTypography.ActionCount,
                 color = tint,
+                maxLines = 1,
             )
+        } else {
+            Spacer(Modifier.height(16.dp))
         }
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(22.dp),
+        CompositionLocalProvider(LocalContentColor provides tint) {
+            content()
+        }
+    }
+}
+
+/** 赞同 / 反对图标沿用官方三角描边矢量；颜色继承 [androidx.compose.material3.LocalContentColor]。 */
+@Composable
+internal fun VoteIcon(up: Boolean) {
+    Icon(
+        painter = painterResource(if (up) Res.drawable.ic_vote_up_24dp else Res.drawable.ic_vote_down_24dp),
+        contentDescription = null,
+        modifier = Modifier.size(ZhihuSizes.AnswerActionIconSize),
+    )
+}
+
+@Composable
+private fun DiscussPill(onClick: () -> Unit, colors: ContentFirstColors) {
+    Box(
+        modifier = Modifier
+            .width(DiscussPillWidth)
+            .height(ZhihuSizes.DiscussPillHeight)
+            .clip(ZhihuShapeTokens.Pill)
+            .background(colors.functionalSurface)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "欢迎参与讨论",
+            style = ZhihuTypography.DiscussPillLabel,
+            color = colors.tertiaryText,
+            maxLines = 1,
         )
     }
 }
 
-/** 热评小卡片（§2.2 ⑥）：有条件展示、最多一条，浅灰底、层级弱于正文，点击进入评论区。 */
+/** 热评卡（target-spec §3.3 ⑧）：功能底 + 8dp 圆角，头像 20dp / 昵称 13sp / 内容 14sp 两行。 */
 @Composable
 private fun AnswerHotComment(
     comment: DataHolder.Comment,
     colors: ContentFirstColors,
     onClick: () -> Unit,
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(HotCommentCornerRadius))
             .background(colors.functionalSurface)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(12.dp),
+            .padding(horizontal = ZhihuSpacing.Medium, vertical = ZhihuSpacing.Small),
     ) {
-        Text(
-            text = "热评",
-            style = MaterialTheme.typography.labelSmall,
-            color = colors.secondaryText,
-        )
-        Spacer(Modifier.height(6.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (comment.author.avatarUrl.isNotBlank()) {
-                ZhihuNetworkImage(
-                    model = comment.author.avatarUrl,
-                    contentDescription = "热评作者头像",
-                    modifier = Modifier.size(18.dp).clip(CircleShape),
-                )
-            }
-            Spacer(Modifier.width(6.dp))
+        if (comment.author.avatarUrl.isNotBlank()) {
+            ZhihuNetworkImage(
+                model = comment.author.avatarUrl,
+                contentDescription = "热评作者头像",
+                modifier = Modifier.size(20.dp).clip(CircleShape),
+            )
+            Spacer(Modifier.width(ZhihuSpacing.Small))
+        }
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = comment.author.name,
-                style = MaterialTheme.typography.labelMedium,
+                style = ZhihuTypography.AnswerMeta,
                 color = colors.primaryText,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = comment.content,
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.primaryText,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.height(6.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.FavoriteBorder,
-                contentDescription = null,
-                tint = colors.secondaryText,
-                modifier = Modifier.size(12.dp),
-            )
-            Spacer(Modifier.width(3.dp))
-            Text(
-                text = formatCompactCount(comment.likeCount).replace(" ", ""),
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.secondaryText,
-            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = comment.content,
+                    style = ZhihuTypography.AnswerVoteLine,
+                    color = colors.secondaryText,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(ZhihuSpacing.Small))
+                Icon(
+                    imageVector = Icons.Outlined.FavoriteBorder,
+                    contentDescription = null,
+                    tint = colors.tertiaryText,
+                    modifier = Modifier.size(12.dp),
+                )
+                Spacer(Modifier.width(2.dp))
+                Text(
+                    text = formatCompactCount(comment.likeCount).replace(" ", ""),
+                    style = ZhihuTypography.ActionCount,
+                    color = colors.tertiaryText,
+                )
+            }
         }
     }
 }

@@ -17,22 +17,12 @@
 
 package com.github.zly2006.zhihu.ui
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -42,49 +32,40 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Comment
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.ThumbDown
-import androidx.compose.material.icons.outlined.ThumbUp
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -92,28 +73,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fleeksoft.ksoup.Ksoup
@@ -129,6 +102,7 @@ import com.github.zly2006.zhihu.data.target
 import com.github.zly2006.zhihu.navigation.Article
 import com.github.zly2006.zhihu.navigation.ArticleType
 import com.github.zly2006.zhihu.navigation.LocalNavigator
+import com.github.zly2006.zhihu.navigation.Login
 import com.github.zly2006.zhihu.navigation.NavDestination
 import com.github.zly2006.zhihu.navigation.Person
 import com.github.zly2006.zhihu.navigation.Question
@@ -139,32 +113,33 @@ import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.platform.rememberZhihuWebUrlOpener
 import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
 import com.github.zly2006.zhihu.theme.ZhihuTypography
+import com.github.zly2006.zhihu.ui.components.AnswerActionGroup
 import com.github.zly2006.zhihu.ui.components.AnswerWaterfallCard
-import com.github.zly2006.zhihu.ui.components.BounceOnChange
 import com.github.zly2006.zhihu.ui.components.CollectionDialogComponent
 import com.github.zly2006.zhihu.ui.components.CommentScreenComponent
 import com.github.zly2006.zhihu.ui.components.FeedPullToRefresh
+import com.github.zly2006.zhihu.ui.components.FollowPill
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
+import com.github.zly2006.zhihu.ui.components.ShareAction
 import com.github.zly2006.zhihu.ui.components.ShareDialog
+import com.github.zly2006.zhihu.ui.components.VoteIcon
 import com.github.zly2006.zhihu.ui.components.ZhihuFilterChip
-import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
+import com.github.zly2006.zhihu.ui.components.ZhihuNetworkImage
 import com.github.zly2006.zhihu.ui.components.cardMetrics
 import com.github.zly2006.zhihu.ui.components.getShareText
-import com.github.zly2006.zhihu.ui.components.handleShareAction
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.rememberShareActionExecutor
-import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
-import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
-import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
-import com.github.zly2006.zhihu.util.formatCompactCount
 import com.github.zly2006.zhihu.util.jsonObject
+import com.github.zly2006.zhihu.util.raiseForStatus
 import com.github.zly2006.zhihu.viewmodel.ContentLoadEnvironment
 import com.github.zly2006.zhihu.viewmodel.addReadHistory
+import com.github.zly2006.zhihu.viewmodel.deleteSigned
 import com.github.zly2006.zhihu.viewmodel.feed.QuestionFeedViewModel
 import com.github.zly2006.zhihu.viewmodel.getOrFetchContentDetail
 import com.github.zly2006.zhihu.viewmodel.postSigned
@@ -180,13 +155,13 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 const val QUESTION_SCREEN_LIST_TAG = "question_screen_list"
 const val QUESTION_TITLE_TAG = "question_title"
 const val QUESTION_DETAIL_TOGGLE_TAG = "question_detail_toggle"
 const val QUESTION_DETAIL_CONTENT_TAG = "question_detail_content"
-const val QUESTION_DETAIL_PREVIEW_TAG = "question_detail_preview"
 const val QUESTION_SORT_DEFAULT_TAG = "question_sort_default"
 const val QUESTION_SORT_UPDATED_TAG = "question_sort_updated"
 const val QUESTION_FOLLOW_BUTTON_TAG = "question_follow_button"
@@ -194,27 +169,19 @@ const val QUESTION_VIEW_LOG_BUTTON_TAG = "question_view_log_button"
 const val QUESTION_SHARE_BUTTON_TAG = "question_share_button"
 const val QUESTION_WRITE_ANSWER_BUTTON_TAG = "question_write_answer_button"
 const val QUESTION_COMMENTS_BUTTON_TAG = "question_comments_button"
-const val QUESTION_IMMERSIVE_BACK_TAG = "question_immersive_back"
-const val QUESTION_IMMERSIVE_TITLE_TAG = "question_immersive_title"
-const val QUESTION_COLLAPSE_FAB_TAG = "question_collapse_fab"
 const val QUESTION_STICKY_ACTIONS_TAG = "question_sticky_actions"
-const val QUESTION_STATS_TAG = "question_stats"
-private const val QUESTION_DETAIL_COLLAPSE_THRESHOLD = 100
-private val QUESTION_DETAIL_COLLAPSED_MAX_HEIGHT: Dp = 180.dp
-private val QUESTION_DETAIL_MASK_HEIGHT: Dp = 88.dp
-private val QUESTION_DETAIL_TOGGLE_ZONE_HEIGHT: Dp = 56.dp
 
-/** 进入沉浸态需要向下阅读的距离（产品设计稿 §2.3.4「下滑阅读一段距离」）。 */
-private val IMMERSIVE_ENTER_DISTANCE = 320.dp
-
-/** 沉浸态上滑时问题标题的停留时长。 */
-private const val IMMERSIVE_TITLE_VISIBLE_MILLIS = 2_000L
-
-/** 热评门槛：点赞数低于此值的评论不进入热评模块（产品设计稿 §2.2 ⑥）。 */
+/** 热评门槛：点赞数低于此值的评论不进入热评模块。 */
 private const val HOT_COMMENT_MIN_LIKES = 10
 
-/** 吸底操作栏与收起按钮的高度，正文底部要按它预留安全边距。 */
-private val StickyActionBarHeight = 56.dp
+/** 顶栏从「无标题」切到「问题标题」的滚动距离。 */
+private val ToolbarTitleThreshold = 160.dp
+
+/** 吸底条左侧作者区宽度（官方实测 132dp）。 */
+private val StickyAuthorAreaWidth = 132.dp
+
+/** 吸底条头像尺寸（官方实测 32dp）。 */
+private val StickyAvatarSize = 32.dp
 
 private suspend fun loadQuestion(
     environment: ContentLoadEnvironment,
@@ -233,22 +200,20 @@ private suspend fun loadQuestion(
 }
 
 /**
- * 回答页（产品设计稿 §二）：问题下的回答瀑布流。
+ * 问题回答页（target-spec §3）：问题头 + 官方连续列表形态的回答卡 + 吸底操作条。
  *
- * 页面三层架构：
- * - 悬浮控件层：沉浸态的左上角返回按钮、上滑时浮现的问题标题；
- * - 内容层：唯一运动层，回答按「分割线 + 作者行 + 正文 + 尾注 + 操作栏 + 热评」连续排列；
- * - 固定操作层：展开某条长回答时吸附在底部的操作栏与右下角「收起」按钮。
+ * 页面是内容优先的单层结构：
+ * - 列表层：问题头 → 回答卡（含作者行、赞同行、正文、元信息、48dp 操作行、热评）连续排列；
+ * - 悬浮层：透明工具栏（返回 / 滚动后问题标题 / 评论 / 日志 / 分享，问题头滚出后出现写回答）；
+ * - 吸底层：当前正在阅读的回答其操作行滚出屏幕后显示 48dp 吸底操作条，
+ *   右下角 36dp「下一篇内容」按钮滚动到下一条回答开头。
  *
- * 长回答的内容区最高为屏幕高度的 0.618（黄金比），截断处渐隐并给出蓝色「展开 ▾」；
- * 展开后操作栏吸底、右下角出现「收起」，收起时回到截断位置。
- *
- * 页面会记录内容打开来源和历史记录，并复用问题的关注、排序、评论与分享入口。
+ * 问题详情在副信息行点击后内联展开；游客阅读上限块只在 [guestReadLimitReached] 为 true 时渲染（业务状态由游客任务提供）。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionScreen(
     question: Question,
+    guestReadLimitReached: Boolean = false,
 ) {
     val colors = contentFirstColors
     val readingPlayerOverlayPadding = LocalReadingPlayerOverlayPadding.current
@@ -274,17 +239,26 @@ fun QuestionScreen(
     var showShareDialog by remember { mutableStateOf(false) }
     var commentsTarget by remember { mutableStateOf<NavDestination?>(null) }
     val userMessages = rememberUserMessageSink()
-    val haptics = rememberHapticController()
-    var isQuestionDetailExpanded by rememberSaveable(question.questionId) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val questionContentPlainText = remember(viewModel.questionDetail?.detail.orEmpty()) {
-        Ksoup.parse(viewModel.questionDetail?.detail.orEmpty()).text().trim()
-    }
-    val shareText = getShareText(question, viewModel.questionDetail?.title ?: question.title)
-    val topBarTitleThresholdPx = with(LocalDensity.current) { 160.dp.roundToPx() }
-    val showTopBarTitle by remember {
+    var isQuestionDetailExpanded by rememberSaveable(question.questionId) { mutableStateOf(false) }
+    var shareContent by remember(question.questionId) { mutableStateOf<NavDestination>(question) }
+    var shareDialogText by remember(question.questionId) { mutableStateOf("") }
+
+    val density = LocalDensity.current
+    val screenHeightPx = LocalWindowInfo.current.containerSize.height
+    val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navigationBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val statusBarPx = with(density) { statusBarPadding.toPx() }
+    val navBarPx = with(density) { navigationBarPadding.toPx() }
+    val toolbarHeightPx = with(density) { ZhihuSizes.AnswerToolbarHeight.toPx() }
+    val stickyBarPx = with(density) { ZhihuSizes.StickyBarHeight.toPx() }
+    val toolbarBottomPx = statusBarPx + toolbarHeightPx
+    val topInsetPx = (statusBarPx + toolbarHeightPx).roundToInt()
+    val toolbarTitleThresholdPx = with(density) { ToolbarTitleThreshold.roundToPx() }
+
+    val showToolbarTitle by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset >= topBarTitleThresholdPx
+            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset >= toolbarTitleThresholdPx
         }
     }
     val pageTurnTarget = rememberPageTurnTarget(
@@ -292,10 +266,8 @@ fun QuestionScreen(
         enabled = !showComments && !showShareDialog,
     )
 
-    // ── 回答瀑布流的页面级状态 ────────────────────────────────────────────────
+    // ── 回答列表状态 ────────────────────────────────────────────────────────
     var expandedAnswerKey by rememberSaveable(question.questionId) { mutableStateOf<String?>(null) }
-    var immersiveTitleVisible by remember { mutableStateOf(false) }
-    var immersiveTitleToken by remember { mutableIntStateOf(0) }
     val answerDetails = remember { mutableStateMapOf<Long, DataHolder.Answer>() }
     val loadedAnswerIds = remember { mutableStateMapOf<Long, Boolean>() }
     val hotComments = remember { mutableStateMapOf<Long, DataHolder.Comment>() }
@@ -303,82 +275,19 @@ fun QuestionScreen(
     val voteStates = remember { mutableStateMapOf<Long, VoteUpState>() }
     val voteCounts = remember { mutableStateMapOf<Long, Int>() }
     val favoritedAnswers = remember { mutableStateMapOf<Long, Boolean>() }
+    val authorFollowStates = remember { mutableStateMapOf<String, Boolean>() }
+    val actionRowBounds = remember { mutableStateMapOf<String, Pair<Float, Float>>() }
     var collectionTargetAnswerId by remember { mutableStateOf<Long?>(null) }
     val answerCollections = remember { mutableStateMapOf<String, Collection>() }
     var collectionsLoadedForAnswer by remember { mutableStateOf<Long?>(null) }
 
-    val density = LocalDensity.current
-    val immersiveEnterPx = with(density) { IMMERSIVE_ENTER_DISTANCE.toPx() }
-    val immersiveScrollState = remember { ImmersiveScrollState() }
-    val immersiveScrollConnection = remember(immersiveEnterPx) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val dy = available.y
-                if (dy == 0f) return Offset.Zero
-                if (dy < 0f) {
-                    // 手指上滑：内容向下阅读，累计到阈值后进入沉浸态。
-                    immersiveScrollState.accumulatedDownPx += -dy
-                    if (!immersiveScrollState.immersive && immersiveScrollState.accumulatedDownPx > immersiveEnterPx) {
-                        immersiveScrollState.immersive = true
-                    }
-                    immersiveScrollState.accumulatedDownPx = immersiveScrollState.accumulatedDownPx.coerceAtMost(immersiveEnterPx * 4)
-                } else {
-                    immersiveScrollState.accumulatedDownPx = (immersiveScrollState.accumulatedDownPx - dy).coerceAtLeast(0f)
-                    if (immersiveScrollState.immersive) {
-                        // 上滑是「想确认自己在哪」的动作：问题标题短暂浮现后自动淡出。
-                        immersiveScrollState.titleRevealToken += 1
-                    }
-                }
-                return Offset.Zero
-            }
-        }
-    }
-    val immersive = immersiveScrollState.immersive
-    LaunchedEffect(immersiveScrollState.titleRevealToken, immersive) {
-        if (!immersive || immersiveScrollState.titleRevealToken == 0) {
-            immersiveTitleVisible = false
-            return@LaunchedEffect
-        }
-        immersiveTitleVisible = true
-        immersiveTitleToken = immersiveScrollState.titleRevealToken
-        kotlinx.coroutines.delay(IMMERSIVE_TITLE_VISIBLE_MILLIS)
-        if (immersiveTitleToken == immersiveScrollState.titleRevealToken) {
-            immersiveTitleVisible = false
-        }
-    }
-    // 回到顶部时自动退出沉浸态，让用户重新看到问题头部。
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 }
-            .collect { atTop ->
-                if (atTop && immersiveScrollState.immersive) {
-                    immersiveScrollState.immersive = false
-                    immersiveScrollState.accumulatedDownPx = 0f
-                }
-            }
-    }
-
-    // 展开态属于「当前正在读的这一条」：这条回答被划出视口（用户已经在读下一条）时自动收起，
-    // 吸底操作栏随之消失，避免出现「内容早划走了，底部还停着上一条的点赞点踩」。
-    LaunchedEffect(listState, expandedAnswerKey, viewModel.displayItems.size) {
-        val key = expandedAnswerKey ?: return@LaunchedEffect
-        val index = viewModel.displayItems.indexOfFirst { it.stableKey == key }
-        if (index < 0) {
-            expandedAnswerKey = null
-            return@LaunchedEffect
-        }
-        // 列表第 0 项是问题头部，回答从第 1 项开始。
-        val listIndex = index + 1
-        snapshotFlow {
-            val visible = listState.layoutInfo.visibleItemsInfo
-            visible.isNotEmpty() && visible.none { it.index == listIndex }
-        }.collect { offscreen ->
-            if (offscreen) expandedAnswerKey = null
-        }
-    }
-
     fun answerIdOf(item: FeedDisplayItem): Long? =
         ((item.feed?.target as? Feed.AnswerTarget)?.id)
             ?: (item.navDestination as? Article)?.takeIf { it.type == ArticleType.Answer }?.id
+
+    fun authorTokenOf(item: FeedDisplayItem, answer: DataHolder.Answer?): String? =
+        answer?.author?.urlToken?.takeIf { it.isNotBlank() }
+            ?: (item.feed?.target as? Feed.AnswerTarget)?.author?.urlToken?.takeIf { it.isNotBlank() }
 
     fun toggleVote(answerId: Long, next: VoteUpState) {
         scope.launch {
@@ -400,6 +309,57 @@ fun QuestionScreen(
         }
     }
 
+    fun toggleAuthorFollow(urlToken: String) {
+        val nextFollowing = !(authorFollowStates[urlToken] ?: false)
+        scope.launch {
+            try {
+                val url = "https://www.zhihu.com/api/v4/members/$urlToken/followers"
+                if (nextFollowing) {
+                    paginationEnvironment.postSigned(url)
+                } else {
+                    paginationEnvironment.deleteSigned(url)
+                }.raiseForStatus()
+                authorFollowStates[urlToken] = nextFollowing
+            } catch (e: Exception) {
+                userMessages.showShortMessage("操作失败: ${e.message}")
+            }
+        }
+    }
+
+    fun openCollectionPicker(answerId: Long) {
+        collectionTargetAnswerId = answerId
+        if (collectionsLoadedForAnswer != answerId) {
+            scope.launch {
+                loadAnswerCollections(paginationEnvironment, answerId).forEach { collection ->
+                    answerCollections[collection.id] = collection
+                }
+                collectionsLoadedForAnswer = answerId
+            }
+        }
+    }
+
+    fun shareDestination(destination: NavDestination, text: String?) {
+        if (text == null) return
+        shareContent = destination
+        shareDialogText = text
+        when (settings.getString("shareActionMode", "ask")) {
+            "copy" -> executeShareAction(ShareAction.CopyLink, destination, text)
+            "share" -> executeShareAction(ShareAction.DirectShare, destination, text)
+            else -> showShareDialog = true
+        }
+    }
+
+    fun answerTitle() = viewModel.questionDetail?.title ?: question.title
+
+    fun shareQuestion() {
+        shareDestination(question, getShareText(question, answerTitle()))
+    }
+
+    fun shareAnswer(answerId: Long, authorName: String?) {
+        val destination = Article(type = ArticleType.Answer, id = answerId)
+        shareDestination(destination, getShareText(destination, answerTitle(), authorName.orEmpty()))
+    }
+
     // 加载问题详情和答案
     LaunchedEffect(question.questionId, viewModel) {
         if (viewModel.displayItems.isEmpty()) {
@@ -418,376 +378,318 @@ fun QuestionScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(colors.page)) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            containerColor = colors.page,
-            topBar = {
-                if (!immersive) {
-                    QuestionTopBar(
-                        title = viewModel.questionDetail?.title ?: question.title,
-                        showTitle = showTopBarTitle,
-                        onNavigateBack = navigator.onNavigateBack,
-                        onOpenLog = {
-                            try {
-                                openZhihuWebUrl("https://www.zhihu.com/question/${question.questionId}/log")
-                            } catch (e: Exception) {
-                                userMessages.showShortMessage("打开日志失败: ${e.message}")
-                            }
-                        },
-                        onShare = {
-                            if (shareText != null) {
-                                handleShareAction(question, settings, executeShareAction) { showShareDialog = true }
-                            }
-                        },
-                        canShare = shareText != null,
-                    )
+    // ── 吸底操作条：判定当前正在阅读的回答及其操作行是否可见 ──────────────────
+    val currentAnswerIndex by remember(listState) {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val viewportStart = info.viewportStartOffset
+            val viewportEnd = info.viewportEndOffset
+            var bestIndex = -1
+            var bestVisible = 0
+            for (item in info.visibleItemsInfo) {
+                // 列表第 0 项是问题头部，回答从第 1 项开始。
+                val displayIndex = item.index - 1
+                if (displayIndex < 0) continue
+                val visible = (minOf(item.offset + item.size, viewportEnd) - maxOf(item.offset, viewportStart)).coerceAtLeast(0)
+                if (visible > bestVisible) {
+                    bestVisible = visible
+                    bestIndex = displayIndex
                 }
-            },
-        ) { innerPadding ->
-            FeedPullToRefresh(
-                viewModel,
-                padding = PaddingValues(top = innerPadding.calculateTopPadding()),
-            ) {
-                PaginatedList(
-                    items = viewModel.displayItems,
-                    onLoadMore = { viewModel.loadMore(paginationEnvironment) },
-                    isEnd = { viewModel.isEnd },
-                    key = { it.stableKey },
-                    listState = listState,
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .nestedScroll(immersiveScrollConnection)
-                        .pageTurnViewportWithGuide(pageTurnTarget)
-                        .testTag(QUESTION_SCREEN_LIST_TAG),
-                    contentPadding = PaddingValues(
-                        bottom = readingPlayerOverlayPadding + if (expandedAnswerKey != null) StickyActionBarHeight else 0.dp,
-                    ),
-                    footer = ProgressIndicatorFooter,
-                    topContent = {
-                        item {
-                            Column {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                                ) {
-                                    QuestionHeaderSection(
-                                        title = viewModel.questionDetail?.title ?: question.title,
-                                        visitCount = viewModel.questionDetail?.visitCount ?: 0,
-                                        commentCount = viewModel.questionDetail?.commentCount ?: 0,
-                                        followerCount = followerCount,
-                                        onShowComments = { showComments = true },
-                                    )
-                                    if (viewModel.questionDetail != null) {
-                                        QuestionAnimatedBodyHeader(
-                                            questionId = question.questionId,
-                                            questionContent = viewModel.questionDetail?.detail.orEmpty(),
-                                            questionContentPlainText = questionContentPlainText,
-                                            topics = viewModel.questionDetail?.topics.orEmpty(),
-                                            onTopicClick = { topic -> navigator.onNavigate(Topic(topic.id, topic.name)) },
-                                            isExpanded = isQuestionDetailExpanded,
-                                            onToggleExpanded = { isQuestionDetailExpanded = !isQuestionDetailExpanded },
-                                            isFollowing = isFollowing,
-                                            onFollowClick = {
-                                                scope.launch {
-                                                    val nextFollowing = !isFollowing
-                                                    viewModel.followQuestion(paginationEnvironment, nextFollowing)
-                                                    // 触觉在状态翻转的同一帧内发出：用户按下与「已关注」的视觉确认同时到达。
-                                                    haptics.confirm()
-                                                    isFollowing = nextFollowing
-                                                    followerCount = (followerCount + if (nextFollowing) 1 else -1).coerceAtLeast(0)
-                                                    userMessages.showShortMessage(if (nextFollowing) "已关注问题" else "已取消关注问题")
-                                                }
-                                            },
-                                            onWriteAnswerClick = {
-                                                navigator.onNavigate(
-                                                    WriteAnswer(
-                                                        questionId = question.questionId,
-                                                        questionTitle = viewModel.questionDetail?.title ?: question.title,
-                                                        questionDetail = viewModel.questionDetail?.detail.orEmpty(),
-                                                    ),
-                                                )
-                                            },
-                                            answerCount = viewModel.questionDetail?.answerCount ?: 0,
-                                            currentSort = viewModel.sortOrder,
-                                            onSortChange = { sortOrder ->
-                                                viewModel.updateSortOrder(sortOrder)
-                                                viewModel.refresh(paginationEnvironment)
-                                            },
-                                        )
-                                    }
-                                }
-                                // 第一条回答之前的分割线（产品设计稿 §2.2 ①），与回答之间的分割线同款。
-                                HorizontalDivider(thickness = 1.dp, color = colors.divider)
-                            }
-                        }
-                    },
-                ) { item ->
-                    val answerId = answerIdOf(item)
-                    val answer = answerId?.let { answerDetails[it] }
-                    val isExpanded = expandedAnswerKey == item.stableKey
-                    val fallbackMetrics = item.cardMetrics
+            }
+            bestIndex
+        }
+    }
+    val currentAnswerItem = viewModel.displayItems.getOrNull(currentAnswerIndex)
+    val currentAnswerId = currentAnswerItem?.let { answerIdOf(it) }
+    val currentAnswer = currentAnswerId?.let { answerDetails[it] }
+    val currentAuthorToken = currentAnswerItem?.let { authorTokenOf(it, currentAnswer) }
+    val stickyAuthorFollowed = currentAuthorToken?.let { authorFollowStates[it] } ?: (currentAnswer?.author?.isFollowing ?: false)
+    val stickyBarVisible by remember(currentAnswerItem) {
+        derivedStateOf {
+            val item = currentAnswerItem ?: return@derivedStateOf false
+            val bounds = actionRowBounds[item.stableKey] ?: return@derivedStateOf false
+            val visibleTop = toolbarBottomPx
+            val visibleBottom = screenHeightPx - navBarPx - stickyBarPx
+            !(bounds.first >= visibleTop && bounds.second <= visibleBottom)
+        }
+    }
+    val hasNextAnswer = currentAnswerIndex >= 0 && currentAnswerIndex < viewModel.displayItems.lastIndex
 
-                    // 可见的回答才拉详情与热评：LazyColumn 只组合视口内的条目，请求量随阅读推进而不是随页数增长。
-                    LaunchedEffect(answerId, item.stableKey) {
-                        val id = answerId ?: return@LaunchedEffect
-                        if (loadedAnswerIds[id] != true) {
-                            loadedAnswerIds[id] = true
-                            (
-                                paginationEnvironment.getOrFetchContentDetail(
-                                    Article(type = ArticleType.Answer, id = id),
-                                ) as? DataHolder.Answer
-                            )?.let { detail ->
-                                answerDetails[id] = detail
-                                voteStates[id] = VoteUpState.from(detail.reaction?.relation?.vote)
-                                voteCounts[id] = detail.voteupCount
+    fun scrollToNextAnswer() {
+        val index = currentAnswerIndex
+        if (index < 0 || index >= viewModel.displayItems.lastIndex) return
+        scope.launch {
+            // +1 是问题头部；负偏移让下一条回答落在悬浮工具栏下方而不是被工具栏压住。
+            listState.animateScrollToItem(index + 2, scrollOffset = -topInsetPx)
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(colors.page)) {
+        FeedPullToRefresh(
+            viewModel = viewModel,
+            padding = PaddingValues(top = statusBarPadding + ZhihuSizes.AnswerToolbarHeight),
+        ) {
+            PaginatedList(
+                items = viewModel.displayItems,
+                onLoadMore = { viewModel.loadMore(paginationEnvironment) },
+                isEnd = { viewModel.isEnd },
+                key = { it.stableKey },
+                listState = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pageTurnViewportWithGuide(pageTurnTarget)
+                    .testTag(QUESTION_SCREEN_LIST_TAG),
+                contentPadding = PaddingValues(
+                    top = statusBarPadding + ZhihuSizes.AnswerToolbarHeight,
+                    bottom = navigationBarPadding + ZhihuSizes.StickyBarHeight + readingPlayerOverlayPadding,
+                ),
+                footer = { state ->
+                    if (guestReadLimitReached) {
+                        GuestAnswerLimitFooter(onClick = { navigator.onNavigate(Login) })
+                    } else {
+                        ProgressIndicatorFooter(state)
+                    }
+                },
+                topContent = {
+                    item(key = "question_header") {
+                        QuestionHeader(
+                            questionId = question.questionId,
+                            title = answerTitle(),
+                            answerCount = viewModel.questionDetail?.answerCount ?: 0,
+                            visitCount = viewModel.questionDetail?.visitCount ?: 0,
+                            followerCount = followerCount,
+                            contentHtml = viewModel.questionDetail?.detail.orEmpty(),
+                            topics = viewModel.questionDetail?.topics.orEmpty(),
+                            isFollowing = isFollowing,
+                            currentSort = viewModel.sortOrder,
+                            isDetailExpanded = isQuestionDetailExpanded,
+                            onToggleDetail = {
+                                val expanding = !isQuestionDetailExpanded
+                                isQuestionDetailExpanded = expanding
+                                if (expanding) {
+                                    // 展开后把问题头滚回顶部，保证刚展开的详情就在工具栏下方可见。
+                                    scope.launch { listState.animateScrollToItem(0) }
+                                }
+                            },
+                            onTopicClick = { topic -> navigator.onNavigate(Topic(topic.id, topic.name)) },
+                            onFollowClick = {
+                                scope.launch {
+                                    val nextFollowing = !isFollowing
+                                    viewModel.followQuestion(paginationEnvironment, nextFollowing)
+                                    isFollowing = nextFollowing
+                                    followerCount = (followerCount + if (nextFollowing) 1 else -1).coerceAtLeast(0)
+                                    userMessages.showShortMessage(if (nextFollowing) "已关注问题" else "已取消关注问题")
+                                }
+                            },
+                            onWriteAnswerClick = {
+                                navigator.onNavigate(
+                                    WriteAnswer(
+                                        questionId = question.questionId,
+                                        questionTitle = answerTitle(),
+                                        questionDetail = viewModel.questionDetail?.detail.orEmpty(),
+                                    ),
+                                )
+                            },
+                            onSortChange = { sortOrder ->
+                                viewModel.updateSortOrder(sortOrder)
+                                viewModel.refresh(paginationEnvironment)
+                            },
+                        )
+                    }
+                },
+            ) { item ->
+                val answerId = answerIdOf(item)
+                val answer = answerId?.let { answerDetails[it] }
+                val authorToken = authorTokenOf(item, answer)
+                val isExpanded = expandedAnswerKey == item.stableKey
+                val fallbackMetrics = item.cardMetrics
+
+                // 可见的回答才拉详情与热评：LazyColumn 只组合视口内的条目，请求量随阅读推进而不是随页数增长。
+                LaunchedEffect(answerId, item.stableKey) {
+                    val id = answerId ?: return@LaunchedEffect
+                    if (loadedAnswerIds[id] != true) {
+                        loadedAnswerIds[id] = true
+                        (
+                            paginationEnvironment.getOrFetchContentDetail(
+                                Article(type = ArticleType.Answer, id = id),
+                            ) as? DataHolder.Answer
+                        )?.let { detail ->
+                            answerDetails[id] = detail
+                            voteStates[id] = VoteUpState.from(detail.reaction?.relation?.vote)
+                            voteCounts[id] = detail.voteupCount
+                            detail.author.urlToken.takeIf { it.isNotBlank() }?.let { token ->
+                                if (authorFollowStates[token] == null) {
+                                    authorFollowStates[token] = detail.author.isFollowing
+                                }
                             }
-                        }
-                        if (queriedHotCommentIds[id] != true) {
-                            queriedHotCommentIds[id] = true
-                            loadHotComment(paginationEnvironment, id)?.let { hotComments[id] = it }
                         }
                     }
-
-                    AnswerWaterfallCard(
-                        itemStableKey = item.stableKey,
-                        answerId = answerId,
-                        answer = answer,
-                        fallbackAuthorName = item.authorName,
-                        fallbackAuthorAvatar = item.avatarSrc,
-                        fallbackSummary = item.summary,
-                        voteUpState = answerId?.let { voteStates[it] } ?: VoteUpState.Neutral,
-                        voteUpCount = answerId?.let { voteCounts[it] } ?: fallbackMetrics.voteUp ?: 0,
-                        isFavorited = answerId?.let { favoritedAnswers[it] } ?: false,
-                        hotComment = answerId?.let { hotComments[it] },
-                        onHotCommentClick = {
-                            if (answerId != null) {
-                                commentsTarget = Article(type = ArticleType.Answer, id = answerId)
-                                showComments = true
-                            }
-                        },
-                        isExpanded = isExpanded,
-                        onToggleExpand = { expandedAnswerKey = if (isExpanded) null else item.stableKey },
-                        onVoteUp = {
-                            answerId?.let { id ->
-                                val current = voteStates[id] ?: VoteUpState.Neutral
-                                toggleVote(id, if (current == VoteUpState.Up) VoteUpState.Neutral else VoteUpState.Up)
-                            }
-                        },
-                        onVoteDown = {
-                            answerId?.let { id ->
-                                val current = voteStates[id] ?: VoteUpState.Neutral
-                                toggleVote(id, if (current == VoteUpState.Down) VoteUpState.Neutral else VoteUpState.Down)
-                            }
-                        },
-                        onFavorite = {
-                            answerId?.let { id ->
-                                collectionTargetAnswerId = id
-                                if (collectionsLoadedForAnswer != id) {
-                                    scope.launch {
-                                        loadAnswerCollections(paginationEnvironment, id).forEach { collection ->
-                                            answerCollections[collection.id] = collection
-                                        }
-                                        collectionsLoadedForAnswer = id
-                                    }
-                                }
-                            }
-                        },
-                        onComment = {
-                            if (answerId != null) {
-                                commentsTarget = Article(type = ArticleType.Answer, id = answerId)
-                                showComments = true
-                            }
-                        },
-                        onAuthorClick = {
-                            val author = answer?.author
-                            if (author != null) {
-                                navigator.onNavigate(
-                                    Person(id = author.id, urlToken = author.urlToken, name = author.name),
-                                )
-                            }
-                        },
-                        // 瀑布流里正文已经完整呈现，卡片本身不再跳转到单条回答页；
-                        // 需要评论、作者主页时用卡片内的操作栏与作者行。
-                        modifier = Modifier.testTag("question_feed_item_${item.stableKey}"),
-                    )
+                    if (queriedHotCommentIds[id] != true) {
+                        queriedHotCommentIds[id] = true
+                        loadHotComment(paginationEnvironment, id)?.let { hotComments[id] = it }
+                    }
                 }
+
+                AnswerWaterfallCard(
+                    itemStableKey = item.stableKey,
+                    answerId = answerId,
+                    answer = answer,
+                    fallbackAuthorName = item.authorName,
+                    fallbackAuthorAvatar = item.avatarSrc,
+                    fallbackAuthorBadge = item.authorBadgeV2,
+                    fallbackSummary = item.summary,
+                    voteUpState = answerId?.let { voteStates[it] } ?: VoteUpState.Neutral,
+                    voteUpCount = answerId?.let { voteCounts[it] } ?: fallbackMetrics.voteUp ?: 0,
+                    isFavorited = answerId?.let { favoritedAnswers[it] } ?: false,
+                    isAuthorFollowed = authorToken?.let { authorFollowStates[it] } ?: (answer?.author?.isFollowing ?: false),
+                    hotComment = answerId?.let { hotComments[it] },
+                    isExpanded = isExpanded,
+                    onToggleExpand = { expandedAnswerKey = if (isExpanded) null else item.stableKey },
+                    onVoteUp = {
+                        answerId?.let { id ->
+                            val current = voteStates[id] ?: VoteUpState.Neutral
+                            toggleVote(id, if (current == VoteUpState.Up) VoteUpState.Neutral else VoteUpState.Up)
+                        }
+                    },
+                    onVoteDown = {
+                        answerId?.let { id ->
+                            val current = voteStates[id] ?: VoteUpState.Neutral
+                            toggleVote(id, if (current == VoteUpState.Down) VoteUpState.Neutral else VoteUpState.Down)
+                        }
+                    },
+                    onFavorite = { answerId?.let { id -> openCollectionPicker(id) } },
+                    onComment = {
+                        if (answerId != null) {
+                            commentsTarget = Article(type = ArticleType.Answer, id = answerId)
+                            showComments = true
+                        }
+                    },
+                    onShare = { answerId?.let { id -> shareAnswer(id, answer?.author?.name ?: item.authorName) } },
+                    onFollowAuthor = { authorToken?.let { token -> toggleAuthorFollow(token) } },
+                    onHotCommentClick = {
+                        if (answerId != null) {
+                            commentsTarget = Article(type = ArticleType.Answer, id = answerId)
+                            showComments = true
+                        }
+                    },
+                    onAuthorClick = {
+                        val author = answer?.author
+                        if (author != null) {
+                            navigator.onNavigate(
+                                Person(id = author.id, urlToken = author.urlToken, name = author.name),
+                            )
+                        }
+                    },
+                    onActionRowPositionChanged = { top, bottom ->
+                        val previous = actionRowBounds[item.stableKey]
+                        if (previous == null || abs(previous.first - top) > 0.5f || abs(previous.second - bottom) > 0.5f) {
+                            actionRowBounds[item.stableKey] = top to bottom
+                        }
+                    },
+                    // 瀑布流里正文已经完整呈现，卡片本身不再跳转到单条回答页；
+                    // 需要评论、作者主页时用卡片内的操作栏与作者行。
+                    modifier = Modifier.testTag("question_feed_item_${item.stableKey}"),
+                )
             }
         }
 
-        // ── 固定操作层：展开态吸底操作栏 + 右下角「收起」 ──────────────────────
-        val expandedItem = expandedAnswerKey?.let { key -> viewModel.displayItems.firstOrNull { it.stableKey == key } }
-        val expandedId = expandedItem?.let { answerIdOf(it) }
-        // 「固定操作层」属于阅读态而不是页面 chrome：即使处于沉浸态也要保留吸底栏与「收起」，
-        // 否则展开长文后一旦进入沉浸态就再也没有收起入口（产品设计稿 §2.3.3 的收起按钮无条件出现）。
-        if (expandedItem != null) {
-            val answer = expandedId?.let { answerDetails[it] }
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .background(colors.page)
-                    .testTag(QUESTION_STICKY_ACTIONS_TAG),
-            ) {
-                HorizontalDivider(thickness = 1.dp, color = colors.divider)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = ZhihuSpacing.ScreenGutter)
-                        .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-                        .height(StickyActionBarHeight),
-                    horizontalArrangement = Arrangement.spacedBy(28.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    StickyActionItem(
-                        icon = Icons.Outlined.ThumbUp,
-                        count = expandedId?.let { voteCounts[it] }
-                            ?: expandedItem.cardMetrics.voteUp ?: 0,
-                        tint = if (expandedId?.let { voteStates[it] } == VoteUpState.Up) colors.accent else colors.secondaryText,
-                        label = "赞同",
-                        onClick = {
-                            expandedId?.let { id ->
-                                val current = voteStates[id] ?: VoteUpState.Neutral
-                                toggleVote(id, if (current == VoteUpState.Up) VoteUpState.Neutral else VoteUpState.Up)
-                            }
-                        },
-                    )
-                    StickyActionItem(
-                        icon = Icons.Outlined.ThumbDown,
-                        count = null,
-                        tint = if (expandedId?.let { voteStates[it] } == VoteUpState.Down) colors.accent else colors.secondaryText,
-                        label = "点踩",
-                        onClick = {
-                            expandedId?.let { id ->
-                                val current = voteStates[id] ?: VoteUpState.Neutral
-                                toggleVote(id, if (current == VoteUpState.Down) VoteUpState.Neutral else VoteUpState.Down)
-                            }
-                        },
-                    )
-                    StickyActionItem(
-                        icon = Icons.Outlined.BookmarkBorder,
-                        count = null,
-                        tint = if (expandedId?.let { favoritedAnswers[it] } == true) colors.accent else colors.secondaryText,
-                        label = "收藏",
-                        onClick = {
-                            expandedId?.let { id ->
-                                collectionTargetAnswerId = id
-                                if (collectionsLoadedForAnswer != id) {
-                                    scope.launch {
-                                        loadAnswerCollections(paginationEnvironment, id).forEach { collection ->
-                                            answerCollections[collection.id] = collection
-                                        }
-                                        collectionsLoadedForAnswer = id
-                                    }
-                                }
-                            }
-                        },
-                    )
-                    StickyActionItem(
-                        icon = Icons.Outlined.ChatBubbleOutline,
-                        count = answer?.commentCount ?: 0,
-                        tint = colors.secondaryText,
-                        label = "评论",
-                        onClick = {
-                            if (expandedId != null) {
-                                commentsTarget = Article(type = ArticleType.Answer, id = expandedId)
-                                showComments = true
-                            }
-                        },
-                    )
+        // 顶部渐变遮罩：内容从工具栏下方穿过时保证标题/图标可读（官方滚动后同样有一层轻遮罩）。
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .height(statusBarPadding + ZhihuSizes.AnswerToolbarHeight + 12.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            colors.page,
+                            colors.page.copy(alpha = 0.94f),
+                            colors.page.copy(alpha = 0.72f),
+                            Color.Transparent,
+                        ),
+                    ),
+                ),
+        )
+
+        QuestionFloatingToolbar(
+            title = answerTitle(),
+            showTitle = showToolbarTitle,
+            onNavigateBack = navigator.onNavigateBack,
+            onScrollToTop = { scope.launch { listState.animateScrollToItem(0) } },
+            onWriteAnswer = {
+                navigator.onNavigate(
+                    WriteAnswer(
+                        questionId = question.questionId,
+                        questionTitle = answerTitle(),
+                        questionDetail = viewModel.questionDetail?.detail.orEmpty(),
+                    ),
+                )
+            },
+            onComments = {
+                commentsTarget = null
+                showComments = true
+            },
+            onOpenLog = {
+                try {
+                    openZhihuWebUrl("https://www.zhihu.com/question/${question.questionId}/log")
+                } catch (e: Exception) {
+                    userMessages.showShortMessage("打开日志失败: ${e.message}")
                 }
-            }
-            // 「收起」避开系统手势区，并压在吸底栏之上，避免遮挡操作按钮。
-            Surface(
+            },
+            onShare = { shareQuestion() },
+            modifier = Modifier.align(Alignment.TopStart),
+        )
+
+        if (stickyBarVisible && currentAnswerItem != null) {
+            AnswerStickyBar(
+                authorName = currentAnswer?.author?.name ?: currentAnswerItem.authorName,
+                avatarSrc = currentAnswer?.author?.avatarUrl ?: currentAnswerItem.avatarSrc,
+                authorToken = currentAuthorToken,
+                isAuthorFollowed = stickyAuthorFollowed,
+                voteUpState = currentAnswerId?.let { voteStates[it] } ?: VoteUpState.Neutral,
+                voteUpCount = currentAnswerId?.let { voteCounts[it] } ?: currentAnswerItem.cardMetrics.voteUp ?: 0,
+                isFavorited = currentAnswerId?.let { favoritedAnswers[it] } ?: false,
+                commentCount = currentAnswer?.commentCount ?: 0,
+                onFollowAuthor = { currentAuthorToken?.let { token -> toggleAuthorFollow(token) } },
+                onVoteUp = {
+                    currentAnswerId?.let { id ->
+                        val current = voteStates[id] ?: VoteUpState.Neutral
+                        toggleVote(id, if (current == VoteUpState.Up) VoteUpState.Neutral else VoteUpState.Up)
+                    }
+                },
+                onVoteDown = {
+                    currentAnswerId?.let { id ->
+                        val current = voteStates[id] ?: VoteUpState.Neutral
+                        toggleVote(id, if (current == VoteUpState.Down) VoteUpState.Neutral else VoteUpState.Down)
+                    }
+                },
+                onFavorite = { currentAnswerId?.let { id -> openCollectionPicker(id) } },
+                onComment = {
+                    if (currentAnswerId != null) {
+                        commentsTarget = Article(type = ArticleType.Answer, id = currentAnswerId)
+                        showComments = true
+                    }
+                },
+                onShare = {
+                    currentAnswerId?.let { id ->
+                        shareAnswer(id, currentAnswer?.author?.name ?: currentAnswerItem.authorName)
+                    }
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+
+        if (hasNextAnswer) {
+            NextAnswerFab(
+                onClick = { scrollToNextAnswer() },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(
-                        end = 16.dp,
-                        bottom = StickyActionBarHeight +
-                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp,
-                    ).testTag(QUESTION_COLLAPSE_FAB_TAG),
-                shape = ZhihuShapeTokens.Pill,
-                color = colors.floatingSurface,
-                shadowElevation = 6.dp,
-                onClick = {
-                    val key = expandedAnswerKey
-                    expandedAnswerKey = null
-                    val index = viewModel.displayItems.indexOfFirst { it.stableKey == key }
-                    if (index >= 0) {
-                        // 列表第 0 项是问题头部，回答从第 1 项开始；收起后回到该回答的顶部，
-                        // 截断位置就在一屏之内，用户顺着正文还能看到原来的「展开」处。
-                        scope.launch { listState.animateScrollToItem(index + 1) }
-                    }
-                },
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = colors.primaryText,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text = "收起",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = colors.primaryText,
-                    )
-                }
-            }
-        }
-
-        // ── 悬浮控件层：沉浸态返回按钮 + 上滑浮现的问题标题 ────────────────────
-        if (immersive) {
-            val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = statusBarPadding + 8.dp)
-                    .size(40.dp)
-                    .testTag(QUESTION_IMMERSIVE_BACK_TAG),
-                shape = CircleShape,
-                color = colors.floatingSurface,
-                shadowElevation = 4.dp,
-                onClick = navigator.onNavigateBack,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "返回",
-                        tint = colors.primaryText,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-            AnimatedVisibility(
-                visible = immersiveTitleVisible,
-                enter = fadeIn(tween(Motion.DURATION_SHORT)),
-                exit = fadeOut(tween(Motion.DURATION_MEDIUM)),
-                modifier = Modifier.align(Alignment.TopCenter),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(colors.page.copy(alpha = 0.96f), colors.page.copy(alpha = 0.86f), Color.Transparent),
-                            ),
-                        ).padding(top = statusBarPadding + 12.dp, bottom = 16.dp, start = 64.dp, end = 16.dp)
-                        .testTag(QUESTION_IMMERSIVE_TITLE_TAG),
-                ) {
-                    Text(
-                        text = viewModel.questionDetail?.title ?: question.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = colors.primaryText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
+                        end = ZhihuSpacing.ScreenGutter,
+                        bottom = navigationBarPadding + readingPlayerOverlayPadding +
+                            if (stickyBarVisible) ZhihuSizes.StickyBarHeight + ZhihuSpacing.Large else ZhihuSpacing.Large,
+                    ),
+            )
         }
     }
 
@@ -840,29 +742,595 @@ fun QuestionScreen(
         },
     )
 
-    // 分享对话框
-    if (shareText != null) {
+    if (shareDialogText.isNotEmpty()) {
         ShareDialog(
-            content = question,
-            shareText = shareText,
+            content = shareContent,
+            shareText = shareDialogText,
             showDialog = showShareDialog,
             onDismissRequest = { showShareDialog = false },
         )
     }
 }
 
-/** 沉浸态的滚动状态：跨重组持有累计阅读距离与标题浮现令牌。 */
-private class ImmersiveScrollState {
-    var accumulatedDownPx by mutableFloatStateOf(0f)
-    var immersive by mutableStateOf(false)
-    var titleRevealToken by mutableIntStateOf(0)
+/** 问题头（target-spec §3.2 + 0.618 列表首项）：标题、副信息行、问题详情、排序与问题级操作。 */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun QuestionHeader(
+    questionId: Long,
+    title: String,
+    answerCount: Int,
+    visitCount: Int,
+    followerCount: Int,
+    contentHtml: String,
+    topics: List<DataHolder.Topic>,
+    isFollowing: Boolean,
+    currentSort: String,
+    isDetailExpanded: Boolean,
+    onToggleDetail: () -> Unit,
+    onTopicClick: (DataHolder.Topic) -> Unit,
+    onFollowClick: () -> Unit,
+    onWriteAnswerClick: () -> Unit,
+    onSortChange: (String) -> Unit,
+) {
+    val colors = contentFirstColors
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Spacer(Modifier.height(ZhihuSpacing.Large))
+        SelectionContainer(modifier = Modifier.questionSelectionWorkaround()) {
+            Text(
+                text = title,
+                style = ZhihuTypography.ContentTitle,
+                color = colors.primaryText,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = ZhihuSpacing.ScreenGutter)
+                    .testTag(QUESTION_TITLE_TAG),
+            )
+        }
+        Spacer(Modifier.height(ZhihuSpacing.Small))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = ZhihuSpacing.ScreenGutter)
+                .heightIn(min = 24.dp)
+                .clickable(role = Role.Button, onClick = onToggleDetail)
+                .testTag(QUESTION_DETAIL_TOGGLE_TAG),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            QuestionMetaText("知乎")
+            QuestionMetaDot()
+            QuestionMetaText("$answerCount 个回答")
+            QuestionMetaDot()
+            QuestionMetaText("$visitCount 浏览")
+            QuestionMetaDot()
+            QuestionMetaText("$followerCount 个关注")
+            Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = colors.tertiaryText,
+                modifier = Modifier.size(12.dp),
+            )
+        }
+        if (isDetailExpanded && contentHtml.isNotBlank()) {
+            Spacer(Modifier.height(ZhihuSpacing.Small))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = ZhihuSpacing.ScreenGutter)
+                    .testTag(QUESTION_DETAIL_CONTENT_TAG),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(ZhihuSpacing.Small)) {
+                    QuestionDetailContent(questionId = questionId, html = contentHtml)
+                    if (topics.isNotEmpty()) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.Small)) {
+                            topics.forEach { topic ->
+                                ZhihuFilterChip(
+                                    selected = false,
+                                    onClick = { onTopicClick(topic) },
+                                    label = { Text("# ${topic.name}") },
+                                )
+                            }
+                        }
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        Row(
+                            modifier = Modifier
+                                .clickable(role = Role.Button, onClick = onToggleDetail)
+                                .padding(horizontal = ZhihuSpacing.Small, vertical = ZhihuSpacing.ExtraSmall),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = "收起问题", style = ZhihuTypography.AnswerVoteLine, color = colors.accent)
+                            Icon(
+                                imageVector = Icons.Filled.KeyboardArrowUp,
+                                contentDescription = null,
+                                tint = colors.accent,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(ZhihuSpacing.Small))
+        QuestionToolsRow(
+            answerCount = answerCount,
+            isFollowing = isFollowing,
+            currentSort = currentSort,
+            onSortChange = onSortChange,
+            onFollowClick = onFollowClick,
+            onWriteAnswerClick = onWriteAnswerClick,
+        )
+        Spacer(Modifier.height(ZhihuSpacing.Large))
+        HorizontalDivider(thickness = ZhihuSizes.DividerThickness, color = colors.divider)
+    }
+}
+
+@Composable
+private fun QuestionMetaText(text: String) {
+    Text(
+        text = text,
+        style = ZhihuTypography.AnswerMeta,
+        color = contentFirstColors.tertiaryText,
+        maxLines = 1,
+    )
+}
+
+@Composable
+private fun QuestionMetaDot() {
+    Text(
+        text = "·",
+        style = ZhihuTypography.AnswerMeta,
+        color = contentFirstColors.tertiaryText,
+        modifier = Modifier.padding(horizontal = ZhihuSpacing.ExtraSmall),
+    )
+}
+
+/** 回答数 + 排序 + 关注问题 + 写回答。排序与问题操作是排版表格外的产品能力，压缩成一行保留入口。 */
+@Composable
+private fun QuestionToolsRow(
+    answerCount: Int,
+    isFollowing: Boolean,
+    currentSort: String,
+    onSortChange: (String) -> Unit,
+    onFollowClick: () -> Unit,
+    onWriteAnswerClick: () -> Unit,
+) {
+    val colors = contentFirstColors
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = ZhihuSpacing.ScreenGutter),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "$answerCount 回答",
+            style = ZhihuTypography.AnswerVoteLine,
+            color = colors.primaryText,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
+        Spacer(Modifier.width(ZhihuSpacing.Small))
+        QuestionSortToggle(
+            label = "默认",
+            selected = currentSort == "default",
+            tag = QUESTION_SORT_DEFAULT_TAG,
+            onClick = { onSortChange("default") },
+        )
+        QuestionSortToggle(
+            label = "最新",
+            selected = currentSort == "updated",
+            tag = QUESTION_SORT_UPDATED_TAG,
+            onClick = { onSortChange("updated") },
+        )
+        Spacer(Modifier.weight(1f))
+        FollowPill(
+            isFollowed = isFollowing,
+            onClick = onFollowClick,
+            modifier = Modifier
+                .testTag(QUESTION_FOLLOW_BUTTON_TAG)
+                .semantics { selected = isFollowing },
+        )
+        Spacer(Modifier.width(ZhihuSpacing.Small))
+        QuestionWriteAnswerPill(onClick = onWriteAnswerClick, modifier = Modifier.testTag(QUESTION_WRITE_ANSWER_BUTTON_TAG))
+    }
+}
+
+@Composable
+private fun QuestionSortToggle(
+    label: String,
+    selected: Boolean,
+    tag: String,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = label,
+        style = ZhihuTypography.AnswerVoteLine,
+        color = if (selected) contentFirstColors.accent else contentFirstColors.tertiaryText,
+        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        modifier = Modifier
+            .testTag(tag)
+            .semantics { this.selected = selected }
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = ZhihuSpacing.ExtraSmall),
+    )
+}
+
+@Composable
+private fun QuestionWriteAnswerPill(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .height(ZhihuSizes.FollowPillHeight)
+            .clip(ZhihuShapeTokens.Pill)
+            .background(MaterialTheme.colorScheme.primary)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = ZhihuSpacing.Medium),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Edit,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = "写回答",
+            style = ZhihuTypography.FeedMeta,
+            color = MaterialTheme.colorScheme.onPrimary,
+            maxLines = 1,
+        )
+    }
+}
+
+/** 悬浮工具栏（target-spec §3.1）：顶部时返回 + 评论/日志/分享；滚动后标题占满剩余宽度，右侧只留写回答 + 更多菜单。 */
+@Composable
+private fun QuestionFloatingToolbar(
+    title: String,
+    showTitle: Boolean,
+    onNavigateBack: () -> Unit,
+    onScrollToTop: () -> Unit,
+    onWriteAnswer: () -> Unit,
+    onComments: () -> Unit,
+    onOpenLog: () -> Unit,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = contentFirstColors
+    var menuExpanded by remember { mutableStateOf(false) }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .height(ZhihuSizes.AnswerToolbarHeight)
+            .padding(start = 10.dp, end = ZhihuSpacing.ScreenGutter),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(ZhihuSizes.MinTouchTarget)
+                .clip(CircleShape)
+                .then(if (showTitle) Modifier.background(colors.floatingSurface) else Modifier)
+                .clickable(role = Role.Button, onClick = onNavigateBack),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "返回",
+                tint = colors.primaryText,
+                modifier = Modifier.size(ZhihuSizes.Icon),
+            )
+        }
+        Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+        if (showTitle) {
+            Text(
+                text = title,
+                style = ZhihuTypography.ContentAuthor,
+                color = colors.primaryText,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(ZhihuShapeTokens.Pill)
+                    .clickable(role = Role.Button, onClick = onScrollToTop)
+                    .padding(horizontal = ZhihuSpacing.Small),
+            )
+            Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+            QuestionWriteAnswerPill(onClick = onWriteAnswer)
+            Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+            Box {
+                Box(
+                    modifier = Modifier
+                        .size(ZhihuSizes.MinTouchTarget)
+                        .clip(CircleShape)
+                        .background(colors.floatingSurface)
+                        .clickable(role = Role.Button, onClick = { menuExpanded = true }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = "更多",
+                        tint = colors.primaryText,
+                        modifier = Modifier.size(ZhihuSizes.Icon),
+                    )
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    ToolbarMenuItem(
+                        icon = Icons.AutoMirrored.Filled.Comment,
+                        label = "评论",
+                        tag = QUESTION_COMMENTS_BUTTON_TAG,
+                    ) {
+                        menuExpanded = false
+                        onComments()
+                    }
+                    ToolbarMenuItem(
+                        icon = Icons.Filled.History,
+                        label = "问题日志",
+                        tag = QUESTION_VIEW_LOG_BUTTON_TAG,
+                    ) {
+                        menuExpanded = false
+                        onOpenLog()
+                    }
+                    ToolbarMenuItem(
+                        icon = Icons.Filled.Share,
+                        label = "分享",
+                        tag = QUESTION_SHARE_BUTTON_TAG,
+                    ) {
+                        menuExpanded = false
+                        onShare()
+                    }
+                }
+            }
+        } else {
+            Spacer(Modifier.weight(1f))
+            ToolbarIconButton(
+                icon = Icons.AutoMirrored.Filled.Comment,
+                label = "评论",
+                tag = QUESTION_COMMENTS_BUTTON_TAG,
+                onClick = onComments,
+            )
+            ToolbarIconButton(
+                icon = Icons.Filled.History,
+                label = "问题日志",
+                tag = QUESTION_VIEW_LOG_BUTTON_TAG,
+                onClick = onOpenLog,
+            )
+            ToolbarIconButton(
+                icon = Icons.Filled.Share,
+                label = "分享",
+                tag = QUESTION_SHARE_BUTTON_TAG,
+                onClick = onShare,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ToolbarMenuItem(
+    icon: ImageVector,
+    label: String,
+    tag: String,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        onClick = onClick,
+        leadingIcon = { Icon(imageVector = icon, contentDescription = null) },
+        modifier = Modifier.testTag(tag),
+    )
+}
+
+@Composable
+private fun ToolbarIconButton(
+    icon: ImageVector,
+    label: String,
+    tag: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(ZhihuSizes.MinTouchTarget)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(tag),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = contentFirstColors.secondaryText,
+            modifier = Modifier.size(ZhihuSizes.Icon),
+        )
+    }
+}
+
+/** 吸底操作条（target-spec §3.4）：当前回答的作者 + 关注 + 五组操作，高 48dp + 顶部发丝线。 */
+@Composable
+private fun AnswerStickyBar(
+    authorName: String?,
+    avatarSrc: String?,
+    authorToken: String?,
+    isAuthorFollowed: Boolean,
+    voteUpState: VoteUpState,
+    voteUpCount: Int,
+    isFavorited: Boolean,
+    commentCount: Int,
+    onFollowAuthor: () -> Unit,
+    onVoteUp: () -> Unit,
+    onVoteDown: () -> Unit,
+    onFavorite: () -> Unit,
+    onComment: () -> Unit,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = contentFirstColors
+    Column(modifier = modifier.fillMaxWidth().background(colors.page).testTag(QUESTION_STICKY_ACTIONS_TAG)) {
+        HorizontalDivider(thickness = ZhihuSizes.DividerThickness, color = colors.divider)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .height(ZhihuSizes.StickyBarHeight)
+                .padding(horizontal = ZhihuSpacing.ScreenGutter),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(modifier = Modifier.width(StickyAuthorAreaWidth), verticalAlignment = Alignment.CenterVertically) {
+                if (!avatarSrc.isNullOrBlank()) {
+                    ZhihuNetworkImage(
+                        model = avatarSrc,
+                        contentDescription = "作者头像",
+                        modifier = Modifier.size(StickyAvatarSize).clip(CircleShape),
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(StickyAvatarSize)
+                            .clip(CircleShape)
+                            .background(colors.functionalSurface),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = null,
+                            tint = colors.tertiaryText,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.width(ZhihuSpacing.Small))
+                Text(
+                    text = authorName.orEmpty(),
+                    style = ZhihuTypography.FeedAuthorName,
+                    color = colors.primaryText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (authorToken != null) {
+                    Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+                    Text(
+                        text = if (isAuthorFollowed) "已关注" else "关注",
+                        style = ZhihuTypography.AnswerMeta,
+                        color = if (isAuthorFollowed) colors.tertiaryText else colors.accent,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .clickable(role = Role.Button, onClick = onFollowAuthor)
+                            .padding(ZhihuSpacing.ExtraSmall),
+                    )
+                }
+            }
+            AnswerActionGroup(
+                modifier = Modifier.weight(1f),
+                count = voteUpCount,
+                label = "赞同",
+                tag = "sticky_answer_vote_up",
+                tint = if (voteUpState == VoteUpState.Up) colors.liked else colors.tertiaryText,
+                onClick = onVoteUp,
+            ) {
+                VoteIcon(up = true)
+            }
+            AnswerActionGroup(
+                modifier = Modifier.weight(1f),
+                count = null,
+                label = "反对",
+                tag = "sticky_answer_vote_down",
+                tint = if (voteUpState == VoteUpState.Down) colors.liked else colors.tertiaryText,
+                onClick = onVoteDown,
+            ) {
+                VoteIcon(up = false)
+            }
+            AnswerActionGroup(
+                modifier = Modifier.weight(1f),
+                count = null,
+                label = "收藏",
+                tag = "sticky_answer_favorite",
+                tint = if (isFavorited) colors.favorited else colors.tertiaryText,
+                onClick = onFavorite,
+            ) {
+                Icon(Icons.Outlined.StarBorder, contentDescription = null, modifier = Modifier.size(ZhihuSizes.AnswerActionIconSize))
+            }
+            AnswerActionGroup(
+                modifier = Modifier.weight(1f),
+                count = commentCount,
+                label = "评论",
+                tag = "sticky_answer_comment",
+                tint = colors.tertiaryText,
+                onClick = onComment,
+            ) {
+                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = null, modifier = Modifier.size(ZhihuSizes.AnswerActionIconSize))
+            }
+            AnswerActionGroup(
+                modifier = Modifier.weight(1f),
+                count = null,
+                label = "分享",
+                tag = "sticky_answer_share",
+                tint = colors.tertiaryText,
+                onClick = onShare,
+            ) {
+                Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(ZhihuSizes.AnswerActionIconSize))
+            }
+        }
+    }
+}
+
+/** 「下一篇内容」悬浮按钮（target-spec §3.4）：36dp 圆形底 + 下箭头。 */
+@Composable
+private fun NextAnswerFab(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(ZhihuSizes.NextAnswerFabSize)
+            .clip(CircleShape)
+            .background(contentFirstColors.floatingSurface)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.KeyboardArrowDown,
+            contentDescription = "下一篇内容",
+            tint = contentFirstColors.primaryText,
+            modifier = Modifier.size(ZhihuSizes.IconSmall),
+        )
+    }
+}
+
+/** 游客阅读上限块（target-spec §3.5）：只在业务层确认达到上限后渲染。 */
+@Composable
+private fun GuestAnswerLimitFooter(onClick: () -> Unit) {
+    val colors = contentFirstColors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 119.dp)
+            .clickable(role = Role.Button, onClick = onClick),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "登录后查看更多精彩回答",
+            style = ZhihuTypography.AnswerBody,
+            color = colors.accent,
+            maxLines = 1,
+        )
+        Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = colors.accent,
+            modifier = Modifier.size(ZhihuSizes.IconSmall),
+        )
+    }
 }
 
 /**
  * 拉取一条回答的热评。
  *
  * 使用与评论区相同的 `root_comment?order=score` 接口取分数最高的一条，点赞数低于
- * [HOT_COMMENT_MIN_LIKES] 时返回 null —— 产品设计稿要求「不满足阈值时整体不渲染，不留空白」。
+ * [HOT_COMMENT_MIN_LIKES] 时返回 null —— 不满足阈值时整体不渲染，不留空白。
  */
 private suspend fun loadHotComment(
     environment: com.github.zly2006.zhihu.viewmodel.ZhihuApiEnvironment,
@@ -927,563 +1395,6 @@ private suspend fun createAnswerCollection(
                 put("description", description)
                 put("is_public", isPublic)
             },
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun QuestionTopBar(
-    title: String,
-    showTitle: Boolean,
-    onNavigateBack: () -> Unit,
-    onOpenLog: () -> Unit,
-    onShare: () -> Unit,
-    canShare: Boolean,
-) {
-    val colors = contentFirstColors
-    ZhihuTopAppBar(
-        colors = zhihuTopAppBarColors(
-            containerColor = colors.page,
-            scrolledContainerColor = colors.page,
-            titleContentColor = colors.primaryText,
-            navigationIconContentColor = colors.secondaryText,
-            actionIconContentColor = colors.secondaryText,
-        ),
-        title = {
-            AnimatedContent(
-                targetState = showTitle,
-                transitionSpec = {
-                    (fadeIn(Motion.fadeTween()) + slideInVertically(Motion.fadeTween()) { it / 2 }) togetherWith
-                        (fadeOut(Motion.fadeTween()) + slideOutVertically(Motion.fadeTween()) { -it / 2 })
-                },
-                label = "question_top_bar_title",
-            ) { shouldShowTitle ->
-                Text(
-                    text = if (shouldShowTitle) title else "问题",
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        },
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-            }
-        },
-        actions = {
-            IconButton(onClick = onOpenLog, modifier = Modifier.testTag(QUESTION_VIEW_LOG_BUTTON_TAG)) {
-                Icon(Icons.Filled.History, contentDescription = "日志")
-            }
-            IconButton(
-                onClick = onShare,
-                enabled = canShare,
-                modifier = Modifier.testTag(QUESTION_SHARE_BUTTON_TAG),
-            ) {
-                Icon(Icons.Filled.Share, contentDescription = "分享")
-            }
-        },
-    )
-}
-
-@Composable
-private fun QuestionHeaderSection(
-    title: String,
-    visitCount: Int,
-    commentCount: Int,
-    followerCount: Int,
-    onShowComments: () -> Unit,
-) {
-    val colors = contentFirstColors
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        SelectionContainer(modifier = Modifier.questionSelectionWorkaround()) {
-            Text(
-                text = title,
-                style = ZhihuTypography.ContentTitle,
-                color = colors.primaryText,
-                modifier = Modifier.testTag(QUESTION_TITLE_TAG),
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FlowRow(
-                modifier = Modifier.weight(1f).testTag(QUESTION_STATS_TAG),
-                horizontalArrangement = Arrangement.spacedBy(16.dp), // 水平间距
-                verticalArrangement = Arrangement.spacedBy(8.dp), // 垂直间距
-            ) {
-                StatItem(icon = Icons.Outlined.Visibility, text = "$visitCount 浏览")
-                StatItem(icon = Icons.Outlined.ChatBubbleOutline, text = "$commentCount 评论")
-                StatItem(icon = Icons.Outlined.FavoriteBorder, text = "$followerCount 关注")
-            }
-            OutlinedButton(
-                onClick = onShowComments,
-                modifier = Modifier.testTag(QUESTION_COMMENTS_BUTTON_TAG),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "评论")
-                Spacer(Modifier.width(8.dp))
-                Text("评论")
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuestionAnimatedBodyHeader(
-    questionId: Long,
-    questionContent: String,
-    questionContentPlainText: String,
-    topics: List<DataHolder.Topic>,
-    onTopicClick: (DataHolder.Topic) -> Unit,
-    isExpanded: Boolean,
-    onToggleExpanded: () -> Unit,
-    isFollowing: Boolean,
-    onFollowClick: () -> Unit,
-    onWriteAnswerClick: () -> Unit,
-    answerCount: Int,
-    currentSort: String,
-    onSortChange: (String) -> Unit,
-) {
-    val allowDetailCollapse =
-        questionContentPlainText.length >= QUESTION_DETAIL_COLLAPSE_THRESHOLD || questionContent.contains("<img")
-    val density = LocalDensity.current
-    val sectionSpacingPx = with(density) { 16.dp.roundToPx() }
-    val collapsedViewportHeightPx = with(density) { QUESTION_DETAIL_COLLAPSED_MAX_HEIGHT.roundToPx() }
-    var fullViewportHeightPx by remember(questionId) { mutableIntStateOf(0) }
-    var animationInitialized by remember(questionId) { mutableStateOf(false) }
-    val animatedViewportHeightPx = remember(questionId) { Animatable(collapsedViewportHeightPx.toFloat()) }
-    val animationSpec = remember { tween<Float>(durationMillis = Motion.DURATION_LONG, easing = Motion.EmphasizedDecelerateEasing) }
-
-    LaunchedEffect(questionId) {
-        animationInitialized = false
-        animatedViewportHeightPx.snapTo(collapsedViewportHeightPx.toFloat())
-    }
-    LaunchedEffect(isExpanded, fullViewportHeightPx, collapsedViewportHeightPx) {
-        if (!allowDetailCollapse || fullViewportHeightPx <= 0) return@LaunchedEffect
-        val collapsedTarget = collapsedViewportHeightPx.coerceAtMost(fullViewportHeightPx).toFloat()
-        val targetHeight = if (isExpanded) fullViewportHeightPx.toFloat() else collapsedTarget
-        if (!animationInitialized) {
-            animationInitialized = true
-            animatedViewportHeightPx.snapTo(targetHeight)
-            return@LaunchedEffect
-        }
-        if ((animatedViewportHeightPx.value - targetHeight).let { if (it < 0f) -it else it } < 0.5f) {
-            return@LaunchedEffect
-        }
-        animatedViewportHeightPx.animateTo(targetValue = targetHeight, animationSpec = animationSpec)
-    }
-
-    val collapsedTargetPx = collapsedViewportHeightPx.coerceAtMost(fullViewportHeightPx).toFloat()
-    val expandedRangePx = (fullViewportHeightPx.toFloat() - collapsedTargetPx).coerceAtLeast(1f)
-    val expandProgress =
-        if (!allowDetailCollapse || fullViewportHeightPx <= 0) {
-            1f
-        } else {
-            ((animatedViewportHeightPx.value - collapsedTargetPx) / expandedRangePx).coerceIn(0f, 1f)
-        }
-    val viewportHeightPx =
-        if (allowDetailCollapse) {
-            animatedViewportHeightPx.value.roundToInt()
-        } else {
-            fullViewportHeightPx
-        }
-
-    SubcomposeLayout(modifier = Modifier.fillMaxWidth()) { constraints ->
-        val looseConstraints =
-            constraints.copy(
-                minWidth = 0,
-                minHeight = 0,
-                maxHeight = Constraints.Infinity,
-            )
-        val detailPlaceable =
-            subcompose("detail") {
-                if (questionContent.isEmpty() && topics.isEmpty()) return@subcompose
-                if (allowDetailCollapse) {
-                    QuestionDetailAnimatedViewport(
-                        questionId = questionId,
-                        questionContent = questionContent,
-                        topics = topics,
-                        onTopicClick = onTopicClick,
-                        viewportHeightPx = viewportHeightPx,
-                        isExpanded = isExpanded,
-                        overlayAlpha = 1f - expandProgress,
-                        onToggleExpanded = onToggleExpanded,
-                        onMeasuredFullHeight = { fullViewportHeightPx = it },
-                    )
-                } else {
-                    QuestionDetailStaticContent(
-                        questionId = questionId,
-                        questionContent = questionContent,
-                        topics = topics,
-                        onTopicClick = onTopicClick,
-                        onMeasuredHeight = { fullViewportHeightPx = it },
-                    )
-                }
-            }.singleOrNull()?.measure(looseConstraints)
-        val controlsPlaceable =
-            subcompose("controls") {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    QuestionPrimaryActions(
-                        isFollowing = isFollowing,
-                        onFollowClick = onFollowClick,
-                        onWriteAnswerClick = onWriteAnswerClick,
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "$answerCount 回答",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Spacer(Modifier.weight(1f))
-                        ZhihuFilterChip(
-                            selected = currentSort == "default",
-                            onClick = { onSortChange("default") },
-                            modifier =
-                                Modifier.testTag(QUESTION_SORT_DEFAULT_TAG).semantics {
-                                    selected = currentSort == "default"
-                                },
-                            label = { Text("默认") },
-                        )
-                        ZhihuFilterChip(
-                            selected = currentSort == "updated",
-                            onClick = { onSortChange("updated") },
-                            modifier =
-                                Modifier.testTag(QUESTION_SORT_UPDATED_TAG).semantics {
-                                    selected = currentSort == "updated"
-                                },
-                            label = { Text("最新") },
-                        )
-                    }
-                }
-            }.single().measure(looseConstraints)
-        val detailHeight = detailPlaceable?.height ?: 0
-        val controlsOffset = detailHeight + if (detailPlaceable == null) 0 else sectionSpacingPx
-        val totalHeight = controlsOffset + controlsPlaceable.height
-        layout(width = constraints.maxWidth, height = totalHeight) {
-            detailPlaceable?.place(0, 0)
-            controlsPlaceable.place(0, controlsOffset)
-        }
-    }
-}
-
-@Composable
-private fun QuestionDetailStaticContent(
-    questionId: Long,
-    questionContent: String,
-    topics: List<DataHolder.Topic>,
-    onTopicClick: (DataHolder.Topic) -> Unit,
-    onMeasuredHeight: (Int) -> Unit,
-) {
-    SubcomposeLayout(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .testTag(QUESTION_DETAIL_CONTENT_TAG),
-    ) { constraints ->
-        val placeable =
-            subcompose("static_detail") {
-                QuestionDetailWithTopics(
-                    questionId = questionId,
-                    questionContent = questionContent,
-                    topics = topics,
-                    onTopicClick = onTopicClick,
-                )
-            }.single().measure(
-                constraints.copy(
-                    minWidth = 0,
-                    minHeight = 0,
-                    maxHeight = Constraints.Infinity,
-                ),
-            )
-        if (placeable.height > 0) {
-            onMeasuredHeight(placeable.height)
-        }
-        layout(width = constraints.maxWidth, height = placeable.height) {
-            placeable.place(0, 0)
-        }
-    }
-}
-
-@Composable
-private fun QuestionDetailAnimatedViewport(
-    questionId: Long,
-    questionContent: String,
-    topics: List<DataHolder.Topic>,
-    onTopicClick: (DataHolder.Topic) -> Unit,
-    viewportHeightPx: Int,
-    isExpanded: Boolean,
-    overlayAlpha: Float,
-    onToggleExpanded: () -> Unit,
-    onMeasuredFullHeight: (Int) -> Unit,
-) {
-    val maskHeightPx = with(LocalDensity.current) { QUESTION_DETAIL_MASK_HEIGHT.roundToPx() }
-    val buttonZoneHeightPx = with(LocalDensity.current) { QUESTION_DETAIL_TOGGLE_ZONE_HEIGHT.roundToPx() }
-    SubcomposeLayout(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clipToBounds()
-                .testTag(if (isExpanded) QUESTION_DETAIL_CONTENT_TAG else QUESTION_DETAIL_PREVIEW_TAG),
-    ) { constraints ->
-        val looseConstraints =
-            constraints.copy(
-                minWidth = 0,
-                minHeight = 0,
-                maxHeight = Constraints.Infinity,
-            )
-        val contentPlaceable =
-            subcompose("content") {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = QUESTION_DETAIL_TOGGLE_ZONE_HEIGHT),
-                ) {
-                    QuestionDetailWithTopics(
-                        questionId = questionId,
-                        questionContent = questionContent,
-                        topics = topics,
-                        onTopicClick = onTopicClick,
-                    )
-                }
-            }.single().measure(looseConstraints)
-        if (contentPlaceable.height > 0) {
-            onMeasuredFullHeight(contentPlaceable.height)
-        }
-        val layoutHeight = viewportHeightPx.coerceIn(0, contentPlaceable.height.coerceAtLeast(0))
-        val buttonPlaceable =
-            subcompose("button") {
-                QuestionDetailToggleButton(
-                    isExpanded = isExpanded,
-                    onClick = onToggleExpanded,
-                )
-            }.single().measure(looseConstraints)
-        val overlayPlaceable =
-            subcompose("overlay") {
-                QuestionDetailOverlayMask(
-                    alpha = overlayAlpha,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }.single().measure(
-                Constraints(
-                    minWidth = constraints.maxWidth,
-                    maxWidth = constraints.maxWidth,
-                    minHeight = 0,
-                    maxHeight = layoutHeight.coerceAtLeast(0),
-                ),
-            )
-        layout(width = constraints.maxWidth, height = layoutHeight) {
-            contentPlaceable.place(0, 0)
-            if (overlayAlpha > 0f) {
-                overlayPlaceable.place(0, (layoutHeight - minOf(maskHeightPx, overlayPlaceable.height)).coerceAtLeast(0))
-            }
-            val buttonY = (layoutHeight - buttonZoneHeightPx + (buttonZoneHeightPx - buttonPlaceable.height) / 2).coerceAtLeast(0)
-            val buttonX = (constraints.maxWidth - buttonPlaceable.width).coerceAtLeast(0)
-            buttonPlaceable.place(buttonX, buttonY)
-        }
-    }
-}
-
-@Composable
-private fun QuestionDetailWithTopics(
-    questionId: Long,
-    questionContent: String,
-    topics: List<DataHolder.Topic>,
-    onTopicClick: (DataHolder.Topic) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (questionContent.isNotEmpty()) {
-            QuestionDetailContent(questionId = questionId, html = questionContent)
-        }
-        if (topics.isNotEmpty()) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                topics.forEach { topic ->
-                    ZhihuFilterChip(
-                        selected = false,
-                        onClick = { onTopicClick(topic) },
-                        label = { Text("# ${topic.name}") },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuestionDetailOverlayMask(alpha: Float, modifier: Modifier = Modifier) {
-    val surfaceColor = contentFirstColors.page
-    Box(
-        modifier =
-            modifier
-                .height(QUESTION_DETAIL_MASK_HEIGHT)
-                .graphicsLayer { this.alpha = alpha }
-                // 这里原先叠了一层 blur(12dp) 去「柔化」渐变。垂直渐变本身已经是连续过渡，
-                // 再叠一层实时模糊只会让这个遮罩每帧付一次 GPU 模糊开销（在低端机上直接掉帧），
-                // 视觉上几乎没有差别，因此移除；需要更柔的话应该增加渐变 stop，而不是加模糊。
-                .background(
-                    brush =
-                        Brush.verticalGradient(
-                            // 四档 stop：末尾多一档 0.92 → 1.0，替代原来模糊带来的收边过渡。
-                            listOf(
-                                Color.Transparent,
-                                surfaceColor.copy(alpha = 0.55f),
-                                surfaceColor.copy(alpha = 0.92f),
-                                surfaceColor,
-                            ),
-                        ),
-                ),
-    )
-}
-
-@Composable
-private fun QuestionDetailToggleButton(
-    isExpanded: Boolean,
-    onClick: () -> Unit,
-) {
-    // 展开/收起时箭头旋转 180°：位置不跳（同一个图标原地转），用户能顺着箭头判断「刚才是哪个方向的变化」。
-    val arrowRotation by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = Motion.springSnappy(),
-        label = "question_detail_arrow",
-    )
-    TextButton(
-        onClick = onClick,
-        modifier =
-            Modifier
-                .offset(y = 4.dp)
-                .padding(end = 4.dp, bottom = 0.dp)
-                .testTag(QUESTION_DETAIL_TOGGLE_TAG),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.ExpandMore,
-            contentDescription = null,
-            modifier = Modifier.graphicsLayer { rotationZ = arrowRotation },
-        )
-        Spacer(Modifier.width(4.dp))
-        Text(if (isExpanded) "收起详情" else "展开详情")
-    }
-}
-
-@Composable
-private fun QuestionPrimaryActions(
-    isFollowing: Boolean,
-    onFollowClick: () -> Unit,
-    onWriteAnswerClick: () -> Unit,
-) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Button(
-            onClick = onWriteAnswerClick,
-            modifier = Modifier.weight(1f).testTag(QUESTION_WRITE_ANSWER_BUTTON_TAG),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-        ) {
-            Icon(Icons.Filled.Edit, contentDescription = "写回答")
-            Spacer(Modifier.width(8.dp))
-            Text("写回答")
-        }
-        // 关注按钮：颜色从 tonal 过渡到 tertiary 容器，图标在「已关注」瞬间回弹一次。
-        // 宽度不做动画：按钮本身是 weight(1f)，宽度由行布局决定，动它只会产生一个无效动画。
-        val followContainerColor by animateColorAsState(
-            targetValue = if (isFollowing) {
-                MaterialTheme.colorScheme.tertiaryContainer
-            } else {
-                MaterialTheme.colorScheme.secondaryContainer
-            },
-            animationSpec = Motion.fadeTween(),
-            label = "follow_container",
-        )
-        val followContentColor by animateColorAsState(
-            targetValue = if (isFollowing) {
-                MaterialTheme.colorScheme.onTertiaryContainer
-            } else {
-                MaterialTheme.colorScheme.onSecondaryContainer
-            },
-            animationSpec = Motion.fadeTween(),
-            label = "follow_content",
-        )
-        FilledTonalButton(
-            onClick = onFollowClick,
-            modifier =
-                Modifier.weight(1f).testTag(QUESTION_FOLLOW_BUTTON_TAG).semantics {
-                    selected = isFollowing
-                },
-            colors =
-                ButtonDefaults.filledTonalButtonColors(
-                    containerColor = followContainerColor,
-                    contentColor = followContentColor,
-                ),
-        ) {
-            BounceOnChange(trigger = isFollowing) {
-                Icon(
-                    imageVector = if (isFollowing) Icons.Filled.Check else Icons.Filled.Add,
-                    contentDescription = if (isFollowing) "取消关注" else "关注问题",
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(if (isFollowing) "已关注" else "关注问题")
-        }
-    }
-}
-
-@Composable
-private fun StatItem(icon: ImageVector, text: String, modifier: Modifier = Modifier) {
-    val colors = contentFirstColors
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null, // 装饰性图标不需要无障碍描述
-            modifier = Modifier.size(16.dp), // 图标稍微小一点，匹配辅助文字
-            tint = colors.secondaryText,
-        )
-        Spacer(Modifier.width(4.dp)) // 图标和文字的间距
-        Text(
-            text = text,
-            // 辅助信息通常使用更小一号的字重，比如 bodySmall 或 labelMedium
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.secondaryText,
-        )
-    }
-}
-
-/** 吸底操作栏里的单个操作：数字小字号在上、图标在下，与卡片内操作栏一致。 */
-@Composable
-private fun StickyActionItem(
-    icon: ImageVector,
-    count: Int?,
-    tint: Color,
-    label: String,
-    onClick: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (count != null) {
-            Text(
-                text = formatCompactCount(count).replace(" ", ""),
-                style = MaterialTheme.typography.labelSmall,
-                color = tint,
-            )
-        }
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = tint,
-            modifier = Modifier.size(22.dp),
         )
     }
 }

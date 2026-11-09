@@ -52,6 +52,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -263,6 +264,8 @@ fun RenderMarkdown(
     header: (@Composable () -> Unit)? = null,
     footer: (@Composable () -> Unit)? = null,
     useTiqianRenderer: Boolean = false,
+    /** 正文排版覆盖；回答页传 17sp/24dp 的回答正文字体，null 时沿用阅读设置。 */
+    bodyTextStyle: TextStyle? = null,
 ) {
     val document = remember(html) { htmlToMdAst(html) }
     RenderMarkdownDocument(
@@ -275,6 +278,7 @@ fun RenderMarkdown(
         header = header,
         footer = footer,
         useTiqianRenderer = useTiqianRenderer,
+        bodyTextStyle = bodyTextStyle,
     )
 }
 
@@ -288,6 +292,8 @@ fun RenderMarkdownText(
     header: (@Composable () -> Unit)? = null,
     footer: (@Composable () -> Unit)? = null,
     useTiqianRenderer: Boolean = false,
+    /** 正文排版覆盖；回答页传 17sp/24dp 的回答正文字体，null 时沿用阅读设置。 */
+    bodyTextStyle: TextStyle? = null,
 ) {
     val document = remember(markdown) { markdownToMdAst(markdown) }
     RenderMarkdownDocument(
@@ -300,6 +306,7 @@ fun RenderMarkdownText(
         header = header,
         footer = footer,
         useTiqianRenderer = useTiqianRenderer,
+        bodyTextStyle = bodyTextStyle,
     )
 }
 
@@ -314,6 +321,7 @@ private fun RenderMarkdownDocument(
     header: (@Composable () -> Unit)?,
     footer: (@Composable () -> Unit)?,
     useTiqianRenderer: Boolean,
+    bodyTextStyle: TextStyle?,
 ) {
     val previewImageUrls = remember(document) { document.previewImageUrls() }
     val navigator = LocalNavigator.current
@@ -345,8 +353,11 @@ private fun RenderMarkdownDocument(
                             scrollState = scrollState,
                             selectable = selectable,
                             enableScroll = enableScroll,
-                            fontSizeScale = fontSize / 100f,
-                            lineHeightFromFontSize = lineHeight / 100f,
+                            fontSizeScale = bodyTextStyle?.fontSize?.value?.div(16f) ?: (fontSize / 100f),
+                            lineHeightFromFontSize = bodyTextStyle
+                                ?.takeIf { it.fontSize.isSp && it.lineHeight.isSp }
+                                ?.let { it.lineHeight.value / it.fontSize.value }
+                                ?: (lineHeight / 100f),
                             blockSpacingScale = blockSpacing / 100f,
                             mathFontFamilyId = settings
                                 .getString(DUO3_TIQIAN_MATH_FONT_PREFERENCE_KEY, "lete")
@@ -360,11 +371,12 @@ private fun RenderMarkdownDocument(
                         val importedMathFont = rememberImportedMathFont()
                         val mathFont = if (selectedMathFont == null) rememberMarkdownMathFont() else importedMathFont
                         val defaultTheme = MarkdownTheme.material3()
-                        val scaledFontSize = 16.sp * fontSize / 100
+                        val scaledFontSize = bodyTextStyle?.fontSize ?: (16.sp * fontSize / 100)
+                        val scaledLineHeight = bodyTextStyle?.lineHeight ?: (scaledFontSize * lineHeight / 100)
                         val theme = defaultTheme.copy(
                             bodyStyle = defaultTheme.bodyStyle.copy(
                                 fontSize = scaledFontSize,
-                                lineHeight = scaledFontSize * lineHeight / 100,
+                                lineHeight = scaledLineHeight,
                             ),
                             blockSpacing = defaultTheme.blockSpacing * (blockSpacing / 100f),
                             mathFontSize = 18f * fontSize / 100,

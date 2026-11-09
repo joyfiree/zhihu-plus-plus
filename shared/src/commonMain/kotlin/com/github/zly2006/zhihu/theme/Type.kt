@@ -60,15 +60,15 @@ val Typography = Typography(
     headlineLarge = style(32, 40),
     headlineMedium = style(28, 38),
     headlineSmall = style(24, 34),
-    // 小标题：AppBar 标题（官方顶栏约 17-18sp）、卡片标题、设置分组标题。
+    // 小标题：AppBar 标题、卡片标题、设置分组标题。
     titleLarge = style(18, 26, FontWeight.Medium),
     titleMedium = style(16, 24, FontWeight.Medium),
     titleSmall = style(14, 22, FontWeight.Medium),
-    // 正文：内容主体。官方正文约 17-18sp、行高约 1.7，这里取 17sp 作为可读性基准。
-    bodyLarge = style(17, 28),
+    // 正文：内容主体。官方回答正文为 17sp / 约 24dp 行高，这里保持 17sp 基准。
+    bodyLarge = style(17, 24),
     bodyMedium = style(14, 22),
     bodySmall = style(12, 18),
-    // 标签：按钮（官方按钮约 15sp）、导航栏、辅助信息。
+    // 标签：按钮、导航栏、辅助信息。
     labelLarge = style(15, 22, FontWeight.Medium),
     labelMedium = style(12, 18, FontWeight.Medium),
     labelSmall = style(11, 16, FontWeight.Medium),
@@ -77,37 +77,52 @@ val Typography = Typography(
 /**
  * `Typography` 15 个 M3 语义角色之外、仿官方场景专用的补充令牌。
  *
- * `headlineMedium`（28sp）是 M3 的"中等标题"尺寸，首页品牌词标、设置分组大标题等展示级场景
- * 仍在使用它；但回答页/问题页这类"内容标题"官方实测在 20-22sp 加粗，直接复用 28sp 会显得过大。
- * 这里单独给一个语义角色，避免为了改内容标题而牵连其它复用 `headlineMedium` 的页面。
+ * 数值来自官方 11.14 真机实测（1080×2400 @2.625x，行高由文字节点边界反推），
+ * 页面不得再为这些场景写裸 `fontSize`。
  */
 object ZhihuTypography {
-    /** 回答页/问题页展开态大标题：20sp、加粗，行高按 1.4 倍留足中文间距。 */
-    val ContentTitle = style(20, 28, FontWeight.SemiBold)
+    /** 问题页问题标题 / 回答页展开态内容标题：22sp、Bold，行高按 1.4 倍留足中文间距。 */
+    val ContentTitle = style(22, 31, FontWeight.Bold)
 
-    /**
-     * 信息流卡片元信息行：作者名与赞同/评论计数。
-     *
-     * 三种卡片排版曾经各写各的（15sp / 12sp / 11sp），这里统一成官方口径——
-     * 作者名 13sp，计数、时间等辅助信息 12sp，避免同一张卡片里出现第三种字号。
-     */
-    val FeedAuthorName = style(13, 18, FontWeight.Medium)
-    val FeedMeta = style(12, 16, FontWeight.Medium)
+    /** 首页信息流卡片问题标题：18sp、Bold、2 行，官方实测行盒 25dp。 */
+    val FeedTitle = style(18, 25, FontWeight.Bold)
 
-    /**
-     * 内容优先信息流（首页推荐卡片）的问题标题。
-     *
-     * 产品稿要求 16–17sp 加粗、最多两行；`titleMedium` 是 Medium 字重，视觉上压不住摘要，
-     * 所以单独给一档 Bold，避免为了首页把全局 `titleMedium` 加重。
-     */
-    val FeedTitle = style(17, 24, FontWeight.Bold)
+    /** 首页卡片摘要：15sp / 22dp，最多 3 行。 */
+    val FeedSummary = style(15, 22)
 
-    /** 内容优先信息流的摘要：12sp、次要色，2–3 行后以省略号折叠。 */
-    val FeedSummary = style(12, 19)
+    /** 首页卡片作者名：15sp / 20dp、Medium。 */
+    val FeedAuthorName = style(15, 20, FontWeight.Medium)
 
-    /** 回答瀑布流的作者名。 */
-    val ContentAuthor = style(14, 20, FontWeight.Medium)
+    /** 首页卡片元信息（关注数、赞同/收藏/评论计数）：13sp / 18dp。 */
+    val FeedMeta = style(13, 18, FontWeight.Medium)
 
-    /** 回答瀑布流的作者签名。 */
-    val ContentSignature = style(12, 17)
+    /** 首页分类 Tab 文字：17sp / 24dp；选中态在调用处 copy(fontWeight = Bold)。 */
+    val TabTitle = style(17, 24)
+
+    /** 首页搜索胶囊热词：15sp / 20dp。 */
+    val HotWord = style(15, 20)
+
+    /** 底栏文字：12sp / 16dp。 */
+    val BottomNavLabel = style(12, 16, FontWeight.Medium)
+
+    /** 回答页作者名：17sp / 21dp、SemiBold。 */
+    val ContentAuthor = style(17, 21, FontWeight.SemiBold)
+
+    /** 回答页作者签名：13sp / 18dp。 */
+    val ContentSignature = style(13, 18)
+
+    /** 回答正文：17sp / 24dp（官方行高约 1.43，与正文阅读设置解耦，设置仍可覆盖）。 */
+    val AnswerBody = style(17, 24)
+
+    /** 回答页「N 人赞同了该回答 / N 人听过」行：14sp / 20dp。 */
+    val AnswerVoteLine = style(14, 20)
+
+    /** 回答页元信息（时间 · IP · 禁止转载）与操作行文字：13sp / 18dp。 */
+    val AnswerMeta = style(13, 18)
+
+    /** 操作行数字（赞同/收藏/评论计数）：12sp / 16dp。 */
+    val ActionCount = style(12, 16, FontWeight.Medium)
+
+    /** 「欢迎参与讨论」胶囊文字：14sp / 20dp。 */
+    val DiscussPillLabel = style(14, 20)
 }

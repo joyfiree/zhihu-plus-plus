@@ -20,7 +20,7 @@ package com.github.zly2006.zhihu.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * 主题种子色（知乎官方品牌蓝）。
+ * 主题种子色（知乎官方品牌蓝，11.14 起为 `#1772F6`）。
  *
  * 这是**唯一**允许出现的主题色字面量：整套 `ColorScheme` 由它推导，页面与组件里不得再写
  * `Color(0xFF...)`。`ThemeManager` 的初始值也引用它，保证「内存默认值」和「持久化默认值」
@@ -30,7 +30,7 @@ import androidx.compose.ui.graphics.Color
  * `OfficialZhihuScheme.kt` 里的手调官方配色，而不是走种子推导；
  * 用户换种子色后仍回到 material-kolor 推导路径。
  */
-val ZhihuSeedColor = Color(0xFF056DE8)
+val ZhihuSeedColor = Color(0xFF1772F6)
 
 /**
  * 功能强调色的种子。
@@ -40,10 +40,10 @@ val ZhihuSeedColor = Color(0xFF056DE8)
  */
 internal object ZhihuBrandPalette {
     /** 赞同 / 喜欢：官方赞同蓝，与 [ZhihuSeedColor] 同源。 */
-    val Like = Color(0xFF056DE8)
+    val Like = Color(0xFF1772F6)
 
-    /** 收藏：官方收藏星标的金黄色。 */
-    val Favorite = Color(0xFFF5A623)
+    /** 收藏：官方收藏星标的金黄色（MapFavorite）。 */
+    val Favorite = Color(0xFFFA9D14)
 
     /** 朗读进行中。 */
     val Tts = Color(0xFF4CAF50)

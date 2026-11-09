@@ -170,6 +170,16 @@ data object Daily : TopLevelDestination {
         get() = "Daily"
 }
 
+/**
+ * 底部导航的「消息」tab 目标。
+ *
+ * 与 [Notification] 区分：后者是可深链的独立 route，本对象只表示主 pager 中的一个 tab 位置。
+ */
+data object NotificationTab : TopLevelDestination {
+    override val name: String
+        get() = "Notification"
+}
+
 @Serializable
 data object Notification : NavDestination {
     @Serializable

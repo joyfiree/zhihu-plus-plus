@@ -23,6 +23,7 @@ import com.github.zly2006.zhihu.navigation.Follow
 import com.github.zly2006.zhihu.navigation.Home
 import com.github.zly2006.zhihu.navigation.HotList
 import com.github.zly2006.zhihu.navigation.MyCollections
+import com.github.zly2006.zhihu.navigation.NotificationTab
 import com.github.zly2006.zhihu.navigation.OnlineHistory
 import com.github.zly2006.zhihu.ui.subscreens.bottomBarItemOrderFromPreference
 import com.github.zly2006.zhihu.ui.subscreens.defaultBottomBarSelectionKeys
@@ -36,9 +37,9 @@ import kotlin.test.assertTrue
 
 class ZhihuMainPreferencesTest {
     @Test
-    fun defaultBottomBarSelectionIsHomeAndAccount() {
+    fun defaultBottomBarSelectionMatchesOfficialSlots() {
         assertEquals(
-            linkedSetOf(Home.name, Account.name),
+            linkedSetOf(Home.name, HotList.name, NotificationTab.name, Account.name),
             defaultBottomBarSelectionKeys(),
         )
     }
@@ -46,7 +47,16 @@ class ZhihuMainPreferencesTest {
     @Test
     fun desktopDefaultSelectionIncludesAllTopLevelDestinations() {
         assertEquals(
-            linkedSetOf(Home.name, Follow.name, HotList.name, Daily.name, OnlineHistory.name, MyCollections.name, Account.name),
+            linkedSetOf(
+                Home.name,
+                Follow.name,
+                HotList.name,
+                NotificationTab.name,
+                Daily.name,
+                OnlineHistory.name,
+                MyCollections.name,
+                Account.name,
+            ),
             defaultBottomBarSelectionKeys(maximumSelection = null),
         )
     }
@@ -73,14 +83,17 @@ class ZhihuMainPreferencesTest {
     }
 
     @Test
-    fun normalizeBottomBarSelectionKeepsExactlyTwoDefaultItems() {
+    fun normalizeBottomBarSelectionKeepsDefaultItems() {
         val normalized = normalizeBottomBarSelection(
             selectedKeys = defaultBottomBarSelectionKeys(),
             enforceMinimumSelection = true,
             maximumSelection = 5,
         )
 
-        assertEquals(linkedSetOf(Home.name, Account.name), normalized)
+        assertEquals(
+            linkedSetOf(Home.name, HotList.name, NotificationTab.name, Account.name),
+            normalized,
+        )
     }
 
     @Test

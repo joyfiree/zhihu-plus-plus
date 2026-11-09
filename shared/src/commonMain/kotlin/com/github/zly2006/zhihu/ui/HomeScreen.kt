@@ -24,7 +24,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,33 +32,35 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowCircleUp
 import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Headphones
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.outlined.MailOutline
-import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -75,7 +77,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -91,12 +95,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.zly2006.zhihu.account.SKIP_LOGIN_PROMPT_PREFERENCE_KEY
+import com.github.zly2006.zhihu.account.GuestSessionState
+import com.github.zly2006.zhihu.account.rememberZhihuAccountStore
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.data.Feed
 import com.github.zly2006.zhihu.data.FeedDisplayItem
-import com.github.zly2006.zhihu.data.MOBILE_NOTIFICATION_MESSAGE_URL
-import com.github.zly2006.zhihu.data.MobileNotificationMessageOverview
 import com.github.zly2006.zhihu.data.RecommendationMode
 import com.github.zly2006.zhihu.data.navDestination
 import com.github.zly2006.zhihu.data.target
@@ -105,7 +108,6 @@ import com.github.zly2006.zhihu.navigation.Account
 import com.github.zly2006.zhihu.navigation.Article
 import com.github.zly2006.zhihu.navigation.ArticleType
 import com.github.zly2006.zhihu.navigation.LocalNavigator
-import com.github.zly2006.zhihu.navigation.Notification
 import com.github.zly2006.zhihu.navigation.Pin
 import com.github.zly2006.zhihu.navigation.Question
 import com.github.zly2006.zhihu.navigation.Search
@@ -120,7 +122,6 @@ import com.github.zly2006.zhihu.notification.HOME_NOTIFICATION_ACTION_SET_SETTIN
 import com.github.zly2006.zhihu.notification.HOME_NOTIFICATION_REFRESH_INTERVAL_MILLIS
 import com.github.zly2006.zhihu.notification.OnlineHomeNotification
 import com.github.zly2006.zhihu.notification.OnlineHomeNotificationRepository
-import com.github.zly2006.zhihu.notification.rememberNotificationSettingsStore
 import com.github.zly2006.zhihu.platform.SettingsStore
 import com.github.zly2006.zhihu.platform.UserMessageDuration
 import com.github.zly2006.zhihu.platform.rememberAppPrivateDirectory
@@ -128,7 +129,15 @@ import com.github.zly2006.zhihu.platform.rememberExternalUrlOpener
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.platform.rememberWebViewUrlOpener
+import com.github.zly2006.zhihu.reading.ReadingQueueSourceRegistry
+import com.github.zly2006.zhihu.reading.ReadingStartRequest
 import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
+import com.github.zly2006.zhihu.reading.isReadingPlayerSupported
+import com.github.zly2006.zhihu.reading.loadReadingPlaybackSpeed
+import com.github.zly2006.zhihu.reading.loadReadingPreferences
+import com.github.zly2006.zhihu.reading.rememberReadingPlayerController
+import com.github.zly2006.zhihu.reading.toReadingQueueItem
+import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.components.AnnouncementCard
 import com.github.zly2006.zhihu.ui.components.AnnouncementCardDefaults
 import com.github.zly2006.zhihu.ui.components.BlockByKeywordsDialog
@@ -141,15 +150,18 @@ import com.github.zly2006.zhihu.ui.components.FeedPullToRefresh
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
+import com.github.zly2006.zhihu.ui.components.ZhihuNetworkImage
 import com.github.zly2006.zhihu.ui.components.feedKeywordExtractionAvailable
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
 import com.github.zly2006.zhihu.ui.subscreens.rememberSystemUpdateState
 import com.github.zly2006.zhihu.util.Log
-import com.github.zly2006.zhihu.util.json
 import com.github.zly2006.zhihu.viewmodel.QUALITY_FILTER_MODE_PREFERENCE_KEY
 import com.github.zly2006.zhihu.viewmodel.QualityFilterMode
 import com.github.zly2006.zhihu.viewmodel.feed.BaseFeedViewModel
@@ -162,7 +174,6 @@ import com.github.zly2006.zhihu.viewmodel.local.LocalHomeFeedViewModel
 import com.github.zly2006.zhihu.viewmodel.rememberPaginationEnvironment
 import com.github.zly2006.zhihu.viewmodel.za.AndroidHomeFeedViewModel
 import com.github.zly2006.zhihu.viewmodel.za.MixedHomeFeedViewModel
-import io.ktor.client.request.get
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -196,17 +207,29 @@ const val HOME_REFRESH_BUTTON_TAG = "home_refresh_button"
 const val HOME_AUTHOR_POLL_ANNOUNCEMENT_TAG = "home_author_poll_announcement"
 const val HOME_ONLINE_NOTIFICATION_TAG = "home_online_notification"
 const val HOME_PIN_ANNOUNCEMENT_READ_KEY_PREFIX = "readHomePinAnnouncement_"
-const val HOME_NOTIFICATION_BUTTON_TAG = "home_notification_button"
-const val HOME_NOTIFICATION_BUTTON_CONTENT_TAG = "home_notification_button_content"
-const val HOME_NOTIFICATION_BADGE_TAG = "home_notification_badge"
+const val HOME_ACCOUNT_AVATAR_TAG = "home_account_avatar"
+const val HOME_TAB_EDIT_TAG = "home_tab_edit"
+const val HOME_TAB_LISTEN_TAG = "home_tab_listen"
+const val HOME_CHANNEL_SHEET_TAG = "home_channel_sheet"
+const val HOME_CHANNEL_TAB_TAG_PREFIX = "home_channel_tab"
 
 private const val MAX_HOME_PIN_ANNOUNCEMENTS = 3
+private const val HOME_TAB_HIDDEN_PREFERENCE_KEY = "homeCategoryHiddenTabs"
 
-/** 搜索区的视觉与触控尺寸，集中在这里是为了让「24×26 的消息方框」和 52dp 的搜索区高度对得上。 */
-private val SearchAreaHeight = 52.dp
-private val MessageEntryVisualWidth = 24.dp
-private val MessageEntryVisualHeight = 26.dp
-private val MessageEntryShape = RoundedCornerShape(4.dp)
+/** 搜索胶囊的尺寸细节（官方 11.14 实测，见 target-spec §2.1）。 */
+private val SearchPillBorderWidth = 1.5.dp
+private val SearchPillStartPadding = 11.dp
+private val SearchPillEndPadding = 5.dp
+private val HotBadgeShape = RoundedCornerShape(3.dp)
+private val HotBadgeHorizontalPadding = 4.dp
+private val HotBadgeVerticalPadding = 1.dp
+private val SearchDividerWidth = 1.5.dp
+private val SearchDividerHeight = 12.dp
+
+/** 分类 Tab 的尺寸细节（官方 11.14 实测，见 target-spec §2.2）。 */
+private val TabIndicatorShape = RoundedCornerShape(2.dp)
+private val TabScrollFadeWidth = 10.dp
+private val TabIconSlotSize = 40.dp
 
 fun homeAuthorPollAnnouncementTag(pinId: Long): String = "$HOME_AUTHOR_POLL_ANNOUNCEMENT_TAG:$pinId"
 
@@ -216,26 +239,21 @@ fun homePinAnnouncementReadKey(pinId: Long): String = "$HOME_PIN_ANNOUNCEMENT_RE
 
 fun homeCategoryTabTag(label: String): String = "$HOME_CATEGORY_TAB_TAG_PREFIX:$label"
 
+fun homeChannelTabTag(label: String): String = "$HOME_CHANNEL_TAB_TAG_PREFIX:$label"
+
 /**
- * 首页分类 Tab（产品设计稿 §1.3.2）。
- *
- * 只有关注 / 推荐 / 日报三个，点击切换、不支持横滑；默认停在推荐。
+ * 首页分类 Tab（官方 11.14：关注 / 推荐 / 热榜 / 日报；频道编辑可显隐，默认停在推荐）。
  */
 private enum class HomeCategoryTab(
     val label: String,
 ) {
     Following("关注"),
     Recommend("推荐"),
+    HotList("热榜"),
     Daily("日报"),
 }
 
-private val HomeCategoryTabs = listOf(
-    HomeCategoryTab.Following,
-    HomeCategoryTab.Recommend,
-    HomeCategoryTab.Daily,
-)
-
-private const val DEFAULT_HOME_CATEGORY_TAB_INDEX = 1
+private val HomeCategoryTabs = HomeCategoryTab.entries
 
 // Pager can dispose this page while its feed ViewModels survive. Keep the header rows and
 // synchronization owner alive too, so restoring a saved list index does not shift the visible card.
@@ -249,17 +267,15 @@ private class HomeScreenState(
 }
 
 /**
- * 首页信息流页面（产品设计稿 §一）。
+ * 首页信息流页面（官方知乎 11.14 版式，见 `reports/official-align/target-spec.md` §2）。
  *
- * 自上而下五段式：状态栏 → 搜索区（消息方框 + 搜索框 + 搜索按钮）→ 分类 Tab（关注 / 推荐 / 日报）
- * → 内容卡片流 → 底部 Tab（由主壳承载）。
+ * 自上而下：状态栏 → 搜索区（账号头像 + 蓝描边搜索胶囊）→ 分类 Tab（关注 / 推荐 / 热榜 / 日报）
+ * → 内容卡片流 → 底部 Tab（由主壳承载）。消息入口由底栏承担，因此搜索区不再有消息方框。
  *
- * 页面本身只负责「搜索区 + 分类 Tab + 当前分类的内容」，消息入口从底栏移到了搜索区，
- * 创作入口按产品策略移到「我的」页，因此这里不再有悬浮发布按钮。
- *
- * 改动时同时检查 `recommendationMode`、`showRefreshFab`、`showUnreadBadge` 与三类内容
- * （推荐流 / 关注流 / 日报）的加载与回到顶部路径。
+ * 改动时同时检查 `recommendationMode`、`showRefreshFab`、频道显隐偏好与四类内容
+ * （推荐 / 关注 / 热榜 / 日报）的加载与回到顶部路径。
  */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -277,21 +293,24 @@ fun HomeScreen(
     val remoteHistory = homeState.remoteHistory
     val paginationEnvironment = remember(baseEnvironment, remoteHistory) { remoteHistory.feedEnvironment(baseEnvironment) }
     val appPrivateDirectory = rememberAppPrivateDirectory()
-    val notificationSettings = rememberNotificationSettingsStore()
     val userMessages = rememberUserMessageSink()
     val openExternalUrl = rememberExternalUrlOpener()
     val openWebViewUrl = rememberWebViewUrlOpener()
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
-    val showRefreshFab = settings.getBoolean("showRefreshFab", true)
+    val showRefreshFab = settings.getBoolean("showRefreshFab", false)
     val showFeedThumbnail by rememberObservedSetting(settings, "showFeedThumbnail") {
         getBoolean("showFeedThumbnail", true)
     }
     val autoRefreshOnStartup = settings.getBoolean(AUTO_REFRESH_HOME_ON_STARTUP_PREFERENCE_KEY, true)
-    val showUnreadBadge = notificationSettings.getUnreadBadgeEnabled()
-    var selectedCategoryIndex by rememberSaveable { mutableIntStateOf(DEFAULT_HOME_CATEGORY_TAB_INDEX) }
-    val selectedCategory = HomeCategoryTabs.getOrElse(selectedCategoryIndex) { HomeCategoryTab.Recommend }
+    val hiddenTabKeys by rememberObservedSetting(settings, HOME_TAB_HIDDEN_PREFERENCE_KEY) {
+        getStringSet(HOME_TAB_HIDDEN_PREFERENCE_KEY, emptySet())
+    }
+    val visibleTabs = HomeCategoryTabs.filterNot { it.name in hiddenTabKeys }.ifEmpty { listOf(HomeCategoryTab.Recommend) }
+    var selectedCategoryName by rememberSaveable { mutableStateOf(HomeCategoryTab.Recommend.name) }
+    val selectedCategory = visibleTabs.firstOrNull { it.name == selectedCategoryName } ?: visibleTabs.first()
+    var showChannelSheet by remember { mutableStateOf(false) }
 
     // 获取当前推荐算法设置
     val currentRecommendationMode =
@@ -303,6 +322,8 @@ fun HomeScreen(
     }
 
     val account = rememberAccountSettingsAccountState().value
+    val accountStore = rememberZhihuAccountStore()
+    val guestSessionState by accountStore.guestSessionState.collectAsState()
     if (account.login && !account.hasRequiredCookie) {
         ZhihuAlertDialog(
             onDismissRequest = {},
@@ -376,6 +397,47 @@ fun HomeScreen(
         items = viewModel.displayItems,
     )
 
+    val readingPlayer = rememberReadingPlayerController()
+    val readingPlayerState = readingPlayer.state.value
+    val readingPreferences = remember(settings) { loadReadingPreferences(settings) }
+    val readingPlaybackSpeed = remember(settings) { loadReadingPlaybackSpeed(settings) }
+    // 「听」入口：按当前推荐流队列起播；已有朗读会话时改为播放/暂停。
+    // 不支持朗读播放器的平台（桌面 / native）只提示，不做假实现。
+    val onListen: () -> Unit = {
+        if (!isReadingPlayerSupported) {
+            userMessages.showShortMessage("当前平台暂不支持朗读")
+        } else if (readingPlayerState.hasSession) {
+            readingPlayer.togglePlayPause()
+        } else {
+            val firstItem = viewModel.displayItems.firstNotNullOfOrNull { it.toReadingQueueItem() }
+            if (firstItem == null) {
+                userMessages.showShortMessage("暂无可朗读内容")
+            } else {
+                scope.launch {
+                    try {
+                        readingPlayer.start(
+                            ReadingStartRequest(
+                                queue = ReadingQueueSourceRegistry.queueStartingAt(
+                                    current = firstItem,
+                                    sourceId = readingQueueSourceId,
+                                    limit = readingPreferences.queueLimit,
+                                ),
+                                preferences = readingPreferences,
+                                sourceId = readingQueueSourceId,
+                                playbackSpeed = readingPlaybackSpeed,
+                            ),
+                        )
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.e("HomeScreen", "Failed to start reading player", e)
+                        userMessages.showShortMessage("朗读启动失败")
+                    }
+                }
+            }
+        }
+    }
+
     var dismissedUpdateVersion by homeState.dismissedUpdateVersion
     var authorPinAnnouncements by homeState.authorPinAnnouncements
     var dismissedFeedKeys by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -395,19 +457,6 @@ fun HomeScreen(
             null -> {}
         }
         cachedScrollToTopTrigger = scrollToTopTrigger
-    }
-
-    var unreadCount by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) {
-        try {
-            unreadCount = paginationEnvironment
-                .mobileHomeFeedHttpClient()
-                .get("$MOBILE_NOTIFICATION_MESSAGE_URL?limit=20")
-                .json<MobileNotificationMessageOverview>()
-                .totalUnreadCount
-        } catch (_: Exception) {
-            // 忽略错误
-        }
     }
 
     // 搜索框占位用当前热搜第一条（产品设计稿 §1.3.1）。取不到时退回固定文案，不阻塞首屏。
@@ -457,8 +506,23 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(lifecycleOwner, currentRecommendationMode, account.login, account.id, autoRefreshOnStartup, isActive) {
+    LaunchedEffect(
+        lifecycleOwner,
+        currentRecommendationMode,
+        account.login,
+        account.id,
+        autoRefreshOnStartup,
+        isActive,
+        guestSessionState,
+    ) {
         if (!isActive) return@LaunchedEffect
+        // 游客首屏等官方游客凭证初始化完成（或明确失败）再发首个请求，避免无 d_c0 的首屏 403。
+        if (!account.login &&
+            guestSessionState != GuestSessionState.READY &&
+            guestSessionState != GuestSessionState.FAILED
+        ) {
+            return@LaunchedEffect
+        }
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             if (account.login &&
                 account.hasRequiredCookie &&
@@ -467,12 +531,7 @@ fun HomeScreen(
             ) {
                 remoteHistory.start(homeState.viewModelScope, baseEnvironment)
             }
-            if (!account.login &&
-                !settings.getBoolean(SKIP_LOGIN_PROMPT_PREFERENCE_KEY, false) &&
-                settings.getBoolean("loginForRecommendation", true)
-            ) {
-                requestLoginNavigation()
-            } else if (viewModel.displayItems.isEmpty()) {
+            if (viewModel.displayItems.isEmpty()) {
                 val cachedItems = if (autoRefreshOnStartup) {
                     emptyList()
                 } else {
@@ -596,23 +655,23 @@ fun HomeScreen(
         modifier = Modifier.fillMaxSize(),
         containerColor = colors.page,
         topBar = {
-            if (!showTopActions) {
-                return@Scaffold
-            }
-            // Scaffold 的 topBar 槽位会把多个子项叠在同一位置，因此这里显式竖排。
-            Column(modifier = Modifier.fillMaxWidth()) {
-                HomeSearchArea(
-                    hotSearchWord = hotSearchWord,
-                    unreadCount = if (showUnreadBadge) unreadCount else 0,
-                    onOpenNotifications = { navigator.onNavigate(Notification) },
-                    onOpenSearch = { navigator.onNavigate(Search(query = "")) },
-                )
-                HomeCategoryTabRow(
-                    selected = selectedCategory,
-                    onSelect = { tab ->
-                        selectedCategoryIndex = HomeCategoryTabs.indexOf(tab)
-                    },
-                )
+            if (showTopActions) {
+                // Scaffold 的 topBar 槽位会把多个子项叠在同一位置，因此这里显式竖排。
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    HomeSearchArea(
+                        hotSearchWord = hotSearchWord,
+                        account = account,
+                        onOpenSearch = { navigator.onNavigate(Search(query = "")) },
+                    )
+                    HomeCategoryTabRow(
+                        tabs = visibleTabs,
+                        selected = selectedCategory,
+                        isListening = readingPlayerState.isActivelyPlaying,
+                        onSelect = { tab -> selectedCategoryName = tab.name },
+                        onEditChannels = { showChannelSheet = true },
+                        onListen = onListen,
+                    )
+                }
             }
         },
     ) { scaffoldPadding ->
@@ -904,6 +963,20 @@ fun HomeScreen(
                 isActive = isActive && selectedCategory == HomeCategoryTab.Following,
                 onOpenItem = openItem,
             )
+            HomeCategoryTab.HotList -> Box(
+                // 热榜复用独立热榜页的分页/刷新能力，只让出搜索区与底栏高度。
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        top = contentTopPadding,
+                        bottom = innerPadding.calculateBottomPadding() + readingPlayerOverlayPadding,
+                    ),
+            ) {
+                HotListScreen(
+                    scrollToTopTrigger = scrollToTopTrigger,
+                    isActive = isActive && selectedCategory == HomeCategoryTab.HotList,
+                )
+            }
             HomeCategoryTab.Daily -> Box(
                 // Scaffold 的 content 自己承担内边距：日报是完整页面而不是分页列表，
                 // 直接让出搜索区与底栏高度，避免列表钻到分类 Tab 底下。
@@ -921,6 +994,20 @@ fun HomeScreen(
                 )
             }
         }
+    }
+
+    if (showChannelSheet) {
+        HomeChannelSheet(
+            tabs = HomeCategoryTabs,
+            hiddenTabKeys = hiddenTabKeys,
+            onDismiss = { showChannelSheet = false },
+            onToggle = { tab, visible ->
+                val updated = if (visible) hiddenTabKeys - tab.name else hiddenTabKeys + tab.name
+                if (HomeCategoryTabs.any { it.name !in updated }) {
+                    settings.putStringSet(HOME_TAB_HIDDEN_PREFERENCE_KEY, updated)
+                }
+            },
+        )
     }
 
     FeedAuthorBlockConfirmDialog(
@@ -952,15 +1039,15 @@ fun HomeScreen(
     }
 }
 
-/** 搜索区（§1.3.1）：消息方框 + 胶囊搜索框 + 搜索按钮，整行高度 52dp。 */
+/** 搜索区（官方 11.14，target-spec §2.1）：38dp 账号头像 + 40dp 蓝描边搜索胶囊。 */
 @Composable
 private fun HomeSearchArea(
     hotSearchWord: String,
-    unreadCount: Int,
-    onOpenNotifications: () -> Unit,
+    account: AccountSettingsAccountState,
     onOpenSearch: () -> Unit,
 ) {
     val colors = contentFirstColors
+    val navigator = LocalNavigator.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -971,187 +1058,334 @@ private fun HomeSearchArea(
             modifier = Modifier
                 .testTag(HOME_TOP_ACTIONS_TAG)
                 .fillMaxWidth()
-                .height(SearchAreaHeight)
-                .padding(start = 16.dp, end = 12.dp),
+                .height(ZhihuSizes.HomeSearchRowHeight)
+                .padding(horizontal = ZhihuSizes.FeedCardHorizontalGutter),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            HomeMessageEntryButton(
-                unreadCount = unreadCount,
-                onClick = onOpenNotifications,
+            HomeAccountAvatar(
+                avatarUrl = account.avatarUrl,
+                loggedIn = account.login,
+                onClick = {
+                    if (account.login) {
+                        navigator.onNavigateTopLevel(Account)
+                    } else {
+                        requestLoginNavigation()
+                    }
+                },
             )
-            Spacer(Modifier.width(4.dp))
-            HomeSearchField(
+            Spacer(Modifier.width(ZhihuSpacing.Small))
+            HomeSearchPill(
                 hotSearchWord = hotSearchWord,
-                onClick = onOpenSearch,
+                onOpenSearch = onOpenSearch,
                 modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.width(8.dp))
-            HomeSearchActionButton(onClick = onOpenSearch)
         }
     }
 }
 
-/** 消息方框：24×26 圆角方框 + 信封线性图标，右上角红色数字角标。 */
+/** 左上账号头像：登录态取当前账号头像，游客态显示登录入口占位。 */
 @Composable
-private fun HomeMessageEntryButton(
-    unreadCount: Int,
+private fun HomeAccountAvatar(
+    avatarUrl: String?,
+    loggedIn: Boolean,
     onClick: () -> Unit,
 ) {
     val colors = contentFirstColors
-    // 点击盒比视觉方框大一圈（40×48），保证拇指可点；方框本身贴 16dp 内容边距。
     Box(
         modifier = Modifier
-            .size(width = 40.dp, height = 48.dp)
-            .testTag(HOME_NOTIFICATION_BUTTON_TAG)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = if (unreadCount > 0) "消息，$unreadCount 条未读" else "消息" },
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(width = 40.dp, height = 34.dp)
-                .testTag(HOME_NOTIFICATION_BUTTON_CONTENT_TAG),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            // 外框不裁剪，角标才能压在方框右上角而不被切掉；描边画在等尺寸的内层。
-            Box(modifier = Modifier.size(width = MessageEntryVisualWidth, height = MessageEntryVisualHeight)) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(MessageEntryShape)
-                        .border(1.dp, colors.secondaryText, MessageEntryShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.MailOutline,
-                        contentDescription = null,
-                        tint = colors.primaryText,
-                        modifier = Modifier.size(13.dp),
-                    )
-                }
-                if (unreadCount > 0) {
-                    Badge(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 8.dp, y = (-6).dp)
-                            .testTag(HOME_NOTIFICATION_BADGE_TAG),
-                        containerColor = colors.badge,
-                        contentColor = Color.White,
-                    ) {
-                        Text(
-                            text = if (unreadCount > 99) "99+" else "$unreadCount",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** 搜索框：胶囊形，内置热搜词占位（灰）与右侧麦克风。 */
-@Composable
-private fun HomeSearchField(
-    hotSearchWord: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = contentFirstColors
-    val placeholder = hotSearchWord.ifBlank { "搜索知乎内容" }
-    Row(
-        modifier = modifier
-            .height(36.dp)
+            .size(ZhihuSizes.HomeAvatarSize)
             .clip(CircleShape)
             .background(colors.functionalSurface)
             .clickable(role = Role.Button, onClick = onClick)
+            .testTag(HOME_ACCOUNT_AVATAR_TAG)
+            .semantics { contentDescription = if (loggedIn) "账号" else "登录" },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (!avatarUrl.isNullOrBlank()) {
+            ZhihuNetworkImage(
+                model = avatarUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Filled.Person,
+                contentDescription = null,
+                tint = colors.secondaryText,
+                modifier = Modifier.size(ZhihuSizes.IconSmall),
+            )
+        }
+    }
+}
+
+/**
+ * 搜索胶囊：40dp 高、20dp 圆角、1.5dp 品牌蓝描边；底色与页面同色（官方只有描边可见）。
+ * 内部是热词 + 热标 + 竖分隔 + 搜索按钮。
+ */
+@Composable
+private fun HomeSearchPill(
+    hotSearchWord: String,
+    onOpenSearch: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = contentFirstColors
+    val hasHotWord = hotSearchWord.isNotBlank()
+    val pillShape = RoundedCornerShape(ZhihuSizes.HomeSearchPillRadius)
+    Row(
+        modifier = modifier
+            .height(ZhihuSizes.HomeSearchRowHeight)
+            .border(SearchPillBorderWidth, colors.accentFill, pillShape)
+            .clickable(role = Role.Button, onClick = onOpenSearch)
             .testTag(HOME_SEARCH_BUTTON_TAG)
-            .padding(start = 14.dp, end = 12.dp),
+            .padding(start = SearchPillStartPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = placeholder,
-            style = MaterialTheme.typography.bodyMedium,
-            color = colors.secondaryText,
+            text = if (hasHotWord) hotSearchWord else "搜索知乎内容",
+            style = ZhihuTypography.HotWord,
+            color = if (hasHotWord) colors.primaryText else colors.tertiaryText,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .weight(1f)
                 .testTag(HOME_SEARCH_PLACEHOLDER_TAG),
         )
-        Icon(
-            imageVector = Icons.Outlined.Mic,
-            contentDescription = "语音搜索",
-            tint = colors.secondaryText,
-            modifier = Modifier.size(18.dp),
-        )
+        if (hasHotWord) {
+            Spacer(Modifier.width(6.dp))
+            HomeHotBadge()
+            Spacer(Modifier.width(ZhihuSpacing.Small))
+            Box(
+                modifier = Modifier
+                    .width(SearchDividerWidth)
+                    .height(SearchDividerHeight)
+                    .background(colors.accent.copy(alpha = 0.5f)),
+            )
+            Spacer(Modifier.width(ZhihuSpacing.Small))
+        }
+        HomeSearchActionButton(onClick = onOpenSearch)
+        Spacer(Modifier.width(SearchPillEndPadding))
     }
 }
 
-/** 搜索按钮：小圆角、主题蓝底白字。 */
+/** 「热」角标：红字 + 1dp 同色描边 + 3dp 圆角。 */
+@Composable
+private fun HomeHotBadge() {
+    val colors = contentFirstColors
+    Text(
+        text = "热",
+        style = MaterialTheme.typography.labelSmall,
+        color = colors.badge,
+        modifier = Modifier
+            .border(1.dp, colors.badge, HotBadgeShape)
+            .padding(horizontal = HotBadgeHorizontalPadding, vertical = HotBadgeVerticalPadding),
+    )
+}
+
+/** 胶囊内「搜索」按钮：56×30dp 品牌蓝底、14sp Bold 白字、全圆角。 */
 @Composable
 private fun HomeSearchActionButton(onClick: () -> Unit) {
     val colors = contentFirstColors
     Box(
         modifier = Modifier
-            .height(32.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(colors.accent)
+            .width(ZhihuSizes.HomeSearchButtonWidth)
+            .height(ZhihuSizes.HomeSearchButtonHeight)
+            .clip(ZhihuShapeTokens.Pill)
+            .background(colors.accentFill)
             .clickable(role = Role.Button, onClick = onClick)
-            .testTag(HOME_SEARCH_ACTION_TAG)
-            .padding(horizontal = 12.dp),
+            .testTag(HOME_SEARCH_ACTION_TAG),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = "搜索",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
-            color = Color.White,
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
 
-/** 分类 Tab（§1.3.2）：三个、水平居中、等间距；选中加粗并带 2dp 主题蓝短下划线。 */
+/** 分类 Tab（官方 11.14，target-spec §2.2）：40dp 行、50dp 项、30×3dp 下划线，右侧频道编辑 + 听。 */
 @Composable
 private fun HomeCategoryTabRow(
+    tabs: List<HomeCategoryTab>,
     selected: HomeCategoryTab,
+    isListening: Boolean,
     onSelect: (HomeCategoryTab) -> Unit,
+    onEditChannels: () -> Unit,
+    onListen: () -> Unit,
 ) {
     val colors = contentFirstColors
-    Column(modifier = Modifier.fillMaxWidth().background(colors.page)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(40.dp),
-            horizontalArrangement = Arrangement.spacedBy(40.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            HomeCategoryTabs.forEach { tab ->
-                val isSelected = tab == selected
-                Column(
-                    modifier = Modifier
-                        .clickable(role = Role.Tab) { onSelect(tab) }
-                        .testTag(homeCategoryTabTag(tab.label))
-                        .semantics { this.selected = isSelected }
-                        .padding(horizontal = 4.dp, vertical = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = tab.label,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
-                        ),
-                        color = if (isSelected) colors.primaryText else colors.secondaryText,
-                    )
-                    Spacer(Modifier.height(3.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(width = 16.dp, height = 2.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) colors.accent else Color.Transparent),
+    val scrollState = rememberScrollState()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(ZhihuSizes.HomeTabRowHeight)
+            .background(colors.page),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .horizontalScroll(scrollState)
+                    .padding(start = ZhihuSpacing.Small),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                tabs.forEach { tab ->
+                    HomeCategoryTabItem(
+                        tab = tab,
+                        selected = tab == selected,
+                        onClick = { onSelect(tab) },
                     )
                 }
             }
+            // 左右 10dp 渐变遮罩：横向滚动时 Tab 文字不会直接压在右侧固定图标上。
+            if (scrollState.canScrollBackward) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .fillMaxHeight()
+                        .width(TabScrollFadeWidth)
+                        .background(Brush.horizontalGradient(listOf(colors.page, Color.Transparent))),
+                )
+            }
+            if (scrollState.canScrollForward) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .width(TabScrollFadeWidth)
+                        .background(Brush.horizontalGradient(listOf(Color.Transparent, colors.page))),
+                )
+            }
         }
-        HorizontalDivider(thickness = 1.dp, color = colors.divider)
+        HomeTabIconButton(
+            icon = Icons.Default.Menu,
+            label = "频道编辑",
+            tag = HOME_TAB_EDIT_TAG,
+            tint = MaterialTheme.colorScheme.onSurface,
+            onClick = onEditChannels,
+        )
+        HomeTabIconButton(
+            icon = Icons.Default.Headphones,
+            label = "听",
+            tag = HOME_TAB_LISTEN_TAG,
+            tint = if (isListening) colors.accent else MaterialTheme.colorScheme.onSurface,
+            onClick = onListen,
+        )
+        Spacer(Modifier.width(ZhihuSpacing.Small))
+    }
+}
+
+@Composable
+private fun HomeCategoryTabItem(
+    tab: HomeCategoryTab,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .width(ZhihuSizes.HomeTabItemWidth)
+            .fillMaxHeight()
+            .clickable(role = Role.Tab, onClick = onClick)
+            .testTag(homeCategoryTabTag(tab.label))
+            .semantics { this.selected = selected },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = tab.label,
+            style = ZhihuTypography.TabTitle.copy(
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 1.dp)
+                    .size(
+                        width = ZhihuSizes.HomeTabIndicatorWidth,
+                        height = ZhihuSizes.HomeTabIndicatorHeight,
+                    ).clip(TabIndicatorShape)
+                    .background(MaterialTheme.colorScheme.onSurface),
+            )
+        }
+    }
+}
+
+/** Tab 行右侧固定图标（视觉 24dp，点击区补到 40dp）。 */
+@Composable
+private fun HomeTabIconButton(
+    icon: ImageVector,
+    label: String,
+    tag: String,
+    tint: Color,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(TabIconSlotSize)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(tag)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(ZhihuSizes.Icon),
+        )
+    }
+}
+
+/** 频道编辑弹层：勾选/取消分类 Tab，至少保留一个可见 Tab（复用应用偏好存储）。 */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeChannelSheet(
+    tabs: List<HomeCategoryTab>,
+    hiddenTabKeys: Set<String>,
+    onDismiss: () -> Unit,
+    onToggle: (HomeCategoryTab, Boolean) -> Unit,
+) {
+    val colors = contentFirstColors
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = colors.page,
+        modifier = Modifier.testTag(HOME_CHANNEL_SHEET_TAG),
+    ) {
+        Text(
+            text = "频道设置",
+            style = ZhihuTypography.TabTitle.copy(fontWeight = FontWeight.Bold),
+            color = colors.primaryText,
+            modifier = Modifier.padding(horizontal = ZhihuSizes.FeedCardHorizontalGutter),
+        )
+        Spacer(Modifier.height(ZhihuSpacing.Small))
+        tabs.forEach { tab ->
+            val visible = tab.name !in hiddenTabKeys
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clickable(role = Role.Switch) { onToggle(tab, !visible) }
+                    .testTag(homeChannelTabTag(tab.label))
+                    .padding(horizontal = ZhihuSizes.FeedCardHorizontalGutter),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = tab.label,
+                    style = ZhihuTypography.TabTitle,
+                    color = colors.primaryText,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = visible,
+                    onCheckedChange = { onToggle(tab, it) },
+                    enabled = visible || tabs.count { it.name !in hiddenTabKeys } > 1,
+                )
+            }
+        }
+        Spacer(Modifier.height(ZhihuSpacing.ExtraLarge))
     }
 }
 
