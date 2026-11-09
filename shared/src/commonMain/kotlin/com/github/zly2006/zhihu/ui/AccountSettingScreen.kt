@@ -18,18 +18,24 @@
 package com.github.zly2006.zhihu.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,85 +44,84 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.ArrowOutward
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwitchAccount
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.github.zly2006.zhihu.account.rememberZhihuAccountStore
 import com.github.zly2006.zhihu.navigation.Account
 import com.github.zly2006.zhihu.navigation.Collections
 import com.github.zly2006.zhihu.navigation.LocalNavigator
-import com.github.zly2006.zhihu.navigation.Notification
 import com.github.zly2006.zhihu.navigation.OnlineHistory
 import com.github.zly2006.zhihu.navigation.Person
 import com.github.zly2006.zhihu.navigation.WritePin
 import com.github.zly2006.zhihu.navigation.requestLoginNavigation
-import com.github.zly2006.zhihu.platform.platformBottomBarItemLimit
 import com.github.zly2006.zhihu.platform.rememberPlainTextClipboard
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberSystemUrlOpener
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.reading.isReadingPlayerSupported
-import com.github.zly2006.zhihu.ui.components.SettingItem
-import com.github.zly2006.zhihu.ui.components.SettingItemGroup
+import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
+import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
-import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
-import com.github.zly2006.zhihu.ui.subscreens.BOTTOM_BAR_ITEMS_PREFERENCE_KEY
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
-import com.github.zly2006.zhihu.ui.subscreens.defaultBottomBarSelectionKeys
-import com.github.zly2006.zhihu.ui.subscreens.normalizeBottomBarSelection
+import com.github.zly2006.zhihu.ui.subscreens.rememberSystemUpdateChecker
 import com.github.zly2006.zhihu.ui.subscreens.rememberSystemUpdateState
-import com.github.zly2006.zhihu.ui.subscreens.shouldShowAccountHistoryShortcut
 import com.github.zly2006.zhihu.util.Log
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import zhihu.shared.generated.resources.Res
-import zhihu.shared.generated.resources.ic_github_24dp
-import zhihu.shared.generated.resources.ic_launcher_foreground
 import zhihu.shared.generated.resources.ic_license_24dp
 
 const val ACCOUNT_SETTINGS_SCROLL_TAG = "accountSettings.scroll"
@@ -138,16 +143,24 @@ const val ACCOUNT_SETTINGS_DEVELOPER_TAG = "accountSettings.developer"
 const val ACCOUNT_SETTINGS_LICENSES_TAG = "accountSettings.licenses"
 const val ACCOUNT_SETTINGS_IDENTITY_MANAGEMENT_TAG = "accountSettings.identityManagement"
 
+private val heroHeight = 172.dp
+private val heroAvatarSize = 64.dp
+private val collapsedBarHeight = 48.dp
+private val collapsedBarTrigger = 48.dp
+private val shortcutCardHeight = 84.dp
+private val settingsRowMinHeight = 60.dp
+private val settingsRowIconSize = 28.dp
+
 /**
  * 账号与设置入口页。
  *
- * 已登录时顶部展示头像、昵称、重新登录和退出登录，Duo3 账号入口迁移开启后会额外展示收藏夹、关注订阅、通知和历史等快捷块；
- * 未登录时只展示登录入口。下方设置区是外观、推荐过滤、系统更新、开发者选项和开源许可的统一入口，其中开发者选项通过连续点击版本号开启。
+ * 已登录时顶部是可折叠 Hero（头像、昵称、@ID、进主页 pill、扫码与更多菜单），Hero 滚出后浮出 48dp 小标题栏；
+ * 下方依次是快捷入口卡、设置搜索、分组设置和页脚。未登录时 Hero 只保留登录入口，快捷入口卡隐藏。
+ * 开发者选项通过连续点击页脚版本号 5 次开启，退出登录走确认弹窗。
  *
- * 这个页面既可以作为底部栏 tab 展示，也可以作为主页头像弹出的账号面板内容使用，所以 [innerPadding]、[onDismissRequest] 和
- * `duo3_home_account` 相关逻辑都不能随意删除。
+ * 这个页面既作为底部栏 tab 展示，也被单独的路由/账号面板复用，所以 [innerPadding]、[onDismissRequest]、
+ * [refreshAccountProfileOnEnter] 与 [isActive] 都必须保留，不能改成只在 tab 场景成立的默认值。
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AccountSettingScreen(
     innerPadding: PaddingValues,
@@ -159,28 +172,19 @@ fun AccountSettingScreen(
 ) {
     val navigator = LocalNavigator.current
     val accountStore = rememberZhihuAccountStore()
-    val accountState = rememberAccountSettingsAccountState()
-    val requestLogin = ::requestLoginNavigation
+    val data by rememberAccountSettingsAccountState()
     val settings = rememberSettingsStore()
     val copyPlainText = rememberPlainTextClipboard()
     val openSystemUrl = rememberSystemUrlOpener()
     val userMessages = rememberUserMessageSink()
     val systemUpdateState = rememberSystemUpdateState()
+    val checkForUpdate = rememberSystemUpdateChecker()
     val versionInfo = rememberAppVersionInfo()
     val readingPlayerSupported = isReadingPlayerSupported
     val launchQrScanner = rememberAccountQrScanAction()
+    val requestLogin = ::requestLoginNavigation
+    val scope = rememberCoroutineScope()
 
-    val useDuo3HomeAccount = remember { settings.getBoolean("duo3_home_account", false) }
-    val selectedBottomBarItemKeys = remember {
-        normalizeBottomBarSelection(
-            settings.getStringSet(
-                BOTTOM_BAR_ITEMS_PREFERENCE_KEY,
-                defaultBottomBarSelectionKeys(platformBottomBarItemLimit),
-            ),
-            enforceMinimumSelection = true,
-            maximumSelection = platformBottomBarItemLimit,
-        )
-    }
     var isDeveloper by remember { mutableStateOf(settings.getBoolean("developer", false)) }
     var clickTimes by remember { mutableIntStateOf(0) }
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -192,473 +196,207 @@ fun AccountSettingScreen(
     LaunchedEffect(isDeveloper) {
         settings.putBoolean("developer", isDeveloper)
     }
-    val liveData by accountState
-    val data = liveData
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        containerColor = zhihuSurfaces.page,
-    ) { padding ->
+    LaunchedEffect(data.login, refreshAccountProfileOnEnter) {
+        if (refreshAccountProfileOnEnter && data.login) {
+            try {
+                accountStore.client.refreshAndSaveProfile()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("AccountSettingScreen", "Failed to refresh account profile", e)
+                userMessages.showShortMessage("获取用户信息失败")
+            }
+        }
+    }
+
+    val updateState by systemUpdateState.collectAsState()
+    LaunchedEffect(updateState) {
+        when (val state = updateState) {
+            is SystemUpdateState.UpdateAvailable -> {
+                val versionType = if (state.isNightly) "Nightly版本" else "正式版本"
+                userMessages.showShortMessage("发现新$versionType ${state.version}")
+            }
+            is SystemUpdateState.Error -> userMessages.showLongMessage("检查更新失败: ${state.message}")
+            else -> Unit
+        }
+    }
+    val updateLabel = when (updateState) {
+        SystemUpdateState.Checking -> "检查中…"
+        SystemUpdateState.Latest -> "已是最新版本"
+        is SystemUpdateState.UpdateAvailable -> "发现新版本"
+        is SystemUpdateState.Error -> "检查更新失败"
+        else -> "检查更新"
+    }
+
+    val topInset = innerPadding.calculateTopPadding()
+    val collapseTriggerPx = with(LocalDensity.current) { collapsedBarTrigger.roundToPx() }
+    val showCollapsedBar by remember(collapseTriggerPx) {
+        derivedStateOf { scrollState.value > collapseTriggerPx }
+    }
+
+    val openProfile = {
+        navigator.onNavigate(
+            Person(id = data.id, urlToken = data.urlToken ?: "", name = data.username),
+        )
+    }
+    val openIdentityManagement = { navigator.onNavigate(Account.IdentityManagement) }
+    val requestLogout = { showLogoutDialog = true }
+
+    Box(
+        modifier = Modifier.fillMaxSize().background(contentFirstColors.page),
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(innerPadding)
+                .fillMaxSize()
                 .testTag(ACCOUNT_SETTINGS_SCROLL_TAG)
                 .pageTurnViewportWithGuide(pageTurnTarget)
                 .verticalScroll(scrollState)
-                .padding(padding),
+                .padding(bottom = innerPadding.calculateBottomPadding() + ZhihuSpacing.Huge),
         ) {
-            LaunchedEffect(data.login, refreshAccountProfileOnEnter) {
-                if (refreshAccountProfileOnEnter && data.login) {
-                    try {
-                        accountStore.client.refreshAndSaveProfile()
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Log.e("AccountSettingScreen", "Failed to refresh account profile", e)
-                        userMessages.showShortMessage("获取用户信息失败")
-                    }
-                }
-            }
+            AccountHero(
+                data = data,
+                topInset = topInset,
+                scan = launchQrScanner,
+                onOpenProfile = openProfile,
+                onLogin = requestLogin,
+                onIdentityManagement = openIdentityManagement,
+                onLogout = requestLogout,
+            )
 
             if (data.login) {
-                Surface(
-                    modifier = Modifier
-                        .testTag(ACCOUNT_SETTINGS_PROFILE_HEADER_TAG)
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
-                    shape = ZhihuShapeTokens.Section,
-                    color = zhihuSurfaces.card,
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                navigator.onNavigate(
-                                    Person(
-                                        id = data.id,
-                                        urlToken = data.urlToken ?: "",
-                                        name = data.username,
-                                    ),
-                                )
-                            }.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AsyncImage(
-                            model = data.avatarUrl,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(72.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                                .clip(CircleShape),
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = data.username,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.testTag(ACCOUNT_SETTINGS_PROFILE_NAME_TAG),
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "查看主页",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                                Icon(
-                                    Icons.Filled.KeyboardArrowRight,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            }
-                        }
-                        if (launchQrScanner != null) {
-                            FilledTonalIconButton(
-                                onClick = launchQrScanner,
-                                modifier = Modifier.size(48.dp).testTag(ACCOUNT_SETTINGS_SCAN_TAG),
-                            ) {
-                                Icon(Icons.Default.QrCodeScanner, contentDescription = "扫码登录")
-                            }
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        FilledTonalIconButton(
-                            onClick = {
-                                showLogoutDialog = true
-                            },
-                            modifier = Modifier.size(48.dp),
-                            colors = IconButtonDefaults.iconButtonColors().copy(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                AccountShortcutCard(
+                    onWritePin = { navigator.onNavigate(WritePin()) },
+                    onCollections = { data.urlToken?.let { navigator.onNavigate(Collections(it)) } },
+                    onSubscriptions = {
+                        navigator.onNavigate(
+                            Person(
+                                id = data.id,
+                                urlToken = data.urlToken ?: "",
+                                name = data.username,
+                                jumpTo = "关注订阅",
                             ),
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = "退出登录",
-                                modifier = Modifier.size(22.dp),
-                            )
-                        }
-                    }
-                }
-            } else {
-                SettingItemGroup {
-                    SettingItem(
-                        title = { Text("登录知乎") },
-                        icon = { Icon(Icons.AutoMirrored.Filled.Login, null) },
-                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_LOGIN_ITEM_TAG),
-                        onClick = {
-                            requestLogin()
-                        },
-                    )
-                }
-            }
-
-            // 首页已按产品设计稿移除悬浮「＋」发布按钮，创作入口迁到「我的」。
-            if (data.login) {
-                Spacer(Modifier.height(16.dp))
-                SettingItemGroup {
-                    SettingItem(
-                        title = { Text("发想法") },
-                        description = { Text("写一条想法并发布到知乎") },
-                        icon = { Icon(Icons.Default.Edit, null) },
-                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_WRITE_PIN_TAG),
-                        onClick = { navigator.onNavigate(WritePin()) },
-                    )
-                }
-            }
-
-            if (useDuo3HomeAccount) {
-                Row(
-                    Modifier
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp, bottom = 32.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (data.login) {
-                        Column(
-                            Modifier
-                                .testTag(ACCOUNT_SETTINGS_SHORTCUT_COLLECTIONS_TAG)
-                                .weight(1f)
-                                .clip(ZhihuShapeTokens.Card)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .clickable {
-                                    data.urlToken?.let { navigator.onNavigate(Collections(it)) }
-                                }.padding(8.dp, 16.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Icon(
-                                Icons.Default.Bookmark,
-                                null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "收藏夹",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
-                        Column(
-                            Modifier
-                                .testTag(ACCOUNT_SETTINGS_SHORTCUT_SUBSCRIPTIONS_TAG)
-                                .weight(1f)
-                                .clip(ZhihuShapeTokens.Card)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .clickable {
-                                    navigator.onNavigate(
-                                        Person(
-                                            id = data.id,
-                                            urlToken = data.urlToken ?: "",
-                                            name = data.username,
-                                            jumpTo = "关注订阅",
-                                        ),
-                                    )
-                                }.padding(8.dp, 16.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Icon(
-                                Icons.Default.Groups,
-                                null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "关注订阅",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
-                        Column(
-                            Modifier
-                                .testTag(ACCOUNT_SETTINGS_SHORTCUT_NOTIFICATION_TAG)
-                                .weight(1f)
-                                .clip(ZhihuShapeTokens.Card)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .clickable {
-                                    onDismissRequest()
-                                    navigator.onNavigate(Notification)
-                                }.padding(8.dp, 16.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            BadgedBox(
-                                badge = {
-                                    if (showUnreadBadge && unreadCount > 0) {
-                                        Badge { Text(unreadCount.toString()) }
-                                    }
-                                },
-                            ) {
-                                Icon(
-                                    Icons.Default.Notifications,
-                                    null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                )
-                            }
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "通知",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
-                        if (shouldShowAccountHistoryShortcut(useDuo3HomeAccount, selectedBottomBarItemKeys)) {
-                            Column(
-                                Modifier
-                                    .testTag(ACCOUNT_SETTINGS_SHORTCUT_HISTORY_TAG)
-                                    .weight(1f)
-                                    .clip(ZhihuShapeTokens.Card)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                    .clickable {
-                                        onDismissRequest()
-                                        navigator.onNavigateTopLevel(OnlineHistory)
-                                    }.padding(8.dp, 16.dp),
-                                verticalArrangement = Arrangement.Center,
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                Icon(
-                                    Icons.Default.History,
-                                    null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    "浏览历史",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                )
-                            }
-                        }
-                    }
-                }
-            } else {
-                Spacer(Modifier.height(32.dp))
-                SettingItemGroup {
-                    if (data.login) {
-                        SettingItem(
-                            title = { Text("查看收藏夹") },
-                            icon = { Icon(Icons.Default.BookmarkBorder, null) },
-                            onClick = {
-                                data.urlToken?.let { navigator.onNavigate(Collections(it)) }
-                            },
                         )
-                        SettingItem(
-                            title = { Text("查看关注订阅") },
-                            description = { Text("话题、问题、专栏和收藏夹") },
-                            icon = { Icon(Icons.Default.Groups, null) },
-                            modifier = Modifier.testTag(ACCOUNT_SETTINGS_SHORTCUT_SUBSCRIPTIONS_TAG),
-                            onClick = {
-                                navigator.onNavigate(
-                                    Person(
-                                        id = data.id,
-                                        urlToken = data.urlToken ?: "",
-                                        name = data.username,
-                                        jumpTo = "关注订阅",
-                                    ),
-                                )
-                            },
-                        )
-                    }
-                }
-            }
-
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                Surface(
-                    modifier = Modifier
-                        .height(48.dp)
-                        .testTag(ACCOUNT_SETTINGS_SEARCH_TAG),
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    onClick = {
-                        navigator.onNavigate(Account.SettingsSearch)
                     },
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = "搜索",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "搜索设置项",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
+                    onHistory = {
+                        onDismissRequest()
+                        navigator.onNavigateTopLevel(OnlineHistory)
+                    },
+                )
             }
 
-            SettingItemGroup {
-                if (data.login) {
-                    SettingItem(
-                        title = { Text("身份管理") },
-                        description = { Text("创建马甲号或切换当前账号") },
-                        icon = { Icon(Icons.Default.SwitchAccount, null) },
-                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_IDENTITY_MANAGEMENT_TAG),
-                        onClick = { navigator.onNavigate(Account.IdentityManagement) },
-                    )
-                }
+            SettingsSearchPill(onClick = { navigator.onNavigate(Account.SettingsSearch) })
 
-                SettingItem(
-                    title = { Text("外观与阅读体验") },
-                    description = { Text("主题颜色、字体大小等") },
-                    icon = { Icon(Icons.Default.Palette, null) },
+            SettingsSection(title = "内容与推荐") {
+                SettingsRow(
+                    title = "推荐系统与内容过滤",
+                    subtitle = "推荐、智能过滤、关键词屏蔽等",
+                    icon = { SettingsRowIcon(Icons.Default.FilterAlt) },
+                    modifier = Modifier.testTag(ACCOUNT_SETTINGS_RECOMMEND_TAG),
+                    onClick = { navigator.onNavigate(Account.RecommendSettings()) },
+                )
+            }
+
+            SettingsSection(title = "外观与阅读") {
+                SettingsRow(
+                    title = "外观与阅读体验",
+                    subtitle = "主题颜色、字体大小等",
+                    icon = { SettingsRowIcon(Icons.Default.Palette) },
                     modifier = Modifier.testTag(ACCOUNT_SETTINGS_APPEARANCE_TAG),
                     onClick = { navigator.onNavigate(Account.AppearanceSettings()) },
                 )
-
                 if (readingPlayerSupported) {
-                    SettingItem(
-                        title = { Text("朗读与播放") },
-                        description = { Text("朗读内容、播放队列与条目过渡") },
-                        icon = { Icon(Icons.AutoMirrored.Filled.VolumeUp, null) },
+                    SettingsDivider()
+                    SettingsRow(
+                        title = "朗读与播放",
+                        subtitle = "朗读内容、播放队列与条目过渡",
+                        icon = { SettingsRowIcon(Icons.AutoMirrored.Filled.VolumeUp) },
                         modifier = Modifier.testTag(ACCOUNT_SETTINGS_READING_TAG),
                         onClick = { navigator.onNavigate(Account.ReadingSettings) },
                     )
                 }
+            }
 
-                SettingItem(
-                    title = { Text("推荐系统与内容过滤") },
-                    description = { Text("推荐、智能过滤、关键词屏蔽等") },
-                    icon = { Icon(Icons.Default.FilterAlt, null) },
-                    modifier = Modifier.testTag(ACCOUNT_SETTINGS_RECOMMEND_TAG),
-                    onClick = { navigator.onNavigate(Account.RecommendSettings()) },
-                )
-
-                SettingItem(
-                    title = { Text("系统与更新") },
-                    description = { Text("GitHub、更新设置等") },
-                    icon = { Icon(Icons.Default.Settings, null) },
-                    modifier = Modifier.testTag(ACCOUNT_SETTINGS_SYSTEM_TAG),
-                    onClick = { navigator.onNavigate(Account.SystemAndUpdateSettings()) },
-                )
-
-                AnimatedVisibility(isDeveloper) {
-                    SettingItem(
-                        title = { Text("开发者选项") },
-                        icon = { Icon(Icons.Default.Code, null) },
-                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_DEVELOPER_TAG),
-                        onClick = { navigator.onNavigate(Account.DeveloperSettings) },
+            if (data.login) {
+                SettingsSection(title = "账号与安全") {
+                    SettingsRow(
+                        title = "身份管理",
+                        subtitle = "创建马甲号或切换当前账号",
+                        icon = { SettingsRowIcon(Icons.Default.SwitchAccount) },
+                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_IDENTITY_MANAGEMENT_TAG),
+                        onClick = openIdentityManagement,
                     )
                 }
             }
 
-            val updateState by systemUpdateState.collectAsState()
-            LaunchedEffect(updateState) {
-                if (updateState is SystemUpdateState.UpdateAvailable) {
-                    val state = updateState as SystemUpdateState.UpdateAvailable
-                    val versionType = if (state.isNightly) "Nightly版本" else "正式版本"
-                    userMessages.showShortMessage("发现新$versionType ${state.version}")
+            SettingsSection(title = "系统") {
+                SettingsRow(
+                    title = "系统与更新",
+                    subtitle = "GitHub、更新设置等",
+                    icon = { SettingsRowIcon(Icons.Default.Settings) },
+                    modifier = Modifier.testTag(ACCOUNT_SETTINGS_SYSTEM_TAG),
+                    onClick = { navigator.onNavigate(Account.SystemAndUpdateSettings()) },
+                )
+                SettingsDivider()
+                AnimatedVisibility(isDeveloper) {
+                    Column {
+                        SettingsRow(
+                            title = "开发者选项",
+                            icon = { SettingsRowIcon(Icons.Default.Code) },
+                            modifier = Modifier.testTag(ACCOUNT_SETTINGS_DEVELOPER_TAG),
+                            onClick = { navigator.onNavigate(Account.DeveloperSettings) },
+                        )
+                        SettingsDivider()
+                    }
                 }
-                if (updateState is SystemUpdateState.Error) {
-                    userMessages.showLongMessage("检查更新失败: ${(updateState as SystemUpdateState.Error).message}")
-                }
-            }
-
-            SettingItemGroup(
-                title = "关于",
-                footer = { Text("本软件仅供学习交流使用，应用内内容由知乎网站提供，著作权归其对应作者所有。") },
-            ) {
-                SettingItem(
-                    title = { Text("知乎++") },
-                    description = { Text("版本号：$versionInfo") },
+                SettingsRow(
+                    title = "开源许可",
+                    subtitle = "查看第三方组件许可证",
                     icon = {
-                        Image(
-                            painterResource(Res.drawable.ic_launcher_foreground),
+                        Icon(
+                            painter = painterResource(Res.drawable.ic_license_24dp),
                             contentDescription = null,
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .size(32.dp),
+                            modifier = Modifier.size(settingsRowIconSize),
                         )
                     },
-                    modifier = Modifier.combinedClickable(
-                        enabled = true,
-                        onClick = {
-                            clickTimes++
-                            if (clickTimes == 5) {
-                                clickTimes = 0
-                                isDeveloper = true
-                                userMessages.showShortMessage("You are now a developer")
-                            }
-                        },
-                        onLongClick = {
-                            copyPlainText("version", versionInfo)
-                            userMessages.showShortMessage("已复制版本号")
-                        },
-                    ),
-                )
-                SettingItem(
-                    title = { Text("GitHub 项目地址") },
-                    description = { Text("https://github.com/zly2006/zhihu-plus-plus") },
-                    icon = { Icon(painterResource(Res.drawable.ic_github_24dp), null) },
-                    onClick = {
-                        openSystemUrl("https://github.com/zly2006/zhihu-plus-plus")
-                    },
-                    endAction = {
-                        Icon(
-                            Icons.Default.ArrowOutward,
-                            null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                )
-
-                SettingItem(
-                    title = { Text("项目协议") },
-                    description = { Text("AGPL-3.0-only") },
-                    icon = { Icon(painterResource(Res.drawable.ic_license_24dp), null) },
-                    onClick = {
-                        openSystemUrl("https://github.com/zly2006/zhihu-plus-plus/blob/master/LICENSE")
-                    },
-                    endAction = {
-                        Icon(
-                            Icons.Default.ArrowOutward,
-                            null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                )
-                SettingItem(
-                    title = { Text("开源许可") },
-                    description = { Text("查看第三方组件许可证") },
-                    icon = { Icon(painterResource(Res.drawable.ic_license_24dp), null) },
                     modifier = Modifier.testTag(ACCOUNT_SETTINGS_LICENSES_TAG),
                     onClick = { navigator.onNavigate(Account.OpenSourceLicenses) },
                 )
             }
+
+            AccountFooter(
+                versionInfo = versionInfo,
+                updateLabel = updateLabel,
+                onVersionClick = {
+                    clickTimes++
+                    if (clickTimes == 5) {
+                        clickTimes = 0
+                        isDeveloper = true
+                        userMessages.showShortMessage("You are now a developer")
+                    }
+                },
+                onVersionLongClick = {
+                    copyPlainText("version", versionInfo)
+                    userMessages.showShortMessage("已复制版本号")
+                },
+                onCheckUpdate = { scope.launch { checkForUpdate.check() } },
+                onGithub = { openSystemUrl("https://github.com/zly2006/zhihu-plus-plus") },
+                onAgpl = { openSystemUrl("https://github.com/zly2006/zhihu-plus-plus/blob/master/LICENSE") },
+            )
+        }
+
+        AnimatedVisibility(
+            visible = showCollapsedBar,
+            modifier = Modifier.align(Alignment.TopCenter),
+            enter = fadeIn(Motion.fadeTween()),
+            exit = fadeOut(Motion.fadeTween()),
+        ) {
+            AccountCollapsedBar(
+                topInset = topInset,
+                scan = launchQrScanner,
+                onIdentityManagement = openIdentityManagement,
+                onLogout = requestLogout,
+            )
         }
     }
 
@@ -692,4 +430,493 @@ fun AccountSettingScreen(
             },
         )
     }
+}
+
+@Composable
+private fun AccountHero(
+    data: AccountSettingsAccountState,
+    topInset: Dp,
+    scan: (() -> Unit)?,
+    onOpenProfile: () -> Unit,
+    onLogin: () -> Unit,
+    onIdentityManagement: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    val colors = contentFirstColors
+    val gradient = Brush.verticalGradient(listOf(colors.functionalSurface, colors.page))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(heroHeight + topInset)
+            .background(gradient),
+    ) {
+        if (data.login) {
+            AccountTopActions(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = topInset + ZhihuSpacing.ExtraSmall, end = ZhihuSpacing.Small),
+                scan = scan,
+                scanTestTag = ACCOUNT_SETTINGS_SCAN_TAG,
+                onIdentityManagement = onIdentityManagement,
+                onLogout = onLogout,
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = ZhihuSpacing.ScreenGutter)
+                .padding(bottom = ZhihuSpacing.Large),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(ACCOUNT_SETTINGS_PROFILE_HEADER_TAG)
+                    .clickable(onClick = if (data.login) onOpenProfile else onLogin),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AccountAvatar(data)
+                Spacer(Modifier.width(ZhihuSpacing.Large))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (data.login) data.username else "未登录",
+                        style = ZhihuTypography.ContentTitle,
+                        color = colors.primaryText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_PROFILE_NAME_TAG),
+                    )
+                    val urlToken = data.urlToken
+                    if (data.login && !urlToken.isNullOrBlank()) {
+                        Text(
+                            text = "@$urlToken",
+                            style = ZhihuTypography.ContentSignature,
+                            color = colors.tertiaryText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(ZhihuSpacing.Small))
+            HeroPillButton(
+                label = if (data.login) "查看主页" else "登录知乎",
+                modifier = if (data.login) Modifier else Modifier.testTag(ACCOUNT_SETTINGS_LOGIN_ITEM_TAG),
+                filled = !data.login,
+                showChevron = data.login,
+                onClick = if (data.login) onOpenProfile else onLogin,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccountAvatar(data: AccountSettingsAccountState) {
+    val shape = CircleShape
+    val baseModifier = Modifier.size(heroAvatarSize).clip(shape)
+    if (data.login) {
+        AsyncImage(
+            model = data.avatarUrl,
+            contentDescription = null,
+            modifier = baseModifier
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .border(2.dp, contentFirstColors.page, shape),
+        )
+    } else {
+        Box(
+            modifier = baseModifier.background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = contentFirstColors.tertiaryText,
+                modifier = Modifier.size(ZhihuSizes.AvatarMedium),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HeroPillButton(
+    label: String,
+    modifier: Modifier = Modifier,
+    filled: Boolean = false,
+    showChevron: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val containerColor = if (filled) contentFirstColors.accentFill else contentFirstColors.accent.copy(alpha = 0.12f)
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = ZhihuShapeTokens.Pill,
+        color = containerColor,
+        contentColor = if (filled) MaterialTheme.colorScheme.onPrimary else contentFirstColors.accent,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = label, style = MaterialTheme.typography.labelLarge)
+            if (showChevron) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountTopActions(
+    modifier: Modifier = Modifier,
+    scan: (() -> Unit)?,
+    scanTestTag: String? = null,
+    onIdentityManagement: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.Small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        scan?.let { onScan ->
+            AccountIconButton(
+                icon = Icons.Default.QrCodeScanner,
+                contentDescription = "扫码",
+                modifier = if (scanTestTag != null) Modifier.testTag(scanTestTag) else Modifier,
+                onClick = onScan,
+            )
+        }
+        Box {
+            AccountIconButton(
+                icon = Icons.Default.MoreVert,
+                contentDescription = "更多",
+                onClick = { menuExpanded = true },
+            )
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text("身份管理") },
+                    leadingIcon = { Icon(Icons.Default.SwitchAccount, contentDescription = null) },
+                    onClick = {
+                        menuExpanded = false
+                        onIdentityManagement()
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text("退出登录", color = MaterialTheme.colorScheme.error) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    onClick = {
+                        menuExpanded = false
+                        onLogout()
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = contentFirstColors.secondaryText,
+            modifier = Modifier.size(ZhihuSizes.IconSmall),
+        )
+    }
+}
+
+@Composable
+private fun AccountCollapsedBar(
+    topInset: Dp,
+    scan: (() -> Unit)?,
+    onIdentityManagement: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().background(contentFirstColors.page),
+    ) {
+        Spacer(Modifier.height(topInset))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(collapsedBarHeight)
+                .padding(start = ZhihuSpacing.ScreenGutter, end = ZhihuSpacing.Small),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "我的",
+                style = ZhihuTypography.ContentAuthor.copy(fontWeight = FontWeight.Medium),
+                color = contentFirstColors.primaryText,
+                modifier = Modifier.weight(1f),
+            )
+            AccountTopActions(
+                scan = scan,
+                onIdentityManagement = onIdentityManagement,
+                onLogout = onLogout,
+            )
+        }
+        HorizontalDivider(color = contentFirstColors.divider)
+    }
+}
+
+@Composable
+private fun AccountShortcutCard(
+    onWritePin: () -> Unit,
+    onCollections: () -> Unit,
+    onSubscriptions: () -> Unit,
+    onHistory: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ZhihuSpacing.ScreenGutter)
+            .padding(top = ZhihuSpacing.Large)
+            .clip(MaterialTheme.shapes.large)
+            .background(contentFirstColors.functionalSurface)
+            .height(shortcutCardHeight),
+    ) {
+        AccountShortcut(Icons.Default.Edit, "发想法", Modifier.weight(1f).testTag(ACCOUNT_SETTINGS_WRITE_PIN_TAG), onWritePin)
+        AccountShortcut(Icons.Default.Bookmark, "收藏夹", Modifier.weight(1f).testTag(ACCOUNT_SETTINGS_SHORTCUT_COLLECTIONS_TAG), onCollections)
+        AccountShortcut(Icons.Default.Groups, "关注订阅", Modifier.weight(1f).testTag(ACCOUNT_SETTINGS_SHORTCUT_SUBSCRIPTIONS_TAG), onSubscriptions)
+        AccountShortcut(Icons.Default.History, "浏览历史", Modifier.weight(1f).testTag(ACCOUNT_SETTINGS_SHORTCUT_HISTORY_TAG), onHistory)
+    }
+}
+
+@Composable
+private fun AccountShortcut(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxHeight().clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentFirstColors.accent,
+            modifier = Modifier.size(ZhihuSizes.Icon),
+        )
+        Spacer(Modifier.height(ZhihuSpacing.ExtraSmall))
+        Text(
+            text = label,
+            style = ZhihuTypography.BottomNavLabel,
+            color = contentFirstColors.primaryText,
+        )
+    }
+}
+
+@Composable
+private fun SettingsSearchPill(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ZhihuSpacing.ScreenGutter)
+            .padding(top = ZhihuSpacing.Large),
+    ) {
+        Surface(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth().height(44.dp).testTag(ACCOUNT_SETTINGS_SEARCH_TAG),
+            shape = ZhihuShapeTokens.Pill,
+            color = contentFirstColors.functionalSurface,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(horizontal = ZhihuSpacing.Large),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = contentFirstColors.tertiaryText,
+                    modifier = Modifier.size(ZhihuSizes.IconSmall),
+                )
+                Spacer(Modifier.width(ZhihuSpacing.Small))
+                Text(
+                    text = "搜索设置项",
+                    style = ZhihuTypography.FeedSummary,
+                    color = contentFirstColors.tertiaryText,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSection(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = ZhihuSpacing.ScreenGutter),
+    ) {
+        Text(
+            text = title,
+            style = ZhihuTypography.FeedMeta,
+            color = contentFirstColors.tertiaryText,
+            modifier = Modifier.padding(
+                start = ZhihuSpacing.ExtraSmall,
+                top = ZhihuSpacing.Large,
+                bottom = ZhihuSpacing.Small,
+            ),
+        )
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            color = contentFirstColors.functionalSurface,
+        ) {
+            Column(content = content)
+        }
+    }
+}
+
+@Composable
+private fun SettingsRowIcon(icon: ImageVector) {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        modifier = Modifier.size(settingsRowIconSize),
+    )
+}
+
+@Composable
+private fun SettingsRow(
+    title: String,
+    subtitle: String? = null,
+    icon: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = settingsRowMinHeight)
+            .clickable(onClick = onClick)
+            .padding(horizontal = ZhihuSpacing.Large),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(contentFirstColors.accent.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            CompositionLocalProvider(LocalContentColor provides contentFirstColors.accent) {
+                icon()
+            }
+        }
+        Spacer(Modifier.width(ZhihuSpacing.Medium))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = title,
+                style = ZhihuTypography.FeedAuthorName,
+                color = contentFirstColors.primaryText,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = contentFirstColors.tertiaryText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = contentFirstColors.tertiaryText,
+            modifier = Modifier.size(ZhihuSizes.IconSmall),
+        )
+    }
+}
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = ZhihuSpacing.Large),
+        color = contentFirstColors.divider,
+    )
+}
+
+@Composable
+private fun AccountFooter(
+    versionInfo: String,
+    updateLabel: String,
+    onVersionClick: () -> Unit,
+    onVersionLongClick: () -> Unit,
+    onCheckUpdate: () -> Unit,
+    onGithub: () -> Unit,
+    onAgpl: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = ZhihuSpacing.Huge),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "知乎++ 版本 $versionInfo",
+            style = ZhihuTypography.FeedMeta,
+            color = contentFirstColors.tertiaryText,
+            modifier = Modifier
+                .combinedClickable(onLongClick = onVersionLongClick, onClick = onVersionClick)
+                .padding(horizontal = ZhihuSpacing.Small, vertical = ZhihuSpacing.ExtraSmall),
+        )
+        Row(
+            modifier = Modifier.padding(top = ZhihuSpacing.Medium),
+            horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.ExtraLarge),
+        ) {
+            FooterLink(label = updateLabel, onClick = onCheckUpdate)
+            FooterLink(label = "GitHub", onClick = onGithub)
+            FooterLink(label = "AGPL-3.0", onClick = onAgpl)
+        }
+    }
+}
+
+@Composable
+private fun FooterLink(
+    label: String,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = label,
+        style = ZhihuTypography.FeedMeta,
+        color = contentFirstColors.accent,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = ZhihuSpacing.Small),
+    )
 }
