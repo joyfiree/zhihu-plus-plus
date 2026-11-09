@@ -32,11 +32,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.BottomSheetDefaults
@@ -158,6 +163,11 @@ fun MyModalBottomSheet(
     val predictiveBackProgress = remember { Animatable(initialValue = 0f) }
     // 预测性返回的系统 peek 由 manifest 的 enableOnBackInvokedCallback 控制，运行时只能控制本应用自绘的弹层预览。
     val predictiveBackAnimationEnabled = settings.getBoolean("enable_predictive_back", true)
+    // 弹层永远停在状态栏下方：圆角落在状态栏底边，状态栏上露出遮罩。
+    // 关键是「靠位移让出状态栏」而不是「靠内容 padding 让出」——后者会让下拉的前
+    // statusBarHeight 被 consumeWindowInsets(top = offset) 一点点吃掉，
+    // 表现就是手指往下拖时卡片不动、只有底部输入栏在动，必须拖够一个状态栏高度才开始整体位移。
+    val sheetTopInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     @Composable
     fun SheetContent() {
@@ -180,7 +190,12 @@ fun MyModalBottomSheet(
                 scope = scope,
                 animateToDismiss = animateToDismiss,
                 settleToDismiss = settleToDismiss,
-                modifier = modifier.align(Alignment.TopCenter),
+                modifier = modifier
+                    .align(Alignment.TopCenter)
+                    // 让整个卡片（含顶部圆角）整体落在状态栏下方，而不是让 Surface 盖住状态栏、
+                    // 再由内部 padding 把内容顶下去。padding 会同时收紧 sheet 的可用高度，
+                    // 于是 anchors 里的 Expanded 恰好落在状态栏底边，底部仍然贴着屏幕底。
+                    .padding(top = sheetTopInset),
                 state = sheetState,
                 maxWidth = sheetMaxWidth,
                 gesturesEnabled = sheetGesturesEnabled,
@@ -371,7 +386,12 @@ fun BottomSheet(
         Column(
             Modifier
                 .fillMaxWidth()
-                .windowInsetsPadding(contentWindowInsets())
+                // 顶部 inset 已经由外层（MyModalBottomSheet）用位移让出了，这里不能再按状态栏高度
+                // 让第二遍：那会让内容顶部多出一条「拖不动的死区」，而且这段 padding 会被
+                // consumeWindowInsets(top = offset) 随下拉一点点吃掉，视觉上就是内容原地不动。
+                .windowInsetsPadding(
+                    contentWindowInsets().only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+                )
                 .navigationBarsPadding()
                 .graphicsLayer {
                     val progress = predictiveBackProgress.value

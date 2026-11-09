@@ -786,6 +786,7 @@ fun CommentScreen(
                                                     CommentItem(
                                                         comment = childCommentItem,
                                                         modifier = Modifier.testTag("comment_row_${childComment.id}"),
+                                                        isChild = true,
                                                         isLiked = liked,
                                                         likeCount = likeCount,
                                                         toggleLike = {
@@ -876,49 +877,6 @@ fun CommentScreen(
                                         }
                                     }
                                 } else {
-                                    item("header") {
-                                        // 官方评论区顶部：左侧「大家在讨论 | 话题」，右侧关闭按钮；
-                                        // 下面一行是「评论 N」与排序分段控件。
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            Text(
-                                                text = "大家在讨论",
-                                                style = ZhihuTypography.FeedSummary,
-                                                color = contentFirstColors.tertiaryText,
-                                            )
-                                            Text(
-                                                text = " │ ",
-                                                style = ZhihuTypography.FeedSummary,
-                                                color = contentFirstColors.divider,
-                                            )
-                                            Text(
-                                                text = commentContextTitle(resolvedContent),
-                                                style = ZhihuTypography.FeedSummary,
-                                                color = contentFirstColors.primaryText,
-                                                maxLines = 1,
-                                                modifier = Modifier.weight(1f),
-                                            )
-                                            if (onClose != null) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(32.dp)
-                                                        .clip(CircleShape)
-                                                        .background(contentFirstColors.functionalSurface)
-                                                        .clickable(role = Role.Button, onClick = onClose),
-                                                    contentAlignment = Alignment.Center,
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Close,
-                                                        contentDescription = "关闭评论",
-                                                        tint = contentFirstColors.secondaryText,
-                                                        modifier = Modifier.size(18.dp),
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
                                     item("count_row") {
                                         // 官方把「评论 N」与排序放在同一行：
                                         // 左边计数、右边分段控件，中间留柔性空白。
@@ -1264,14 +1222,6 @@ internal fun NavDestination.commentThreadKey(): String = when (this) {
     else -> "comment:${this::class.qualifiedName}:${hashCode()}"
 }
 
-/** 评论区顶部的上下文标题：按具体目的地类型取，拿不到时用通用文案。 */
-private fun commentContextTitle(destination: NavDestination): String = when (destination) {
-    is Article -> destination.title
-    is Question -> destination.title
-    is Pin -> destination.authorName
-    else -> "这条内容"
-}.takeIf { it.isNotBlank() && it != "loading..." } ?: "这条内容"
-
 /**
  * 评论排序的段控件（官方同款）：最热 / 最新。
  *
@@ -1304,6 +1254,8 @@ private fun CommentSortSegment(
 private fun CommentItem(
     comment: CommentModel,
     modifier: Modifier = Modifier,
+    // 列表内嵌的子评论用更小的头像与字号（官方同款层级感）；回复子层里的条目仍用正常尺寸。
+    isChild: Boolean = false,
     isLiked: Boolean = false,
     likeCount: Int = 0,
     isLikeLoading: Boolean = false,
@@ -1314,6 +1266,19 @@ private fun CommentItem(
 ) {
     val navigator = LocalNavigator.current
     val commentData = comment.item
+    val avatarSize = if (isChild) 28.dp else 36.dp
+    val bottomIndent = if (isChild) 40.dp else CommentIndent
+    val authorNameStyle = if (isChild) {
+        ZhihuTypography.FeedAuthorName.copy(fontSize = 13.sp)
+    } else {
+        ZhihuTypography.FeedAuthorName
+    }
+    val metaStyle = if (isChild) {
+        ZhihuTypography.FeedMeta.copy(fontSize = 12.sp)
+    } else {
+        ZhihuTypography.FeedMeta
+    }
+    val contentBaseSize = if (isChild) 14.sp else 15.sp
     val authorPerson =
         Person(
             id = commentData.author.id,
@@ -1332,7 +1297,7 @@ private fun CommentItem(
                 model = commentData.author.avatarUrl,
                 contentDescription = "头像",
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(avatarSize)
                     .clip(CircleShape)
                     .clickable { navigator.onNavigate(authorPerson) },
                 contentScale = ContentScale.Crop,
@@ -1349,7 +1314,7 @@ private fun CommentItem(
                     Text(
                         text = commentData.author.name,
                         fontWeight = FontWeight.SemiBold,
-                        style = ZhihuTypography.FeedAuthorName,
+                        style = authorNameStyle,
                         modifier = Modifier
                             .testTag("comment_author_${commentData.id}")
                             .clickable { navigator.onNavigate(authorPerson) },
@@ -1371,14 +1336,14 @@ private fun CommentItem(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             "回复",
-                            style = ZhihuTypography.FeedMeta,
+                            style = metaStyle,
                             color = contentFirstColors.tertiaryText,
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = replyToAuthor.name,
                             fontWeight = FontWeight.SemiBold,
-                            style = ZhihuTypography.FeedAuthorName,
+                            style = authorNameStyle,
                             modifier = Modifier
                                 .testTag("comment_reply_to_author_${commentData.id}")
                                 .clickable {
@@ -1433,9 +1398,9 @@ private fun CommentItem(
                     ) {
                         Text(
                             text = string,
-                            // 评论正文跟随用户设置的字号/行高，基准用与回答一致的 15sp/22。
-                            fontSize = 15.sp * fontSizePercent / 100,
-                            lineHeight = 15.sp * fontSizePercent / 100 * lineHeightPercent / 100,
+                            // 评论正文跟随用户设置的字号/行高，基准用与回答一致的 15sp（子评论 14sp）。
+                            fontSize = contentBaseSize * fontSizePercent / 100,
+                            lineHeight = contentBaseSize * fontSizePercent / 100 * lineHeightPercent / 100,
                             inlineContent = inlineContent,
                         )
                     }
@@ -1459,7 +1424,7 @@ private fun CommentItem(
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = CommentIndent),
+                .padding(start = bottomIndent),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             // 时间
@@ -1469,7 +1434,10 @@ private fun CommentItem(
 
             Text(
                 text = formattedTime,
-                style = ZhihuTypography.FeedMeta,
+                // FlowRow 默认按行顶对齐：文字会贴在行顶，而右侧按钮行有最小高度、内容居中，
+                // 看起来就是「时间和点赞没对齐」。显式居中对齐才能落到同一视觉中线。
+                modifier = Modifier.align(Alignment.CenterVertically),
+                style = metaStyle,
                 color = contentFirstColors.tertiaryText,
             )
 
@@ -1482,7 +1450,8 @@ private fun CommentItem(
 
                 Text(
                     text = ipInfo,
-                    style = ZhihuTypography.FeedMeta,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                    style = metaStyle,
                     color = contentFirstColors.tertiaryText,
                 )
             }
@@ -1490,7 +1459,7 @@ private fun CommentItem(
             Spacer(modifier = Modifier.weight(1f))
 
             if (onDelete != null) {
-                Box {
+                Box(modifier = Modifier.align(Alignment.CenterVertically)) {
                     IconButton(
                         onClick = { showMoreMenu = true },
                         modifier = Modifier
@@ -1531,7 +1500,7 @@ private fun CommentItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .heightIn(min = 40.dp)
+                    .heightIn(min = 32.dp)
                     .testTag("comment_reply_button_${commentData.id}")
                     .clickable { onChildCommentClick(comment) },
             ) {
@@ -1547,14 +1516,14 @@ private fun CommentItem(
                     Text(
                         text = comment.item.childCommentCount.toString(),
                         modifier = Modifier.testTag("comment_reply_count_${commentData.id}"),
-                        style = ZhihuTypography.FeedMeta,
+                        style = metaStyle,
                         color = contentFirstColors.tertiaryText,
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(2.dp))
 
             // 点赞：图标做一次性回弹、数字滚动、触觉与动画同帧（否则连点会出现「震了但数没动」）。
             // 回弹只在 isLiked 由 false→true 时播放；取消点赞不弹，因为「收回」不需要奖励感。
@@ -1562,7 +1531,7 @@ private fun CommentItem(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .heightIn(min = 40.dp)
+                    .heightIn(min = 32.dp)
                     .testTag("comment_like_button_${commentData.id}")
                     .clickable(enabled = !isLikeLoading) {
                         haptics.tick()
@@ -1591,7 +1560,7 @@ private fun CommentItem(
                 Text(
                     text = animatedCountLabel(likeCount).toString(),
                     modifier = Modifier.testTag("comment_like_count_${commentData.id}"),
-                    style = ZhihuTypography.FeedMeta,
+                    style = metaStyle,
                     color = if (isLiked) contentFirstColors.liked else contentFirstColors.tertiaryText,
                 )
                 Spacer(modifier = Modifier.width(4.dp))

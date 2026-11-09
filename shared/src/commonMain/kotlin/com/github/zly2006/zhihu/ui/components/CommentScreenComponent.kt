@@ -17,14 +17,16 @@
 
 package com.github.zly2006.zhihu.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheetProperties
@@ -45,7 +47,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.data.ZhihuJson
@@ -114,23 +115,24 @@ fun CommentScreenComponent(
     }
 
     @Composable
-    fun DragHandleTitle(text: String) {
-        // 弹层顶部保持贴边：状态栏区域由 sheet 自己让出（见容器的
-        // statusBarsPadding），这里再加 padding 会把两个圆角顶到可视区之外，
-        // 常态看不到圆角，只有下拉时才露出来。
-        Column(
+    fun SheetDragHandle() {
+        // 弹层顶部保持贴边：状态栏高度由容器让出（MyModalBottomSheet 把整张卡片下移一个
+        // 状态栏高度，圆角正好落在状态栏底边），这里不要再加任何 statusBars padding。
+        // 自绘把手而不是 BottomSheetDefaults.DragHandle：M3 那个自带 22dp 垂直 padding，
+        // 把手离卡片顶部太远；自绘才能把间距压到 6dp。
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(top = 6.dp, bottom = 6.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            // 明确的拖拽指示条：全屏高度的弹层也能一眼看出可以下滑关闭。
-            BottomSheetDefaults.DragHandle()
-            Text(
-                text,
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+            Box(
+                modifier = Modifier
+                    .size(width = 32.dp, height = 4.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        shape = CircleShape,
+                    ),
             )
         }
     }
@@ -165,7 +167,7 @@ fun CommentScreenComponent(
                 shouldDismissOnBackPress = true,
                 shouldDismissOnClickOutside = true,
             ),
-            dragHandle = { DragHandleTitle("评论") },
+            dragHandle = { SheetDragHandle() },
             usePlatformWindow = content !is Article,
         ) {
             // 「回复」子层打开时，根层的评论列表仍在原地合成；不清掉语义会让无障碍树和 UI 自动化
@@ -219,7 +221,7 @@ fun CommentScreenComponent(
                 shouldDismissOnBackPress = true,
                 shouldDismissOnClickOutside = true,
             ),
-            dragHandle = { DragHandleTitle("回复") },
+            dragHandle = { SheetDragHandle() },
             usePlatformWindow = childTarget.article !is Article,
         ) {
             CommentScreen(
