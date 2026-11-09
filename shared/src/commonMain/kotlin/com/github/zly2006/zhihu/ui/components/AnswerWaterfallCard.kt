@@ -99,8 +99,8 @@ const val ANSWER_CARD_TAG_PREFIX = "answer_card"
 const val ANSWER_CARD_EXPAND_TAG_PREFIX = "answer_card_expand"
 const val ANSWER_CARD_CONTENT_TAG_PREFIX = "answer_card_content"
 
-/** 作者行高度（官方实测 47.6dp）。 */
-private val AnswerAuthorRowHeight = 47.6.dp
+/** 作者行高度（官方实测 47.6dp；用户实测比对后随头像/字号一起压到 44dp）。 */
+private val AnswerAuthorRowHeight = 44.dp
 
 /** 「N 人赞同了该回答」行高度（官方实测 28.6dp）。 */
 private val AnswerVoteLineHeight = 28.6.dp
@@ -113,9 +113,6 @@ private val DiscussPillWidth = 132.dp
 
 /** 展开 / 收起动画时长（target-spec §3.3 ⑤：250–300ms）。 */
 private const val EXPAND_ANIMATION_MILLIS = 300
-
-/** 分享图标的触控区域（视觉 24dp，见 target-spec §3.3 ①）。 */
-private val ShareTouchTarget = 40.dp
 
 /** 热评卡圆角（target-spec §3.3 ⑧：8dp）。 */
 private val HotCommentCornerRadius = 8.dp
@@ -138,6 +135,7 @@ fun AnswerWaterfallCard(
     fallbackSummary: String?,
     voteUpState: VoteUpState,
     voteUpCount: Int,
+    commentCount: Int,
     isFavorited: Boolean,
     isAuthorFollowed: Boolean,
     hotComment: DataHolder.Comment?,
@@ -185,7 +183,6 @@ fun AnswerWaterfallCard(
                 isFollowed = isAuthorFollowed,
                 showFollow = author != null,
                 onFollow = onFollowAuthor,
-                onShare = onShare,
                 onAuthorClick = onAuthorClick,
             )
             if (voteUpCount > 0) {
@@ -226,7 +223,7 @@ fun AnswerWaterfallCard(
                 voteUpState = voteUpState,
                 voteUpCount = voteUpCount,
                 isFavorited = isFavorited,
-                commentCount = answer?.commentCount ?: 0,
+                commentCount = commentCount,
                 colors = colors,
                 onVoteUp = onVoteUp,
                 onVoteDown = onVoteDown,
@@ -255,7 +252,6 @@ private fun AnswerAuthorRow(
     isFollowed: Boolean,
     showFollow: Boolean,
     onFollow: () -> Unit,
-    onShare: () -> Unit,
     onAuthorClick: () -> Unit,
 ) {
     Row(
@@ -272,7 +268,7 @@ private fun AnswerAuthorRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = authorName.orEmpty(),
-                        style = ZhihuTypography.ContentAuthor,
+                        style = ZhihuTypography.AnswerAuthorName,
                         color = colors.primaryText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -286,7 +282,7 @@ private fun AnswerAuthorRow(
                 if (signature.isNotBlank()) {
                     Text(
                         text = signature,
-                        style = ZhihuTypography.ContentSignature,
+                        style = ZhihuTypography.AnswerAuthorSignature,
                         color = colors.tertiaryText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -297,20 +293,6 @@ private fun AnswerAuthorRow(
         if (showFollow) {
             Spacer(Modifier.width(ZhihuSpacing.Small))
             FollowPill(isFollowed = isFollowed, onClick = onFollow)
-        }
-        Box(
-            modifier = Modifier
-                .size(ShareTouchTarget)
-                .clickable(role = Role.Button, onClick = onShare)
-                .semantics { contentDescription = "分享回答" },
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Share,
-                contentDescription = null,
-                tint = colors.secondaryText,
-                modifier = Modifier.size(ZhihuSizes.Icon),
-            )
         }
     }
 }

@@ -107,8 +107,8 @@ object ZhihuSizes {
 
     // ---- 问题回答页 ----
 
-    /** 回答卡作者头像。 */
-    val AnswerAvatarSize = 36.dp
+    /** 回答卡作者头像（用户实测比对官方后由 36dp 调整为 32dp）。 */
+    val AnswerAvatarSize = 32.dp
 
     /** 回答卡作者名右侧的认证/徽章图标。 */
     val AnswerBadgeSize = 18.dp

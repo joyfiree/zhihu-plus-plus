@@ -111,6 +111,15 @@ object ZhihuTypography {
     /** 回答页作者签名：13sp / 18dp。 */
     val ContentSignature = style(13, 18)
 
+    /** 问题页问题头的紧凑标题：20sp / 26dp、Bold，最多 2 行（比官方展开态标题矮，首屏能直接看到第一条回答）。 */
+    val QuestionHeaderTitle = style(20, 26, FontWeight.Bold)
+
+    /** 问题页回答卡作者名（列表态）：16sp / 21dp、SemiBold。 */
+    val AnswerAuthorName = style(16, 21, FontWeight.SemiBold)
+
+    /** 问题页回答卡作者签名：12sp / 17dp。 */
+    val AnswerAuthorSignature = style(12, 17)
+
     /** 回答正文：17sp / 24dp（官方行高约 1.43，与正文阅读设置解耦，设置仍可覆盖）。 */
     val AnswerBody = style(17, 24)
 

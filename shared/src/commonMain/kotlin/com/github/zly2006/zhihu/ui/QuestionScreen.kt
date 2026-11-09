@@ -73,6 +73,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -99,6 +100,7 @@ import com.github.zly2006.zhihu.data.decodeQuestionContentDetail
 import com.github.zly2006.zhihu.data.decodeZhihuCommentData
 import com.github.zly2006.zhihu.data.navDestination
 import com.github.zly2006.zhihu.data.target
+import com.github.zly2006.zhihu.data.toFeedDisplayItemNavDestinationJson
 import com.github.zly2006.zhihu.navigation.Article
 import com.github.zly2006.zhihu.navigation.ArticleType
 import com.github.zly2006.zhihu.navigation.LocalNavigator
@@ -118,7 +120,6 @@ import com.github.zly2006.zhihu.ui.components.AnswerWaterfallCard
 import com.github.zly2006.zhihu.ui.components.CollectionDialogComponent
 import com.github.zly2006.zhihu.ui.components.CommentScreenComponent
 import com.github.zly2006.zhihu.ui.components.FeedPullToRefresh
-import com.github.zly2006.zhihu.ui.components.FollowPill
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ShareAction
@@ -149,8 +150,9 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -183,6 +185,10 @@ private val StickyAuthorAreaWidth = 132.dp
 
 /** 吸底条头像尺寸（官方实测 32dp）。 */
 private val StickyAvatarSize = 32.dp
+
+/** 进入问题时目标回答不在已加载页时，最多再补 3 页（首批 20 + 60 = 80 条）。 */
+private const val INITIAL_ANSWER_MAX_EXTRA_PAGES = 3
+private const val INITIAL_ANSWER_LOCATE_MAX_ITEMS = 80
 
 private suspend fun loadQuestion(
     environment: ContentLoadEnvironment,
@@ -270,7 +276,7 @@ fun QuestionScreen(
     // ── 回答列表状态 ────────────────────────────────────────────────────────
     var expandedAnswerKey by rememberSaveable(question.questionId) { mutableStateOf<String?>(null) }
     val answerDetails = remember { mutableStateMapOf<Long, DataHolder.Answer>() }
-    val loadedAnswerIds = remember { mutableStateMapOf<Long, Boolean>() }
+    val loadingAnswerIds = remember { mutableStateMapOf<Long, Boolean>() }
     val hotComments = remember { mutableStateMapOf<Long, DataHolder.Comment>() }
     val queriedHotCommentIds = remember { mutableStateMapOf<Long, Boolean>() }
     val voteStates = remember { mutableStateMapOf<Long, VoteUpState>() }
@@ -281,6 +287,10 @@ fun QuestionScreen(
     var collectionTargetAnswerId by remember { mutableStateOf<Long?>(null) }
     val answerCollections = remember { mutableStateMapOf<String, Collection>() }
     var collectionsLoadedForAnswer by remember { mutableStateOf<Long?>(null) }
+
+    // 从首页卡片进入时，目标回答要「外露」成问题头后的第一条；找到之前先不渲染别的回答，避免先闪一条再换。
+    var pinnedAnswerItem by remember(question.questionId) { mutableStateOf<FeedDisplayItem?>(null) }
+    var initialAnswerResolved by remember(question.questionId) { mutableStateOf(question.initialAnswerId == null) }
 
     fun answerIdOf(item: FeedDisplayItem): Long? =
         ((item.feed?.target as? Feed.AnswerTarget)?.id)
@@ -400,7 +410,99 @@ fun QuestionScreen(
             bestIndex
         }
     }
-    val currentAnswerItem = viewModel.displayItems.getOrNull(currentAnswerIndex)
+
+    // 从首页卡片等入口进入时，把目标回答「外露」成问题头后的第一条，不做任何滚动跳转。
+    // 首页卡片可能只带回答 id：先用回答详情确认归属（ContentDetailCache 通常已缓存），再直接置顶；
+    // 详情取不到时才退回列表续载查找，避免落回默认列表顶部。
+    val initialAnswerId = question.initialAnswerId
+    LaunchedEffect(initialAnswerId, question.questionId) {
+        val targetId = initialAnswerId ?: return@LaunchedEffect
+        val cachedDetail = paginationEnvironment.getOrFetchContentDetail(
+            Article(type = ArticleType.Answer, id = targetId),
+        ) as? DataHolder.Answer
+        if (initialAnswerResolved) return@LaunchedEffect
+        if (cachedDetail != null && cachedDetail.question.id != question.questionId) {
+            // 外露卡片与问题列表不一致时以回答详情为准，避免停在错误问题的列表。
+            initialAnswerResolved = true
+            userMessages.showShortMessage("该回答属于其他问题，已为你跳转")
+            navigator.onNavigate(
+                Question(
+                    questionId = cachedDetail.question.id,
+                    title = cachedDetail.question.title,
+                    initialAnswerId = targetId,
+                ),
+            )
+            return@LaunchedEffect
+        }
+        if (cachedDetail != null) {
+            initialAnswerResolved = true
+            val detail = cachedDetail
+            answerDetails[detail.id] = detail
+            voteStates[detail.id] = VoteUpState.from(detail.reaction?.relation?.vote)
+            voteCounts[detail.id] = detail.voteupCount
+            detail.author.urlToken.takeIf { it.isNotBlank() }?.let { token ->
+                if (authorFollowStates[token] == null) authorFollowStates[token] = detail.author.isFollowing
+            }
+            pinnedAnswerItem = FeedDisplayItem(
+                title = "",
+                summary = detail.excerpt,
+                details = "",
+                feed = null,
+                navDestinationJson = Article(type = ArticleType.Answer, id = detail.id).toFeedDisplayItemNavDestinationJson(),
+                avatarSrc = detail.author.avatarUrl,
+                authorName = detail.author.name,
+                authorBadgeV2 = detail.author.badgeV2,
+                raw = detail,
+            )
+            return@LaunchedEffect
+        }
+
+        // 详情不可用（例如游客态 answers 接口被要求登录）：等首页数据就绪后按 id 续载查找。
+        if (viewModel.displayItems.isEmpty() && !viewModel.isEnd) {
+            withTimeoutOrNull(5_000) {
+                snapshotFlow { viewModel.displayItems.size }.first { it > 0 }
+            }
+        }
+        var extraPages = 0
+        while (
+            !viewModel.isEnd &&
+            extraPages < INITIAL_ANSWER_MAX_EXTRA_PAGES &&
+            viewModel.displayItems.size < INITIAL_ANSWER_LOCATE_MAX_ITEMS &&
+            viewModel.displayItems.none { answerIdOf(it) == targetId }
+        ) {
+            val before = viewModel.displayItems.size
+            extraPages++
+            viewModel.loadMore(paginationEnvironment)
+            withTimeoutOrNull(5_000) {
+                snapshotFlow { viewModel.displayItems.size }.first { it > before }
+            }
+        }
+        if (initialAnswerResolved) return@LaunchedEffect
+        initialAnswerResolved = true
+        if (viewModel.displayItems.any { answerIdOf(it) == targetId }) return@LaunchedEffect
+        userMessages.showShortMessage("未找到这条回答，已显示问题下的其他回答")
+    }
+
+    // 渲染列表：问题头之后第一条固定是目标回答（若已命中），同 id 的列表项过滤掉避免重复。
+    val renderItems = remember(
+        viewModel.displayItems.size,
+        viewModel.sortOrder,
+        initialAnswerId,
+        initialAnswerResolved,
+        pinnedAnswerItem,
+    ) {
+        val pinned = pinnedAnswerItem
+        val pinnedId = pinned?.let { answerIdOf(it) }
+        val located = initialAnswerId?.let { id -> viewModel.displayItems.firstOrNull { answerIdOf(it) == id } }
+        when {
+            pinned != null -> listOf(pinned) + viewModel.displayItems.filterNot { answerIdOf(it) == pinnedId }
+            located != null -> listOf(located) + viewModel.displayItems.filterNot { it.stableKey == located.stableKey }
+            initialAnswerId != null && !initialAnswerResolved -> emptyList()
+            else -> viewModel.displayItems
+        }
+    }
+
+    val currentAnswerItem = renderItems.getOrNull(currentAnswerIndex)
     val currentAnswerId = currentAnswerItem?.let { answerIdOf(it) }
     val currentAnswer = currentAnswerId?.let { answerDetails[it] }
     val currentAuthorToken = currentAnswerItem?.let { authorTokenOf(it, currentAnswer) }
@@ -414,32 +516,11 @@ fun QuestionScreen(
             !(bounds.first >= visibleTop && bounds.second <= visibleBottom)
         }
     }
-    val hasNextAnswer = currentAnswerIndex >= 0 && currentAnswerIndex < viewModel.displayItems.lastIndex
-
-    // 从首页卡片等入口进入时，定位到对应的回答，而不是从第一条开始。
-    val initialAnswerId = question.initialAnswerId
-    var initialAnswerLocated by rememberSaveable(question.questionId) { mutableStateOf(false) }
-    LaunchedEffect(initialAnswerId, viewModel.displayItems.size, viewModel.isEnd) {
-        if (initialAnswerLocated || initialAnswerId == null) return@LaunchedEffect
-        val targetIndex = viewModel.displayItems.indexOfFirst { answerIdOf(it) == initialAnswerId }
-        if (targetIndex >= 0) {
-            // 列表第 0 项是问题头部；contentPadding 已包含悬浮工具栏高度，先粗定位。
-            listState.scrollToItem(targetIndex + 1)
-            // 首屏数据刚到位时 LazyList 按估算高度定位，等布局稳定后再校正一次，避免停在上一两条回答的尾部。
-            delay(120)
-            listState.scrollToItem(targetIndex + 1)
-            initialAnswerLocated = true
-        } else if (viewModel.isEnd) {
-            initialAnswerLocated = true
-        } else if (viewModel.displayItems.size <= 20) {
-            // 首页卡片对应的回答通常在第一页；若尚未命中，再补一页继续查找。
-            viewModel.loadMore(paginationEnvironment)
-        }
-    }
+    val hasNextAnswer = currentAnswerIndex >= 0 && currentAnswerIndex < renderItems.lastIndex
 
     fun scrollToNextAnswer() {
         val index = currentAnswerIndex
-        if (index < 0 || index >= viewModel.displayItems.lastIndex) return
+        if (index < 0 || index >= renderItems.lastIndex) return
         scope.launch {
             // +1 是问题头部；负偏移让下一条回答落在悬浮工具栏下方而不是被工具栏压住。
             listState.animateScrollToItem(index + 2, scrollOffset = -topInsetPx)
@@ -452,7 +533,7 @@ fun QuestionScreen(
             padding = PaddingValues(top = statusBarPadding + ZhihuSizes.AnswerToolbarHeight),
         ) {
             PaginatedList(
-                items = viewModel.displayItems,
+                items = renderItems,
                 onLoadMore = { viewModel.loadMore(paginationEnvironment) },
                 isEnd = { viewModel.isEnd },
                 key = { it.stableKey },
@@ -513,6 +594,9 @@ fun QuestionScreen(
                                 )
                             },
                             onSortChange = { sortOrder ->
+                                // 用户主动换排序后，入口时的目标回答置顶不再保留，按新排序正常展示。
+                                pinnedAnswerItem = null
+                                initialAnswerResolved = true
                                 viewModel.updateSortOrder(sortOrder)
                                 viewModel.refresh(paginationEnvironment)
                             },
@@ -529,21 +613,26 @@ fun QuestionScreen(
                 // 可见的回答才拉详情与热评：LazyColumn 只组合视口内的条目，请求量随阅读推进而不是随页数增长。
                 LaunchedEffect(answerId, item.stableKey) {
                     val id = answerId ?: return@LaunchedEffect
-                    if (loadedAnswerIds[id] != true) {
-                        loadedAnswerIds[id] = true
-                        (
-                            paginationEnvironment.getOrFetchContentDetail(
-                                Article(type = ArticleType.Answer, id = id),
-                            ) as? DataHolder.Answer
-                        )?.let { detail ->
-                            answerDetails[id] = detail
-                            voteStates[id] = VoteUpState.from(detail.reaction?.relation?.vote)
-                            voteCounts[id] = detail.voteupCount
-                            detail.author.urlToken.takeIf { it.isNotBlank() }?.let { token ->
-                                if (authorFollowStates[token] == null) {
-                                    authorFollowStates[token] = detail.author.isFollowing
+                    if (answerDetails[id] == null && loadingAnswerIds[id] != true) {
+                        loadingAnswerIds[id] = true
+                        try {
+                            (
+                                paginationEnvironment.getOrFetchContentDetail(
+                                    Article(type = ArticleType.Answer, id = id),
+                                ) as? DataHolder.Answer
+                            )?.let { detail ->
+                                answerDetails[id] = detail
+                                voteStates[id] = VoteUpState.from(detail.reaction?.relation?.vote)
+                                voteCounts[id] = detail.voteupCount
+                                detail.author.urlToken.takeIf { it.isNotBlank() }?.let { token ->
+                                    if (authorFollowStates[token] == null) {
+                                        authorFollowStates[token] = detail.author.isFollowing
+                                    }
                                 }
                             }
+                        } finally {
+                            // 失败不能标记成「已加载」：滚回来时要能重试，否则评论数会一直停在 0。
+                            loadingAnswerIds[id] = false
                         }
                     }
                     if (queriedHotCommentIds[id] != true) {
@@ -562,6 +651,7 @@ fun QuestionScreen(
                     fallbackSummary = item.summary,
                     voteUpState = answerId?.let { voteStates[it] } ?: VoteUpState.Neutral,
                     voteUpCount = answerId?.let { voteCounts[it] } ?: fallbackMetrics.voteUp ?: 0,
+                    commentCount = answer?.commentCount ?: fallbackMetrics.comment ?: 0,
                     isFavorited = answerId?.let { favoritedAnswers[it] } ?: false,
                     isAuthorFollowed = authorToken?.let { authorFollowStates[it] } ?: (answer?.author?.isFollowing ?: false),
                     hotComment = answerId?.let { hotComments[it] },
@@ -671,7 +761,7 @@ fun QuestionScreen(
                 voteUpState = currentAnswerId?.let { voteStates[it] } ?: VoteUpState.Neutral,
                 voteUpCount = currentAnswerId?.let { voteCounts[it] } ?: currentAnswerItem.cardMetrics.voteUp ?: 0,
                 isFavorited = currentAnswerId?.let { favoritedAnswers[it] } ?: false,
-                commentCount = currentAnswer?.commentCount ?: 0,
+                commentCount = currentAnswer?.commentCount ?: currentAnswerItem.cardMetrics.comment ?: 0,
                 onFollowAuthor = { currentAuthorToken?.let { token -> toggleAuthorFollow(token) } },
                 onVoteUp = {
                     currentAnswerId?.let { id ->
@@ -796,13 +886,13 @@ private fun QuestionHeader(
 ) {
     val colors = contentFirstColors
     Column(modifier = Modifier.fillMaxWidth()) {
-        Spacer(Modifier.height(ZhihuSpacing.Large))
+        Spacer(Modifier.height(ZhihuSpacing.ExtraSmall))
         SelectionContainer(modifier = Modifier.questionSelectionWorkaround()) {
             Text(
                 text = title,
-                style = ZhihuTypography.ContentTitle,
+                style = ZhihuTypography.QuestionHeaderTitle,
                 color = colors.primaryText,
-                maxLines = 3,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -810,12 +900,12 @@ private fun QuestionHeader(
                     .testTag(QUESTION_TITLE_TAG),
             )
         }
-        Spacer(Modifier.height(ZhihuSpacing.Small))
+        Spacer(Modifier.height(ZhihuSpacing.ExtraSmall))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = ZhihuSpacing.ScreenGutter)
-                .heightIn(min = 24.dp)
+                .heightIn(min = 18.dp)
                 .clickable(role = Role.Button, onClick = onToggleDetail)
                 .testTag(QUESTION_DETAIL_TOGGLE_TAG),
             verticalAlignment = Alignment.CenterVertically,
@@ -875,7 +965,7 @@ private fun QuestionHeader(
                 }
             }
         }
-        Spacer(Modifier.height(ZhihuSpacing.Small))
+        Spacer(Modifier.height(ZhihuSpacing.ExtraSmall))
         QuestionToolsRow(
             answerCount = answerCount,
             isFollowing = isFollowing,
@@ -884,7 +974,7 @@ private fun QuestionHeader(
             onFollowClick = onFollowClick,
             onWriteAnswerClick = onWriteAnswerClick,
         )
-        Spacer(Modifier.height(ZhihuSpacing.Large))
+        Spacer(Modifier.height(ZhihuSpacing.Small))
         HorizontalDivider(thickness = ZhihuSizes.DividerThickness, color = colors.divider)
     }
 }
@@ -909,7 +999,7 @@ private fun QuestionMetaDot() {
     )
 }
 
-/** 回答数 + 排序 + 关注问题 + 写回答。排序与问题操作是排版表格外的产品能力，压缩成一行保留入口。 */
+/** 回答数 + 排序 + 关注问题 + 写回答。问题头要够矮，这一行压到 24dp 高、12-13sp 小字号。 */
 @Composable
 private fun QuestionToolsRow(
     answerCount: Int,
@@ -926,12 +1016,12 @@ private fun QuestionToolsRow(
     ) {
         Text(
             text = "$answerCount 回答",
-            style = ZhihuTypography.AnswerVoteLine,
+            style = ZhihuTypography.AnswerMeta,
             color = colors.primaryText,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
         )
-        Spacer(Modifier.width(ZhihuSpacing.Small))
+        Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
         QuestionSortToggle(
             label = "默认",
             selected = currentSort == "default",
@@ -945,15 +1035,33 @@ private fun QuestionToolsRow(
             onClick = { onSortChange("updated") },
         )
         Spacer(Modifier.weight(1f))
-        FollowPill(
-            isFollowed = isFollowing,
-            onClick = onFollowClick,
-            modifier = Modifier
-                .testTag(QUESTION_FOLLOW_BUTTON_TAG)
-                .semantics { selected = isFollowing },
-        )
-        Spacer(Modifier.width(ZhihuSpacing.Small))
+        QuestionFollowToggle(isFollowing = isFollowing, onClick = onFollowClick)
+        Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
         QuestionWriteAnswerPill(onClick = onWriteAnswerClick, modifier = Modifier.testTag(QUESTION_WRITE_ANSWER_BUTTON_TAG))
+    }
+}
+
+/** 紧凑「+ 关注问题」：问题头里只占 24dp 高，样式对齐小号 chip。 */
+@Composable
+private fun QuestionFollowToggle(isFollowing: Boolean, onClick: () -> Unit) {
+    val colors = contentFirstColors
+    Row(
+        modifier = Modifier
+            .height(24.dp)
+            .clip(ZhihuShapeTokens.Pill)
+            .background(if (isFollowing) colors.functionalSurface else colors.accent.copy(alpha = 0.12f))
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(QUESTION_FOLLOW_BUTTON_TAG)
+            .semantics { selected = isFollowing }
+            .padding(horizontal = ZhihuSpacing.Small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (isFollowing) "已关注" else "+ 关注问题",
+            style = ZhihuTypography.AnswerMeta,
+            color = if (isFollowing) colors.secondaryText else colors.accent,
+            maxLines = 1,
+        )
     }
 }
 
@@ -966,14 +1074,14 @@ private fun QuestionSortToggle(
 ) {
     Text(
         text = label,
-        style = ZhihuTypography.AnswerVoteLine,
+        style = ZhihuTypography.AnswerMeta,
         color = if (selected) contentFirstColors.accent else contentFirstColors.tertiaryText,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         modifier = Modifier
             .testTag(tag)
             .semantics { this.selected = selected }
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = ZhihuSpacing.ExtraSmall),
+            .padding(horizontal = 5.dp, vertical = 2.dp),
     )
 }
 
@@ -984,23 +1092,23 @@ private fun QuestionWriteAnswerPill(
 ) {
     Row(
         modifier = modifier
-            .height(ZhihuSizes.FollowPillHeight)
+            .height(24.dp)
             .clip(ZhihuShapeTokens.Pill)
             .background(MaterialTheme.colorScheme.primary)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = ZhihuSpacing.Medium),
+            .padding(horizontal = ZhihuSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Filled.Edit,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(12.dp),
         )
-        Spacer(Modifier.width(4.dp))
+        Spacer(Modifier.width(2.dp))
         Text(
             text = "写回答",
-            style = ZhihuTypography.FeedMeta,
+            style = ZhihuTypography.AnswerMeta,
             color = MaterialTheme.colorScheme.onPrimary,
             maxLines = 1,
         )
