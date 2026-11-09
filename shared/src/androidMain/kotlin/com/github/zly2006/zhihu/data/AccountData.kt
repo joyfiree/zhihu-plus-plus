@@ -59,6 +59,7 @@ object AccountData {
         val mobileRefreshToken: String? = null,
         val mobileTokenType: String? = null,
         val mobileTokenExpiresAt: Long? = null,
+        val mobileDeviceId: String? = null,
     )
 
     fun loadData(context: Context): Data {
@@ -92,6 +93,7 @@ object AccountData {
         mobileRefreshToken = mobileRefreshToken,
         mobileTokenType = mobileTokenType,
         mobileTokenExpiresAt = mobileTokenExpiresAt,
+        mobileDeviceId = mobileDeviceId,
     )
 
     private fun ZhihuAccountSession.toAndroidData(): Data = Data(
@@ -108,6 +110,7 @@ object AccountData {
         mobileRefreshToken = mobileRefreshToken,
         mobileTokenType = mobileTokenType,
         mobileTokenExpiresAt = mobileTokenExpiresAt,
+        mobileDeviceId = mobileDeviceId,
     )
 
     /**

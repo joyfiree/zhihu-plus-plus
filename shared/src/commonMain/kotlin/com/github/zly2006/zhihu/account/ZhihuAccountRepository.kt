@@ -47,6 +47,8 @@ data class ZhihuAccountSession(
     val mobileRefreshToken: String? = null,
     val mobileTokenType: String? = null,
     val mobileTokenExpiresAt: Long? = null,
+    /** 官方 `init/udid_guest` 返回的设备标识；游客会话后续可作移动端请求头 `x-udid`。 */
+    val mobileDeviceId: String? = null,
 )
 
 @Serializable
@@ -59,12 +61,16 @@ data class ZhihuSavedAccount(
 data class ZhihuAccounts(
     val activeAccountId: String? = null,
     val accounts: List<ZhihuSavedAccount> = emptyList(),
+    /** 未登录游客会话：没有激活账号时 [session] 回退到它，退出登录后仍可只读浏览。 */
+    val guestSession: ZhihuAccountSession? = null,
 ) {
     val session: ZhihuAccountSession
-        get() = accounts.firstOrNull { it.id == activeAccountId }?.session ?: guestZhihuAccountSession
+        get() = accounts.firstOrNull { it.id == activeAccountId }?.session
+            ?: guestSession
+            ?: emptyZhihuAccountSession
 }
 
-private val guestZhihuAccountSession = ZhihuAccountSession()
+private val emptyZhihuAccountSession = ZhihuAccountSession()
 
 interface ZhihuAccountSessionStore {
     fun readText(): String?
@@ -89,30 +95,52 @@ class ZhihuAccountRepository(
                 val id = session.accountSlotId()
                 ZhihuAccounts(id, listOf(ZhihuSavedAccount(id, session)))
             } else {
-                ZhihuAccounts()
+                // 旧版本只落盘登录会话；万一读到游客会话，也只在凭证齐全时迁移。
+                ZhihuAccounts(guestSession = session.takeIf { it.hasGuestCredentials() })
             }
         }
     }.getOrDefault(ZhihuAccounts())
 
     fun load(): ZhihuAccountSession = loadAccounts().session
 
+    /**
+     * 保存会话：登录账号写入账号列表，游客会话写入 [ZhihuAccounts.guestSession]，两者互不清除。
+     * 退出登录只移除账号，不再因为 `login == false` 清空游客凭证。
+     */
     fun save(session: ZhihuAccountSession) {
+        val accounts = loadAccounts()
         if (session.login) {
             val id = session.accountSlotId()
-            saveAccounts(ZhihuAccounts(id, listOf(ZhihuSavedAccount(id, session))))
+            saveAccounts(
+                accounts.copy(
+                    activeAccountId = id,
+                    accounts = listOf(ZhihuSavedAccount(id, session)),
+                ),
+            )
         } else {
-            clear()
+            saveAccounts(accounts.copy(guestSession = session))
         }
     }
 
     fun saveAccounts(accounts: ZhihuAccounts) {
-        store.writeText(json.encodeToString(accounts))
+        if (accounts.accounts.isEmpty() && accounts.guestSession == null) {
+            store.delete()
+        } else {
+            store.writeText(json.encodeToString(accounts))
+        }
     }
 
     fun clear() {
         store.delete()
     }
 }
+
+/** 游客会话至少要有可签名 Cookie、游客 token 与设备标识才能复用，缺一就重新初始化。 */
+internal fun ZhihuAccountSession.hasGuestCredentials(): Boolean =
+    !login &&
+        !mobileAccessToken.isNullOrBlank() &&
+        !mobileDeviceId.isNullOrBlank() &&
+        !cookies["d_c0"].isNullOrBlank()
 
 internal fun ZhihuAccountSession.accountIdentityKey(): String? = profile?.id?.takeIf(String::isNotBlank)
     ?: profile?.urlToken?.takeIf(String::isNotBlank)

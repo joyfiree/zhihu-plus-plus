@@ -45,6 +45,7 @@ import coil3.disk.DiskCache
 import coil3.disk.directory
 import coil3.memory.MemoryCache
 import coil3.request.crossfade
+import com.github.zly2006.zhihu.account.androidZhihuAccountStore
 import com.github.zly2006.zhihu.data.AccountData
 import com.github.zly2006.zhihu.data.HistoryStorage
 import com.github.zly2006.zhihu.filter.ContentOpenEventSupport
@@ -147,6 +148,10 @@ class MainActivity : ComponentActivity() {
         continuousUsageReminderManager = ContinuousUsageReminderManager(this)
         history = HistoryStorage(this)
         AccountData.loadData(this)
+        // 游客会话不阻塞首屏：未登录冷启动时在后台完成 udid_guest 凭证，失败静默，回前台时重试。
+        lifecycleScope.launch(Dispatchers.IO) {
+            androidZhihuAccountStore(this@MainActivity).ensureGuestSession()
+        }
         AndroidThemeSettings.initialize(this)
         androidKeywordSemanticMatcher = NlpServiceKeywordSemanticMatcher
         androidKeywordWeightExtractor = KeywordWeightExtractor { text, topN ->
@@ -264,9 +269,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var firstStartAfterCreation = true
+
     override fun onStart() {
         super.onStart()
         continuousUsageReminderManager.onAppForeground()
+        // onCreate 已发起首次游客初始化，它的首次 onStart 不重复请求；之后每次回前台失败重试一次。
+        if (firstStartAfterCreation) {
+            firstStartAfterCreation = false
+        } else {
+            val accountStore = androidZhihuAccountStore(this)
+            if (!accountStore.hasGuestSession) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    accountStore.ensureGuestSession()
+                }
+            }
+        }
     }
 
     override fun onStop() {

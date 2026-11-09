@@ -360,6 +360,78 @@ class ZhihuPhoneLoginClientTest {
         client.close()
     }
 
+    @Test
+    fun initializeGuestSessionReturnsOfficialUdidGuestCredentials() = runTest {
+        val cookies = mutableMapOf<String, String>()
+        var requestIndex = 0
+        val client = phoneLoginTestClient(
+            MockEngine { request ->
+                requestIndex++
+                when (requestIndex) {
+                    1 -> {
+                        assertEquals(HttpMethod.Post, request.method)
+                        assertEquals("www.zhihu.com", request.url.host)
+                        assertEquals("/udid", request.url.encodedPath)
+                        respond(
+                            content = "web-device-id",
+                            headers = headersOf(
+                                HttpHeaders.SetCookie,
+                                "d_c0=web-device-cookie; Path=/; Domain=zhihu.com",
+                            ),
+                        )
+                    }
+
+                    2 -> {
+                        assertEquals(HttpMethod.Post, request.method)
+                        assertEquals("/api/account/prod/init/udid_guest", request.url.encodedPath)
+                        assertTrue(
+                            request.headers[HttpHeaders.Cookie]
+                                .orEmpty()
+                                .contains("d_c0=")
+                                .not(),
+                        )
+                        assertTrue(request.headers[HttpHeaders.Authorization].orEmpty().startsWith("oauth "))
+                        assertEquals("1355", request.headers["x-app-id"])
+                        assertEquals("2", request.headers["x-sign-version"])
+                        assertEquals("1700000000", request.headers["x-req-ts"])
+                        assertEquals(
+                            "32a3795d4beccbacb11cb806d67e155158e3566a",
+                            request.headers["x-req-signature"],
+                        )
+                        assertEncryptedBody(DEVICE_FORM, request.body)
+                        respondJson(
+                            """
+                            {
+                              "udid": "device-id",
+                              "guest": {
+                                "access_token": "guest-access",
+                                "token_type": "bearer",
+                                "cookie": {"z_c0": "guest-z-cookie", "q_c0": "guest-q-cookie"}
+                              }
+                            }
+                            """.trimIndent(),
+                        )
+                    }
+
+                    else -> error("Unexpected request #$requestIndex")
+                }
+            },
+            cookies,
+        )
+        val guest = client.initializeGuestSession()
+
+        assertEquals("guest-access", guest.accessToken)
+        assertEquals("bearer", guest.tokenType)
+        assertEquals("device-id", guest.udid)
+        assertEquals("web-device-cookie", guest.cookies["d_c0"])
+        assertEquals("guest-z-cookie", guest.cookies["z_c0"])
+        assertEquals("guest-q-cookie", guest.cookies["q_c0"])
+        // 官方游客初始化是幂等的：重复调用复用首次结果，不重复发请求。
+        assertEquals(guest, client.initializeGuestSession())
+        assertEquals(2, requestIndex)
+        client.close()
+    }
+
     private fun phoneLoginTestClient(
         engine: MockEngine,
         cookies: MutableMap<String, String>,

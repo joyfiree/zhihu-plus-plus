@@ -67,6 +67,20 @@ data class ZhihuMobileLoginToken(
     val cookies: Map<String, String>,
 )
 
+/**
+ * 官方游客会话凭证。
+ *
+ * [cookies] 同时包含 web 端 `d_c0`（x-zse-96 签名依赖）与 `init/udid_guest` 下发的游客 Cookie
+ * （正常含 `z_c0`）；移动协议请求不能携带 `d_c0`，因此它只出现在初始化结果里，
+ * 不写回客户端移动 Cookie 仓库，以免影响后续带移动 token 的请求。
+ */
+data class ZhihuGuestSession(
+    val cookies: Map<String, String>,
+    val accessToken: String,
+    val tokenType: String,
+    val udid: String,
+)
+
 data class ZhihuPhoneLoginDeviceInfo(
     val timezoneOffsetSeconds: Long,
     val appInstallTimeMillis: Long,
@@ -104,6 +118,8 @@ class ZhihuPhoneLoginClient : AutoCloseable {
     private val deviceInfo = phoneLoginDeviceInfoForTesting ?: phoneLoginDeviceInfo
     private var authorization = "oauth $MOBILE_CLIENT_ID"
     private var deviceId: String? = null
+    private var guestAccessToken: String? = null
+    private var guestTokenType = "bearer"
     private var webDeviceCookie = cookies.remove("d_c0")?.takeIf(String::isNotBlank)
 
     suspend fun requestDigits(phoneNumber: String): ZhihuPhoneDigitsResult {
@@ -233,6 +249,23 @@ class ZhihuPhoneLoginClient : AutoCloseable {
         )
     }
 
+    /**
+     * 初始化官方游客会话，供未登录只读浏览使用。
+     *
+     * 复用手机号登录链路的 web `d_c0` 预热与 `init/udid_guest` 加密请求，不复制请求代码。
+     * 返回的 Cookie 同时包含 web 设备 Cookie `d_c0` 与游客 Cookie（正常含 `z_c0`）。
+     */
+    suspend fun initializeGuestSession(): ZhihuGuestSession {
+        ensureGuestToken()
+        return ZhihuGuestSession(
+            cookies = cookies.toMap() +
+                ("d_c0" to checkNotNull(webDeviceCookie) { "服务器未返回必要的 Cookie d_c0" }),
+            accessToken = checkNotNull(guestAccessToken) { "服务器未返回访客凭证" },
+            tokenType = guestTokenType,
+            udid = checkNotNull(deviceId) { "服务器未返回设备凭证" },
+        )
+    }
+
     private suspend fun ensureGuestToken() {
         if (!authorization.startsWith("oauth ")) return
 
@@ -310,7 +343,9 @@ class ZhihuPhoneLoginClient : AutoCloseable {
         check(initialization.udid.isNotBlank()) { "服务器未返回设备凭证" }
         cookies.putAll(guest.cookie.filterValues(String::isNotBlank))
         deviceId = initialization.udid
-        authorization = "${guest.tokenType.ifBlank { "bearer" }} ${guest.accessToken}"
+        guestAccessToken = guest.accessToken
+        guestTokenType = guest.tokenType.ifBlank { "bearer" }
+        authorization = "$guestTokenType $guestAccessToken"
     }
 
     private suspend fun requestCaptchaState(): CaptchaResponse {
