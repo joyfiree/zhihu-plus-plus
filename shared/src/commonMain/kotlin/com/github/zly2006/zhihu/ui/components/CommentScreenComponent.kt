@@ -181,6 +181,7 @@ fun CommentScreenComponent(
             ) {
                 CommentScreen(
                     content = { content },
+                    onClose = { dismissRootComments() },
                     initialCommentId = pendingCommentId,
                     onChildCommentClick = { commentItem ->
                         if (commentItem.clickTarget != null) {
@@ -225,6 +226,10 @@ fun CommentScreenComponent(
         ) {
             CommentScreen(
                 content = { childTarget },
+                onClose = {
+                    pendingChildComment = null
+                    activeChildComment = null
+                },
                 activeCommentItem = activeChildComment,
                 onChildCommentClick = { },
                 commentInput = commentDrafts[childDraftKey].orEmpty(),

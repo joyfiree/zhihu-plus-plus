@@ -18,7 +18,6 @@
 package com.github.zly2006.zhihu.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -27,6 +26,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -69,11 +69,11 @@ import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.EmojiEmotions
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Keyboard
-import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -106,11 +106,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -152,7 +152,6 @@ import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.components.BounceOnChange
 import com.github.zly2006.zhihu.ui.components.PageTurnFab
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
-import com.github.zly2006.zhihu.ui.components.ZhihuSuggestionChip
 import com.github.zly2006.zhihu.ui.components.animatedCountLabel
 import com.github.zly2006.zhihu.ui.components.pageTurnContentEndMarker
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
@@ -160,6 +159,7 @@ import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.replaceSelection
 import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FONT_SIZE
@@ -451,6 +451,7 @@ private fun ClickableImageWithMenu(
 @Composable
 fun CommentScreen(
     content: () -> NavDestination,
+    onClose: (() -> Unit)? = null,
     initialCommentId: String? = null,
     activeCommentItem: CommentModel? = null,
     onChildCommentClick: (CommentModel) -> Unit,
@@ -845,7 +846,7 @@ fun CommentScreen(
                                     .pageTurnViewportWithGuide(pageTurnTarget)
                                     .testTag(COMMENT_SCREEN_LIST_TAG),
                                 contentPadding = PaddingValues(bottom = 16.dp, start = 16.dp, end = 16.dp, top = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(20.dp),
                             ) {
                                 if (activeCommentItem != null) {
                                     item(
@@ -874,57 +875,74 @@ fun CommentScreen(
                                         }
                                     }
                                 } else {
-                                    item("sorting") {
+                                    item("header") {
+                                        // 官方评论区顶部：左侧「大家在讨论 | 话题」，右侧关闭按钮；
+                                        // 下面一行是「评论 N」与排序分段控件。
                                         Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .layout { measurable, constraints ->
-                                                    val contentHeight = 32.dp.roundToPx()
-                                                    val placeable = measurable.measure(
-                                                        constraints.copy(
-                                                            minHeight = contentHeight,
-                                                            maxHeight = contentHeight,
-                                                        ),
-                                                    )
-                                                    layout(placeable.width, 24.dp.roundToPx()) {
-                                                        placeable.placeRelative(0, 0)
-                                                    }
-                                                },
+                                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.End,
                                         ) {
-                                            val scoreLabelColor by animateColorAsState(
-                                                targetValue = if (viewModel.sortOrder == CommentSortOrder.SCORE) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                                },
-                                                animationSpec = Motion.fadeTween(),
-                                                label = "comment_sort_score_label_color",
+                                            Text(
+                                                text = "大家在讨论",
+                                                style = ZhihuTypography.FeedSummary,
+                                                color = contentFirstColors.tertiaryText,
                                             )
-                                            val timeLabelColor by animateColorAsState(
-                                                targetValue = if (viewModel.sortOrder == CommentSortOrder.TIME) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                                },
-                                                animationSpec = Motion.fadeTween(),
-                                                label = "comment_sort_time_label_color",
+                                            Text(
+                                                text = " │ ",
+                                                style = ZhihuTypography.FeedSummary,
+                                                color = contentFirstColors.divider,
                                             )
-                                            ZhihuSuggestionChip(
-                                                selected = viewModel.sortOrder == CommentSortOrder.SCORE,
-                                                modifier = Modifier.testTag(COMMENT_SORT_SCORE_TAG),
-                                                label = {
-                                                    Text(
-                                                        "最热",
-                                                        color = scoreLabelColor,
-                                                        fontWeight = if (viewModel.sortOrder == CommentSortOrder.SCORE) {
-                                                            FontWeight.SemiBold
-                                                        } else {
-                                                            FontWeight.Normal
-                                                        },
+                                            Text(
+                                                text = commentContextTitle(resolvedContent),
+                                                style = ZhihuTypography.FeedSummary,
+                                                color = contentFirstColors.primaryText,
+                                                maxLines = 1,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                            if (onClose != null) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(CircleShape)
+                                                        .background(contentFirstColors.functionalSurface)
+                                                        .clickable(role = Role.Button, onClick = onClose),
+                                                    contentAlignment = Alignment.Center,
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Close,
+                                                        contentDescription = "关闭评论",
+                                                        tint = contentFirstColors.secondaryText,
+                                                        modifier = Modifier.size(18.dp),
                                                     )
-                                                },
+                                                }
+                                            }
+                                        }
+                                    }
+                                    item("count_row") {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Text(
+                                                text = "评论 ${viewModel.allData.size}",
+                                                style = ZhihuTypography.FeedTitle,
+                                                color = contentFirstColors.primaryText,
+                                            )
+                                            Spacer(Modifier.weight(1f))
+                                        }
+                                    }
+                                    item("sorting") {
+                                        // 官方评论区的排序是右对齐的分段控件（最热 / 最新），
+                                        // 选中项反白底深字，未选中项为透明底。
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End,
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            CommentSortSegment(
+                                                label = "最热",
+                                                selected = viewModel.sortOrder == CommentSortOrder.SCORE,
+                                                tag = COMMENT_SORT_SCORE_TAG,
                                                 onClick = {
                                                     viewModel.changeSortOrder(CommentSortOrder.SCORE, paginationEnvironment)
                                                     saveReadingPreferences(
@@ -935,21 +953,11 @@ fun CommentScreen(
                                                     )
                                                 },
                                             )
-                                            Spacer(Modifier.width(12.dp))
-                                            ZhihuSuggestionChip(
+                                            Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+                                            CommentSortSegment(
+                                                label = "最新",
                                                 selected = viewModel.sortOrder == CommentSortOrder.TIME,
-                                                modifier = Modifier.testTag(COMMENT_SORT_TIME_TAG),
-                                                label = {
-                                                    Text(
-                                                        "最新",
-                                                        color = timeLabelColor,
-                                                        fontWeight = if (viewModel.sortOrder == CommentSortOrder.TIME) {
-                                                            FontWeight.SemiBold
-                                                        } else {
-                                                            FontWeight.Normal
-                                                        },
-                                                    )
-                                                },
+                                                tag = COMMENT_SORT_TIME_TAG,
                                                 onClick = {
                                                     viewModel.changeSortOrder(CommentSortOrder.TIME, paginationEnvironment)
                                                     saveReadingPreferences(
@@ -1263,7 +1271,42 @@ internal fun NavDestination.commentThreadKey(): String = when (this) {
     else -> "comment:${this::class.qualifiedName}:${hashCode()}"
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/** 评论区顶部的上下文标题：按具体目的地类型取，拿不到时用通用文案。 */
+private fun commentContextTitle(destination: NavDestination): String = when (destination) {
+    is Article -> destination.title
+    is Question -> destination.title
+    is Pin -> destination.authorName
+    else -> "这条内容"
+}.takeIf { it.isNotBlank() && it != "loading..." } ?: "这条内容"
+
+/**
+ * 评论排序的段控件（官方同款）：最热 / 最新。
+ *
+ * 选中项用卡片底色 + 主文字，未选中项透明底 + 三级色；整体并排拼成一个胶囊。
+ */
+@Composable
+private fun CommentSortSegment(
+    label: String,
+    selected: Boolean,
+    tag: String,
+    onClick: () -> Unit,
+) {
+    val colors = contentFirstColors
+    Text(
+        text = label,
+        style = ZhihuTypography.AnswerVoteLine.copy(
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        ),
+        color = if (selected) colors.primaryText else colors.tertiaryText,
+        modifier = Modifier
+            .testTag(tag)
+            .clip(ZhihuShapeTokens.Pill)
+            .background(if (selected) colors.functionalSurface else Color.Transparent)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = ZhihuSpacing.Large, vertical = 6.dp),
+    )
+}
+
 @Composable
 private fun CommentItem(
     comment: CommentModel,
@@ -1296,7 +1339,7 @@ private fun CommentItem(
                 model = commentData.author.avatarUrl,
                 contentDescription = "头像",
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .clickable { navigator.onNavigate(authorPerson) },
                 contentScale = ContentScale.Crop,
@@ -1511,8 +1554,8 @@ private fun CommentItem(
                     Text(
                         text = comment.item.childCommentCount.toString(),
                         modifier = Modifier.testTag("comment_reply_count_${commentData.id}"),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = ZhihuTypography.FeedMeta,
+                        color = contentFirstColors.tertiaryText,
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                 }
@@ -1536,17 +1579,18 @@ private fun CommentItem(
                 Spacer(modifier = Modifier.width(4.dp))
                 BounceOnChange(trigger = isLiked) {
                     Icon(
+                        // 官方评论的点赞是心形，不是拇指；已点赞用实心 + 赞同色。
                         if (isLiked) {
-                            Icons.Filled.ThumbUp
+                            Icons.Filled.Favorite
                         } else {
-                            Icons.Outlined.ThumbUp
+                            Icons.Outlined.FavoriteBorder
                         },
                         contentDescription = "点赞",
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = if (isLiked) {
-                            MaterialTheme.colorScheme.primary
+                            contentFirstColors.liked
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            contentFirstColors.tertiaryText
                         },
                     )
                 }
@@ -1554,12 +1598,8 @@ private fun CommentItem(
                 Text(
                     text = animatedCountLabel(likeCount).toString(),
                     modifier = Modifier.testTag("comment_like_count_${commentData.id}"),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (isLiked) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    style = ZhihuTypography.FeedMeta,
+                    color = if (isLiked) contentFirstColors.liked else contentFirstColors.tertiaryText,
                 )
                 Spacer(modifier = Modifier.width(4.dp))
             }
