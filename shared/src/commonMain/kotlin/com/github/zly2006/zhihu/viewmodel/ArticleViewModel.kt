@@ -246,6 +246,10 @@ class ArticleViewModel(
     val isFavorited: Boolean
         get() = collections.any { it.isFavorited }
 
+    /** 当前内容被收藏的次数（回答用 favlistsCount，文章用自身计数字段）。 */
+    var favoriteCount by mutableIntStateOf(0)
+        private set
+
     // todo: replace this with sqlite
     open class ArticlesSharedData : ArticleAnswerSwitchData()
 
@@ -352,6 +356,7 @@ class ArticleViewModel(
                             voteUpCount = article.voteupCount
                             votersTotal = article.voteupCount
                             commentCount = article.commentCount
+                            favoriteCount = article.favlistsCount
                             authorId = article.author.id
                             authorUrlToken = article.author.urlToken
                             authorName = article.author.name

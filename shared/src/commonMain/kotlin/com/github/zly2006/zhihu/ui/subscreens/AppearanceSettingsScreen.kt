@@ -314,7 +314,6 @@ fun AppearanceSettingsScreen(
 
     fun requesterFor(settingKey: String): BringIntoViewRequester =
         bringIntoViewRequesters.getOrPut(settingKey) { BringIntoViewRequester() }
-    val duo3HomeAccount = remember { mutableStateOf(settings.getBoolean("duo3_home_account", false)) }
     val selectedBottomBarItemKeys = remember {
         val normalizedSelection = normalizeBottomBarSelection(
             settings.getStringSet(

@@ -87,15 +87,11 @@ import kotlinx.coroutines.withContext
 /**
  * 赞同态的强调色。
  *
- * 以前这里区分 master / duo3 两套（duo3 额外 harmonize 一次），
  * 现在 harmonize 与深色提亮统一在 [com.github.zly2006.zhihu.ui.designsystem.ExtendedColors] 里完成，
  * 两个入口保留是因为调用点语义不同，取值已经收敛到同一个来源。
  */
 @Composable
 internal fun voteUpNeutralContent() = extendedColors.like
-
-@Composable
-internal fun voteUpNeutralContentDuo3() = extendedColors.like
 
 @Composable
 internal fun voteUpActiveButtonColors() = ButtonDefaults.buttonColors(

@@ -318,7 +318,6 @@ enum class TtsState(
  * [ZhihuMain] 按快照读取它们，避免把更新到一半的导航设置应用到主界面。
  */
 data class ZhihuMainPreferenceSnapshot(
-    val duo3HomeAccount: Boolean,
     val tapToScrollToTopEnabled: Boolean,
     val autoHideBottomBar: Boolean,
     val collectionDirectBrowseEnabled: Boolean,
@@ -338,7 +337,6 @@ class ZhihuMainPreferenceState(
 ) {
     private var snapshot by mutableStateOf(readSnapshot())
 
-    val duo3HomeAccount: Boolean get() = snapshot.duo3HomeAccount
     val tapToScrollToTopEnabled: Boolean get() = snapshot.tapToScrollToTopEnabled
     val autoHideBottomBar: Boolean get() = snapshot.autoHideBottomBar
     val collectionDirectBrowseEnabled: Boolean get() = snapshot.collectionDirectBrowseEnabled

@@ -268,7 +268,6 @@ fun ZhihuMain(
         height = maxHeight,
     )
     val bottomPadding = ScaffoldDefaults.contentWindowInsets.asPaddingValues().calculateBottomPadding()
-    val duo3HomeAccount = preferenceState.duo3HomeAccount
     val tapToScrollToTopEnabled = preferenceState.tapToScrollToTopEnabled
     val autoHideBottomBar = preferenceState.autoHideBottomBar
     val collectionDirectBrowseEnabled = preferenceState.collectionDirectBrowseEnabled

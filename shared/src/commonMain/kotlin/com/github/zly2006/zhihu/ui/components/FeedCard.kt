@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -95,7 +94,7 @@ import com.github.zly2006.zhihu.viewmodel.QUALITY_FILTER_MODE_PREFERENCE_KEY
 /**
  * 信息流卡片的 Material 3 实现。
  *
- * 卡片负责展示标题、摘要、作者、徽章、缩略图和更多菜单，并根据设置支持卡片/分割线两种外观、Duo3 排版和缩略图开关。
+ * 卡片负责展示标题、摘要、作者、徽章、缩略图和更多菜单，并根据设置支持卡片/分割线两种外观与缩略图开关。
  * 默认点击会解析 [FeedDisplayItem] 的导航目标并进入详情页；页面可以通过 [menuItems] 直接声明自己的业务菜单项。
  *
  * 两种外观的视觉规则：
@@ -103,8 +102,7 @@ import com.github.zly2006.zhihu.viewmodel.QUALITY_FILTER_MODE_PREFERENCE_KEY
  *   底部 1dp `outlineVariant` 分割线并从内容起点缩进（而不是贯穿整屏的 0.3dp 细线）。
  * - **卡片样式**：M3 filled card——`surfaceContainerLow` 容器色、16dp 圆角、0 投影，靠「比页面底色高一层」表达层级。
  *
- * 修改这个组件时要同步复核 `showFeedThumbnail`、`feedCardStyle`、`duo3_card_appearance`、
- * `duo3_card_layout` 和 `duo3_card_large_title` 对各信息流入口的影响。
+ * 修改这个组件时要同步复核 `showFeedThumbnail`、`feedCardStyle` 对各信息流入口的影响。
  */
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -133,16 +131,6 @@ fun FeedCard(
     }
     val feedCardStyle by rememberObservedSetting(settings, "feedCardStyle") {
         getString("feedCardStyle", "card")
-    }
-    val duo3CardAppearance by rememberObservedSetting(settings, "duo3_card_appearance") {
-        getBoolean("duo3_card_appearance", false)
-    }
-    // 官方排版（作者行在卡片底部、摘要 4 行）默认启用；标题默认用 16sp 的 titleMedium。
-    val duo3CardLayout by rememberObservedSetting(settings, "duo3_card_layout") {
-        getBoolean("duo3_card_layout", true)
-    }
-    val duo3CardLargeTitle by rememberObservedSetting(settings, "duo3_card_large_title") {
-        getBoolean("duo3_card_large_title", false)
     }
     val pinImages = (item.feed?.target as? Feed.PinTarget)
         ?.content
@@ -182,7 +170,7 @@ fun FeedCard(
                 .fillMaxWidth()
                 .semantics { selected = isSelected }
                 .then(if (isSelected) Modifier.background(selectedContainerColor) else Modifier)
-                .then(if (showPinImages || duo3CardLayout) Modifier else Modifier.heightIn(max = maxHeight)),
+                .then(Modifier),
         ) {
             Column(
                 modifier = Modifier
@@ -203,8 +191,6 @@ fun FeedCard(
                     showMenu = showMenu,
                     onShowMenuChange = { showMenu = it },
                     menuItems = menuItems,
-                    duo3CardLayout = duo3CardLayout,
-                    duo3CardLargeTitle = duo3CardLargeTitle,
                     showSourceLabel = showSourceLabel,
                 )
             }
@@ -221,8 +207,6 @@ fun FeedCard(
                 colors = CardDefaults.cardColors(
                     containerColor = if (isSelected) {
                         selectedContainerColor
-                    } else if (duo3CardAppearance) {
-                        zhihuSurfaces.cardStrong
                     } else {
                         zhihuSurfaces.card
                     },
@@ -247,8 +231,6 @@ fun FeedCard(
                     showMenu = showMenu,
                     onShowMenuChange = { showMenu = it },
                     menuItems = menuItems,
-                    duo3CardLayout = duo3CardLayout,
-                    duo3CardLargeTitle = duo3CardLargeTitle,
                     showSourceLabel = showSourceLabel,
                 )
             }
@@ -271,8 +253,6 @@ private fun FeedCardCardContent(
     showMenu: Boolean,
     onShowMenuChange: (Boolean) -> Unit,
     menuItems: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit,
-    duo3CardLayout: Boolean,
-    duo3CardLargeTitle: Boolean,
     showSourceLabel: Boolean,
 ) {
     val settings = rememberSettingsStore()
@@ -457,7 +437,7 @@ private fun FeedCardMenuBox(
  * 信息流卡片正文内容。
  *
  * 这里决定标题、摘要、缩略图、作者信息和操作菜单在卡片内的排列方式。标准排版强调兼容既有 Material 3 卡片，
- * Duo3 排版则把作者移到底部、调整图片和摘要结构，并可使用更大的标题字号。
+ * 排版固定为官方风格：作者行在卡片底部、摘要按行数省略。
  *
  * 两种排版的字号都来自 `MaterialTheme.typography`，只把「用户字号偏好」作为缩放系数叠加上去，
  * 因此信息流、详情页、设置页的标题层级始终对得上。
@@ -471,8 +451,6 @@ private fun FeedCardContent(
     showMenu: Boolean,
     onShowMenuChange: (Boolean) -> Unit,
     menuItems: @Composable ColumnScope.(dismissMenu: () -> Unit) -> Unit,
-    duo3CardLayout: Boolean,
-    duo3CardLargeTitle: Boolean,
     showSourceLabel: Boolean,
 ) {
     val settings = rememberSettingsStore()
@@ -481,194 +459,100 @@ private fun FeedCardContent(
     val navigator = LocalNavigator.current
     val visiblePinImages = pinImages.takeIf { showFeedThumbnail && !item.isFiltered }.orEmpty()
     val sourceLabel = item.feed?.sourceLabel.takeUnless { item.isFiltered }
-    if (duo3CardLayout) {
-        // ── 新排版（duo3）────────────────────────────────────────────────────
-        if (showSourceLabel) {
-            FeedCardSourceLabel(sourceLabel)
-        }
-        if (!item.title.isEmpty()) {
-            val titleStyle = if (duo3CardLargeTitle) {
-                MaterialTheme.typography.titleLarge
-            } else {
-                MaterialTheme.typography.titleMedium
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = parseEmphasizedHtmlTextWithTheme(item.title),
-                    style = titleStyle.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = titleStyle.fontSize * fontSizePercent / 100,
-                        lineHeight = titleStyle.lineHeight * fontSizePercent / 100,
-                    ),
-                    maxLines = 2,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(bottom = ZhihuSpacing.Small),
-                )
-            }
-        }
-
-        Column {
-            Row {
-                Text(
-                    text = parseEmphasizedHtmlTextWithTheme(item.summary ?: ""),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize * fontSizePercent / 100,
-                        lineHeight = MaterialTheme.typography.bodyMedium.fontSize *
-                            fontSizePercent / 100 * lineHeightPercent / 100,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                if (!thumbnailUrl.isNullOrEmpty() && showFeedThumbnail && !item.isFiltered) {
-                    Spacer(modifier = Modifier.width(ZhihuSpacing.Small))
-                    ZhihuNetworkImage(
-                        model = thumbnailUrl,
-                        contentDescription = "Thumbnail",
-                        modifier = Modifier
-                            .padding(top = ZhihuSpacing.Small)
-                            .size(width = ZhihuSizes.FeedThumbnailWidth, height = ZhihuSizes.FeedThumbnailHeight)
-                            .clip(ZhihuShapeTokens.Thumbnail),
-                        contentScale = ContentScale.Crop,
-                    )
-                }
-            }
-            PinFeedImages(
-                images = visiblePinImages,
-                modifier = Modifier.padding(top = ZhihuSpacing.Small),
+    if (showSourceLabel) {
+        FeedCardSourceLabel(sourceLabel)
+    }
+    if (!item.title.isEmpty()) {
+        val titleStyle = MaterialTheme.typography.titleMedium
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = parseEmphasizedHtmlTextWithTheme(item.title),
+                style = titleStyle.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = titleStyle.fontSize * fontSizePercent / 100,
+                    lineHeight = titleStyle.lineHeight * fontSizePercent / 100,
+                ),
+                maxLines = 2,
+                color = MaterialTheme.colorScheme.onSurface,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(bottom = ZhihuSpacing.Small),
             )
-            if (item.details.isNotEmpty() || (item.avatarSrc != null && item.authorName != null)) {
-                Row(
+        }
+    }
+
+    Column {
+        Row {
+            Text(
+                text = parseEmphasizedHtmlTextWithTheme(item.summary ?: ""),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize * fontSizePercent / 100,
+                    lineHeight = MaterialTheme.typography.bodyMedium.fontSize *
+                        fontSizePercent / 100 * lineHeightPercent / 100,
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (!thumbnailUrl.isNullOrEmpty() && showFeedThumbnail && !item.isFiltered) {
+                Spacer(modifier = Modifier.width(ZhihuSpacing.Small))
+                ZhihuNetworkImage(
+                    model = thumbnailUrl,
+                    contentDescription = "Thumbnail",
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = ZhihuSpacing.Small),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        val avatarSrc = item.avatarSrc
-                        val authorName = item.authorName
-                        if (avatarSrc != null && authorName != null) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f, fill = false),
-                            ) {
-                                ZhihuNetworkImage(
-                                    model = avatarSrc,
-                                    contentDescription = "Avatar",
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .size(ZhihuSizes.AvatarSmall),
-                                )
-                                Spacer(Modifier.width(ZhihuSpacing.Small))
-                                Text(
-                                    text = authorName,
-                                    style = ZhihuTypography.FeedAuthorName,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false),
-                                )
-                                val authorBadge = item.authorBadgeV2.officialBadge()
-                                if (authorBadge?.isUsefulInList == true) {
-                                    Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
-                                    AuthorBadge(authorBadge, compact = true)
-                                }
-                            }
-                            Spacer(Modifier.width(ZhihuSpacing.ExtraSmall + 2.dp))
-                        }
-                        if (item.details.isNotEmpty()) {
-                            Text(
-                                text = item.details,
-                                style = ZhihuTypography.FeedMeta,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-                    FeedCardMenuBox(item, showMenu, onShowMenuChange, menuItems, navigator)
-                }
-            }
-        }
-    } else {
-        // ── 原始排版（master）────────────────────────────────────────────────
-        if (showSourceLabel) {
-            FeedCardSourceLabel(sourceLabel)
-        }
-        if (!item.title.isEmpty() && !item.isFiltered) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = parseEmphasizedHtmlTextWithTheme(item.title),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = MaterialTheme.typography.titleMedium.fontSize * fontSizePercent / 100,
-                        lineHeight = MaterialTheme.typography.titleMedium.lineHeight * fontSizePercent / 100,
-                    ),
-                    maxLines = 2,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    overflow = TextOverflow.Ellipsis,
+                        .padding(top = ZhihuSpacing.Small)
+                        .size(width = ZhihuSizes.FeedThumbnailWidth, height = ZhihuSizes.FeedThumbnailHeight)
+                        .clip(ZhihuShapeTokens.Thumbnail),
+                    contentScale = ContentScale.Crop,
                 )
             }
         }
-        val avatarSrc = item.avatarSrc
-        val authorName = item.authorName
-        if (avatarSrc != null && authorName != null) {
-            Spacer(Modifier.height(ZhihuSpacing.ExtraSmall))
+        PinFeedImages(
+            images = visiblePinImages,
+            modifier = Modifier.padding(top = ZhihuSpacing.Small),
+        )
+        if (item.details.isNotEmpty() || (item.avatarSrc != null && item.authorName != null)) {
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = ZhihuSpacing.Small),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                ZhihuNetworkImage(
-                    model = avatarSrc,
-                    contentDescription = "Avatar",
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .size(ZhihuSizes.AvatarSmall),
-                )
-                Spacer(Modifier.width(ZhihuSpacing.Small))
-                Text(
-                    text = authorName,
-                    style = ZhihuTypography.FeedAuthorName,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                val authorBadge = item.authorBadgeV2.officialBadge()
-                if (authorBadge?.isUsefulInList == true) {
-                    Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
-                    AuthorBadge(authorBadge, compact = true)
-                }
-            }
-        }
-        Row {
-            Column(modifier = Modifier.weight(2f)) {
-                Text(
-                    text = parseEmphasizedHtmlTextWithTheme(item.summary ?: ""),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize * fontSizePercent / 100,
-                        lineHeight = MaterialTheme.typography.bodyMedium.fontSize *
-                            fontSizePercent / 100 * lineHeightPercent / 100,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(
-                        top = if (item.isFiltered) ZhihuSpacing.None else ZhihuSpacing.ExtraSmall,
-                    ),
-                )
-                PinFeedImages(
-                    images = visiblePinImages,
-                    modifier = Modifier.padding(top = ZhihuSpacing.Small),
-                )
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    val avatarSrc = item.avatarSrc
+                    val authorName = item.authorName
+                    if (avatarSrc != null && authorName != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f, fill = false),
+                        ) {
+                            ZhihuNetworkImage(
+                                model = avatarSrc,
+                                contentDescription = "Avatar",
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .size(ZhihuSizes.AvatarSmall),
+                            )
+                            Spacer(Modifier.width(ZhihuSpacing.Small))
+                            Text(
+                                text = authorName,
+                                style = ZhihuTypography.FeedAuthorName,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            val authorBadge = item.authorBadgeV2.officialBadge()
+                            if (authorBadge?.isUsefulInList == true) {
+                                Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+                                AuthorBadge(authorBadge, compact = true)
+                            }
+                        }
+                        Spacer(Modifier.width(ZhihuSpacing.ExtraSmall + 2.dp))
+                    }
                     if (item.details.isNotEmpty()) {
                         Text(
                             text = item.details,
@@ -678,23 +562,9 @@ private fun FeedCardContent(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f),
                         )
-                    } else {
-                        Spacer(Modifier.weight(1f))
                     }
-                    FeedCardMenuBox(item, showMenu, onShowMenuChange, menuItems, navigator)
                 }
-            }
-            if (!thumbnailUrl.isNullOrEmpty() && showFeedThumbnail) {
-                Spacer(modifier = Modifier.width(ZhihuSpacing.Medium))
-                ZhihuNetworkImage(
-                    model = thumbnailUrl,
-                    contentDescription = "Thumbnail",
-                    modifier = Modifier
-                        .padding(top = ZhihuSpacing.ExtraSmall)
-                        .size(width = ZhihuSizes.FeedThumbnailWidth, height = ZhihuSizes.FeedThumbnailHeight)
-                        .clip(ZhihuShapeTokens.Thumbnail),
-                    contentScale = ContentScale.Crop,
-                )
+                FeedCardMenuBox(item, showMenu, onShowMenuChange, menuItems, navigator)
             }
         }
     }

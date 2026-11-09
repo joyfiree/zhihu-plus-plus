@@ -102,7 +102,6 @@ class HomeAnnouncementRegressionInstrumentedTest {
         val secondPin = authorTopicPin(secondPinId, "第二条开发动态")
         mockAuthorAnnouncements(firstPin, secondPin)
         composeRule.activity.getSharedPreferences(PREFERENCE_NAME, Context.MODE_PRIVATE).edit(commit = true) {
-            putBoolean("duo3_home_account", false)
             putBoolean("showRefreshFab", false)
             putBoolean("loginForRecommendation", true)
             putBoolean("survey_feedback_done", true)

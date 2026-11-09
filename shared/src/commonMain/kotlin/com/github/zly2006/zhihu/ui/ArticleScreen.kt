@@ -633,7 +633,7 @@ fun ArticleScreen(
                             }
                             ArticleActionGroup(
                                 modifier = Modifier.weight(1f),
-                                count = null,
+                                count = viewModel.favoriteCount,
                                 label = "收藏",
                                 tag = "article_action_favorite",
                                 tint = if (viewModel.isFavorited) {
