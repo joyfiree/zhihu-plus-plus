@@ -109,7 +109,7 @@ expect fun rememberNotificationEnvironment(
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun NotificationScreen(isMainTab: Boolean = false) {
+fun NotificationScreen() {
     val navigator = LocalNavigator.current
     val settingsStore = rememberNotificationSettingsStore()
     val viewModel = viewModel { NotificationViewModel() }
@@ -130,10 +130,8 @@ fun NotificationScreen(isMainTab: Boolean = false) {
             ZhihuCenterAlignedTopAppBar(
                 title = { Text("消息") },
                 navigationIcon = {
-                    if (!isMainTab) {
-                        IconButton(onClick = navigator.onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                        }
+                    IconButton(onClick = navigator.onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {

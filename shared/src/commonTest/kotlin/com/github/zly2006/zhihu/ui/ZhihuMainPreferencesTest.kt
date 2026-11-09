@@ -23,7 +23,6 @@ import com.github.zly2006.zhihu.navigation.Follow
 import com.github.zly2006.zhihu.navigation.Home
 import com.github.zly2006.zhihu.navigation.HotList
 import com.github.zly2006.zhihu.navigation.MyCollections
-import com.github.zly2006.zhihu.navigation.NotificationTab
 import com.github.zly2006.zhihu.navigation.OnlineHistory
 import com.github.zly2006.zhihu.ui.subscreens.bottomBarItemOrderFromPreference
 import com.github.zly2006.zhihu.ui.subscreens.defaultBottomBarSelectionKeys
@@ -37,9 +36,9 @@ import kotlin.test.assertTrue
 
 class ZhihuMainPreferencesTest {
     @Test
-    fun defaultBottomBarSelectionMatchesOfficialSlots() {
+    fun defaultBottomBarSelectionIsHomeAndAccount() {
         assertEquals(
-            linkedSetOf(Home.name, HotList.name, NotificationTab.name, Account.name),
+            linkedSetOf(Home.name, Account.name),
             defaultBottomBarSelectionKeys(),
         )
     }
@@ -51,7 +50,6 @@ class ZhihuMainPreferencesTest {
                 Home.name,
                 Follow.name,
                 HotList.name,
-                NotificationTab.name,
                 Daily.name,
                 OnlineHistory.name,
                 MyCollections.name,
@@ -83,17 +81,14 @@ class ZhihuMainPreferencesTest {
     }
 
     @Test
-    fun normalizeBottomBarSelectionKeepsDefaultItems() {
+    fun normalizeBottomBarSelectionKeepsExactlyTwoDefaultItems() {
         val normalized = normalizeBottomBarSelection(
             selectedKeys = defaultBottomBarSelectionKeys(),
             enforceMinimumSelection = true,
             maximumSelection = 5,
         )
 
-        assertEquals(
-            linkedSetOf(Home.name, HotList.name, NotificationTab.name, Account.name),
-            normalized,
-        )
+        assertEquals(linkedSetOf(Home.name, Account.name), normalized)
     }
 
     @Test

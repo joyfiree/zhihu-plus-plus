@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -45,17 +46,24 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.ArrowCircleUp
 import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Badge
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -100,6 +108,8 @@ import com.github.zly2006.zhihu.account.rememberZhihuAccountStore
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.data.Feed
 import com.github.zly2006.zhihu.data.FeedDisplayItem
+import com.github.zly2006.zhihu.data.MOBILE_NOTIFICATION_MESSAGE_URL
+import com.github.zly2006.zhihu.data.MobileNotificationMessageOverview
 import com.github.zly2006.zhihu.data.RecommendationMode
 import com.github.zly2006.zhihu.data.navDestination
 import com.github.zly2006.zhihu.data.target
@@ -107,10 +117,13 @@ import com.github.zly2006.zhihu.filter.RemoteHistorySync
 import com.github.zly2006.zhihu.navigation.Account
 import com.github.zly2006.zhihu.navigation.Article
 import com.github.zly2006.zhihu.navigation.ArticleType
+import com.github.zly2006.zhihu.navigation.Collections
 import com.github.zly2006.zhihu.navigation.LocalNavigator
+import com.github.zly2006.zhihu.navigation.Notification
 import com.github.zly2006.zhihu.navigation.Pin
 import com.github.zly2006.zhihu.navigation.Question
 import com.github.zly2006.zhihu.navigation.Search
+import com.github.zly2006.zhihu.navigation.WritePin
 import com.github.zly2006.zhihu.navigation.requestLoginNavigation
 import com.github.zly2006.zhihu.notification.HOME_NOTIFICATION_ACTION_OPEN_ANSWER
 import com.github.zly2006.zhihu.notification.HOME_NOTIFICATION_ACTION_OPEN_ARTICLE
@@ -122,6 +135,7 @@ import com.github.zly2006.zhihu.notification.HOME_NOTIFICATION_ACTION_SET_SETTIN
 import com.github.zly2006.zhihu.notification.HOME_NOTIFICATION_REFRESH_INTERVAL_MILLIS
 import com.github.zly2006.zhihu.notification.OnlineHomeNotification
 import com.github.zly2006.zhihu.notification.OnlineHomeNotificationRepository
+import com.github.zly2006.zhihu.notification.rememberNotificationSettingsStore
 import com.github.zly2006.zhihu.platform.SettingsStore
 import com.github.zly2006.zhihu.platform.UserMessageDuration
 import com.github.zly2006.zhihu.platform.rememberAppPrivateDirectory
@@ -129,14 +143,7 @@ import com.github.zly2006.zhihu.platform.rememberExternalUrlOpener
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.platform.rememberWebViewUrlOpener
-import com.github.zly2006.zhihu.reading.ReadingQueueSourceRegistry
-import com.github.zly2006.zhihu.reading.ReadingStartRequest
 import com.github.zly2006.zhihu.reading.RegisterReadingQueueSource
-import com.github.zly2006.zhihu.reading.isReadingPlayerSupported
-import com.github.zly2006.zhihu.reading.loadReadingPlaybackSpeed
-import com.github.zly2006.zhihu.reading.loadReadingPreferences
-import com.github.zly2006.zhihu.reading.rememberReadingPlayerController
-import com.github.zly2006.zhihu.reading.toReadingQueueItem
 import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.components.AnnouncementCard
 import com.github.zly2006.zhihu.ui.components.AnnouncementCardDefaults
@@ -150,7 +157,6 @@ import com.github.zly2006.zhihu.ui.components.FeedPullToRefresh
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
-import com.github.zly2006.zhihu.ui.components.ZhihuNetworkImage
 import com.github.zly2006.zhihu.ui.components.feedKeywordExtractionAvailable
 import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
@@ -162,6 +168,7 @@ import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
 import com.github.zly2006.zhihu.ui.subscreens.rememberSystemUpdateState
 import com.github.zly2006.zhihu.util.Log
+import com.github.zly2006.zhihu.util.json
 import com.github.zly2006.zhihu.viewmodel.QUALITY_FILTER_MODE_PREFERENCE_KEY
 import com.github.zly2006.zhihu.viewmodel.QualityFilterMode
 import com.github.zly2006.zhihu.viewmodel.feed.BaseFeedViewModel
@@ -174,6 +181,7 @@ import com.github.zly2006.zhihu.viewmodel.local.LocalHomeFeedViewModel
 import com.github.zly2006.zhihu.viewmodel.rememberPaginationEnvironment
 import com.github.zly2006.zhihu.viewmodel.za.AndroidHomeFeedViewModel
 import com.github.zly2006.zhihu.viewmodel.za.MixedHomeFeedViewModel
+import io.ktor.client.request.get
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -207,9 +215,13 @@ const val HOME_REFRESH_BUTTON_TAG = "home_refresh_button"
 const val HOME_AUTHOR_POLL_ANNOUNCEMENT_TAG = "home_author_poll_announcement"
 const val HOME_ONLINE_NOTIFICATION_TAG = "home_online_notification"
 const val HOME_PIN_ANNOUNCEMENT_READ_KEY_PREFIX = "readHomePinAnnouncement_"
-const val HOME_ACCOUNT_AVATAR_TAG = "home_account_avatar"
+const val HOME_TOP_MENU_TAG = "home_top_menu"
+const val HOME_TOP_MENU_PUBLISH_TAG = "home_top_menu_publish"
+const val HOME_TOP_MENU_MESSAGES_TAG = "home_top_menu_messages"
+const val HOME_TOP_MENU_COLLECTIONS_TAG = "home_top_menu_collections"
+const val HOME_TOP_MENU_SETTINGS_TAG = "home_top_menu_settings"
+const val HOME_TOP_MENU_LOGIN_TAG = "home_top_menu_login"
 const val HOME_TAB_EDIT_TAG = "home_tab_edit"
-const val HOME_TAB_LISTEN_TAG = "home_tab_listen"
 const val HOME_CHANNEL_SHEET_TAG = "home_channel_sheet"
 const val HOME_CHANNEL_TAB_TAG_PREFIX = "home_channel_tab"
 
@@ -324,6 +336,25 @@ fun HomeScreen(
     val account = rememberAccountSettingsAccountState().value
     val accountStore = rememberZhihuAccountStore()
     val guestSessionState by accountStore.guestSessionState.collectAsState()
+    // 消息未读角标现在挂在搜索框右侧的更多入口上；仅登录态且用户开启角标时请求。
+    val notificationSettings = rememberNotificationSettingsStore()
+    val unreadBadgeEnabled = notificationSettings.getUnreadBadgeEnabled()
+    var unreadNotificationCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(lifecycleOwner, account.login, unreadBadgeEnabled, baseEnvironment) {
+        if (!account.login || !unreadBadgeEnabled) {
+            unreadNotificationCount = 0
+            return@LaunchedEffect
+        }
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            unreadNotificationCount = runCatching {
+                baseEnvironment
+                    .mobileHomeFeedHttpClient()
+                    .get("$MOBILE_NOTIFICATION_MESSAGE_URL?limit=20")
+                    .json<MobileNotificationMessageOverview>()
+                    .totalUnreadCount
+            }.getOrDefault(0)
+        }
+    }
     if (account.login && !account.hasRequiredCookie) {
         ZhihuAlertDialog(
             onDismissRequest = {},
@@ -362,7 +393,12 @@ fun HomeScreen(
         }
         val questionTarget = item.feed?.target.let { target ->
             when (target) {
-                is Feed.AnswerTarget -> Question(target.question.id, target.question.title)
+                is Feed.AnswerTarget ->
+                    Question(
+                        questionId = target.question.id,
+                        title = target.question.title,
+                        initialAnswerId = target.id,
+                    )
                 is Feed.QuestionTarget -> Question(target.id, target.title)
                 else -> null
             }
@@ -381,7 +417,13 @@ fun HomeScreen(
                     ) as? DataHolder.Answer
                     val question = detail?.question
                     if (question != null) {
-                        navigator.onNavigate(Question(question.id, question.title))
+                        navigator.onNavigate(
+                            Question(
+                                questionId = question.id,
+                                title = question.title,
+                                initialAnswerId = answerId,
+                            ),
+                        )
                     } else {
                         // 匿名访问 answers 接口会被知乎要求登录，拿不到 question.id 时跳单条回答页
                         // 只会看到「没有知识存在的荒原」，不如留在原地给出明确提示。
@@ -396,47 +438,6 @@ fun HomeScreen(
         sourceId = readingQueueSourceId,
         items = viewModel.displayItems,
     )
-
-    val readingPlayer = rememberReadingPlayerController()
-    val readingPlayerState = readingPlayer.state.value
-    val readingPreferences = remember(settings) { loadReadingPreferences(settings) }
-    val readingPlaybackSpeed = remember(settings) { loadReadingPlaybackSpeed(settings) }
-    // 「听」入口：按当前推荐流队列起播；已有朗读会话时改为播放/暂停。
-    // 不支持朗读播放器的平台（桌面 / native）只提示，不做假实现。
-    val onListen: () -> Unit = {
-        if (!isReadingPlayerSupported) {
-            userMessages.showShortMessage("当前平台暂不支持朗读")
-        } else if (readingPlayerState.hasSession) {
-            readingPlayer.togglePlayPause()
-        } else {
-            val firstItem = viewModel.displayItems.firstNotNullOfOrNull { it.toReadingQueueItem() }
-            if (firstItem == null) {
-                userMessages.showShortMessage("暂无可朗读内容")
-            } else {
-                scope.launch {
-                    try {
-                        readingPlayer.start(
-                            ReadingStartRequest(
-                                queue = ReadingQueueSourceRegistry.queueStartingAt(
-                                    current = firstItem,
-                                    sourceId = readingQueueSourceId,
-                                    limit = readingPreferences.queueLimit,
-                                ),
-                                preferences = readingPreferences,
-                                sourceId = readingQueueSourceId,
-                                playbackSpeed = readingPlaybackSpeed,
-                            ),
-                        )
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Log.e("HomeScreen", "Failed to start reading player", e)
-                        userMessages.showShortMessage("朗读启动失败")
-                    }
-                }
-            }
-        }
-    }
 
     var dismissedUpdateVersion by homeState.dismissedUpdateVersion
     var authorPinAnnouncements by homeState.authorPinAnnouncements
@@ -661,15 +662,14 @@ fun HomeScreen(
                     HomeSearchArea(
                         hotSearchWord = hotSearchWord,
                         account = account,
+                        unreadCount = unreadNotificationCount,
                         onOpenSearch = { navigator.onNavigate(Search(query = "")) },
                     )
                     HomeCategoryTabRow(
                         tabs = visibleTabs,
                         selected = selectedCategory,
-                        isListening = readingPlayerState.isActivelyPlaying,
                         onSelect = { tab -> selectedCategoryName = tab.name },
                         onEditChannels = { showChannelSheet = true },
-                        onListen = onListen,
                     )
                 }
             }
@@ -1039,15 +1039,15 @@ fun HomeScreen(
     }
 }
 
-/** 搜索区（官方 11.14，target-spec §2.1）：38dp 账号头像 + 40dp 蓝描边搜索胶囊。 */
+/** 搜索区：40dp 蓝描边搜索胶囊 + 右侧更多菜单入口（发布 / 消息 / 收藏夹 / 历史 / 设置）。 */
 @Composable
 private fun HomeSearchArea(
     hotSearchWord: String,
     account: AccountSettingsAccountState,
+    unreadCount: Int,
     onOpenSearch: () -> Unit,
 ) {
     val colors = contentFirstColors
-    val navigator = LocalNavigator.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1062,60 +1062,129 @@ private fun HomeSearchArea(
                 .padding(horizontal = ZhihuSizes.FeedCardHorizontalGutter),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            HomeAccountAvatar(
-                avatarUrl = account.avatarUrl,
-                loggedIn = account.login,
-                onClick = {
-                    if (account.login) {
-                        navigator.onNavigateTopLevel(Account)
-                    } else {
-                        requestLoginNavigation()
-                    }
-                },
-            )
-            Spacer(Modifier.width(ZhihuSpacing.Small))
             HomeSearchPill(
                 hotSearchWord = hotSearchWord,
                 onOpenSearch = onOpenSearch,
                 modifier = Modifier.weight(1f),
             )
+            Spacer(Modifier.width(ZhihuSpacing.Small))
+            HomeTopMenu(account = account, unreadCount = unreadCount)
         }
     }
 }
 
-/** 左上账号头像：登录态取当前账号头像，游客态显示登录入口占位。 */
+/**
+ * 搜索框右侧的「更多」入口。
+ *
+ * 底栏只保留「首页 / 我的」两个高频入口，发布、消息、收藏夹、历史与设置收进这个小弹层；
+ * 消息未读数以角标形式显示在入口按钮上（仅登录态请求）。
+ */
 @Composable
-private fun HomeAccountAvatar(
-    avatarUrl: String?,
-    loggedIn: Boolean,
-    onClick: () -> Unit,
+private fun HomeTopMenu(
+    account: AccountSettingsAccountState,
+    unreadCount: Int,
 ) {
     val colors = contentFirstColors
-    Box(
-        modifier = Modifier
-            .size(ZhihuSizes.HomeAvatarSize)
-            .clip(CircleShape)
-            .background(colors.functionalSurface)
-            .clickable(role = Role.Button, onClick = onClick)
-            .testTag(HOME_ACCOUNT_AVATAR_TAG)
-            .semantics { contentDescription = if (loggedIn) "账号" else "登录" },
-        contentAlignment = Alignment.Center,
-    ) {
-        if (!avatarUrl.isNullOrBlank()) {
-            ZhihuNetworkImage(
-                model = avatarUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
+    val navigator = LocalNavigator.current
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.size(ZhihuSizes.HomeAvatarSize)) {
+        // 外圈不裁剪：未读角标需要压在按钮右上角之外，不能被圆形 clip 切掉。
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(CircleShape)
+                .background(colors.functionalSurface)
+                .clickable(role = Role.Button) { expanded = true }
+                .testTag(HOME_TOP_MENU_TAG)
+                .semantics { contentDescription = "更多" },
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(
-                imageVector = Icons.Filled.Person,
+                imageVector = Icons.Outlined.GridView,
                 contentDescription = null,
-                tint = colors.secondaryText,
+                tint = colors.primaryText,
                 modifier = Modifier.size(ZhihuSizes.IconSmall),
             )
         }
+        if (unreadCount > 0) {
+            Badge(
+                containerColor = colors.badge,
+                contentColor = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 8.dp, y = (-6).dp),
+            ) {
+                Text(
+                    text = if (unreadCount > 99) "99+" else "$unreadCount",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            if (account.login) {
+                HomeTopMenuItem(Icons.Outlined.Edit, "发布想法", HOME_TOP_MENU_PUBLISH_TAG) {
+                    expanded = false
+                    navigator.onNavigate(WritePin())
+                }
+                HomeTopMenuItem(Icons.Outlined.ChatBubbleOutline, "消息", HOME_TOP_MENU_MESSAGES_TAG, unreadCount) {
+                    expanded = false
+                    navigator.onNavigate(Notification)
+                }
+                HomeTopMenuItem(Icons.Outlined.BookmarkBorder, "收藏夹", HOME_TOP_MENU_COLLECTIONS_TAG) {
+                    expanded = false
+                    account.urlToken?.takeIf(String::isNotBlank)?.let {
+                        navigator.onNavigate(Collections(it))
+                    }
+                }
+                HorizontalDivider(color = colors.divider)
+                HomeTopMenuItem(Icons.Outlined.Settings, "设置", HOME_TOP_MENU_SETTINGS_TAG) {
+                    expanded = false
+                    navigator.onNavigateTopLevel(Account)
+                }
+            } else {
+                HomeTopMenuItem(Icons.AutoMirrored.Filled.Login, "登录知乎", HOME_TOP_MENU_LOGIN_TAG) {
+                    expanded = false
+                    requestLoginNavigation()
+                }
+                HomeTopMenuItem(Icons.Outlined.Settings, "设置", HOME_TOP_MENU_SETTINGS_TAG) {
+                    expanded = false
+                    navigator.onNavigateTopLevel(Account)
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun HomeTopMenuItem(
+    icon: ImageVector,
+    label: String,
+    tag: String,
+    badgeCount: Int = 0,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(text = label, style = ZhihuTypography.AnswerVoteLine) },
+        leadingIcon = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(ZhihuSizes.IconSmall),
+            )
+        },
+        trailingIcon = if (badgeCount > 0) {
+            {
+                Badge(containerColor = contentFirstColors.badge) {
+                    Text(if (badgeCount > 99) "99+" else "$badgeCount")
+                }
+            }
+        } else {
+            null
+        },
+        modifier = Modifier.testTag(tag),
+        onClick = onClick,
+    )
 }
 
 /**
@@ -1208,10 +1277,8 @@ private fun HomeSearchActionButton(onClick: () -> Unit) {
 private fun HomeCategoryTabRow(
     tabs: List<HomeCategoryTab>,
     selected: HomeCategoryTab,
-    isListening: Boolean,
     onSelect: (HomeCategoryTab) -> Unit,
     onEditChannels: () -> Unit,
-    onListen: () -> Unit,
 ) {
     val colors = contentFirstColors
     val scrollState = rememberScrollState()
@@ -1264,13 +1331,6 @@ private fun HomeCategoryTabRow(
             tag = HOME_TAB_EDIT_TAG,
             tint = MaterialTheme.colorScheme.onSurface,
             onClick = onEditChannels,
-        )
-        HomeTabIconButton(
-            icon = Icons.Default.Headphones,
-            label = "听",
-            tag = HOME_TAB_LISTEN_TAG,
-            tint = if (isListening) colors.accent else MaterialTheme.colorScheme.onSurface,
-            onClick = onListen,
         )
         Spacer(Modifier.width(ZhihuSpacing.Small))
     }

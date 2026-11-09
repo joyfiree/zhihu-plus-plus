@@ -45,18 +45,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bookmarks
-import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -64,14 +60,12 @@ import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.outlined.Bookmarks
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.ManageAccounts
 import androidx.compose.material.icons.outlined.Newspaper
 import androidx.compose.material.icons.outlined.Whatshot
-import androidx.compose.material3.Badge
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -96,7 +90,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -111,7 +104,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.rememberLifecycleOwner
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -123,8 +115,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.github.zly2006.zhihu.account.LoginScreen
-import com.github.zly2006.zhihu.data.MOBILE_NOTIFICATION_MESSAGE_URL
-import com.github.zly2006.zhihu.data.MobileNotificationMessageOverview
 import com.github.zly2006.zhihu.filter.ContentOpenFrom
 import com.github.zly2006.zhihu.navigation.Account
 import com.github.zly2006.zhihu.navigation.Article
@@ -145,7 +135,6 @@ import com.github.zly2006.zhihu.navigation.MyCollections
 import com.github.zly2006.zhihu.navigation.NavDestination
 import com.github.zly2006.zhihu.navigation.Navigator
 import com.github.zly2006.zhihu.navigation.Notification
-import com.github.zly2006.zhihu.navigation.NotificationTab
 import com.github.zly2006.zhihu.navigation.OnlineHistory
 import com.github.zly2006.zhihu.navigation.Person
 import com.github.zly2006.zhihu.navigation.Pin
@@ -158,7 +147,6 @@ import com.github.zly2006.zhihu.navigation.Video
 import com.github.zly2006.zhihu.navigation.WriteAnswer
 import com.github.zly2006.zhihu.navigation.WritePin
 import com.github.zly2006.zhihu.navigation.loginNavigationRequestFlow
-import com.github.zly2006.zhihu.notification.rememberNotificationSettingsStore
 import com.github.zly2006.zhihu.platform.PlatformBackHandler
 import com.github.zly2006.zhihu.platform.platformName
 import com.github.zly2006.zhihu.platform.rememberSettingsStore
@@ -171,7 +159,6 @@ import com.github.zly2006.zhihu.ui.components.ReadingPlayerBar
 import com.github.zly2006.zhihu.ui.components.ReadingQueueSheet
 import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
-import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXEnter
 import com.github.zly2006.zhihu.ui.designsystem.sharedAxisXExit
@@ -188,9 +175,6 @@ import com.github.zly2006.zhihu.ui.subscreens.OpenSourceLicensesScreen
 import com.github.zly2006.zhihu.ui.subscreens.ReadingSettingsScreen
 import com.github.zly2006.zhihu.ui.subscreens.SettingsSearchScreen
 import com.github.zly2006.zhihu.ui.subscreens.SystemAndUpdateSettingsScreen
-import com.github.zly2006.zhihu.util.json
-import com.github.zly2006.zhihu.viewmodel.rememberPaginationEnvironment
-import io.ktor.client.request.get
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -207,8 +191,6 @@ private sealed class MainTabPage(
     data object FollowPage : MainTabPage(Follow, "follow")
 
     data object HotListPage : MainTabPage(HotList, "hotlist")
-
-    data object NotificationPage : MainTabPage(NotificationTab, "notification")
 
     data object DailyPage : MainTabPage(Daily, "daily")
 
@@ -298,33 +280,7 @@ fun ZhihuMain(
     val readingPlayerState by readingPlayer.state
     val settings = rememberSettingsStore()
 
-    // 底栏「消息」未读角标：官方把消息入口放在底栏，未读数在应用回到前台时刷新。
-    val notificationSettings = rememberNotificationSettingsStore()
-    val unreadBadgeEnabled = notificationSettings.getUnreadBadgeEnabled()
     val accountSettings = rememberAccountSettingsAccountState().value
-    val notificationEnvironment = rememberPaginationEnvironment(allowGuestAccess = true)
-    var unreadNotificationCount by remember { mutableIntStateOf(0) }
-    val notificationLifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(
-        accountSettings.login,
-        unreadBadgeEnabled,
-        notificationEnvironment,
-        notificationLifecycleOwner,
-    ) {
-        if (!accountSettings.login || !unreadBadgeEnabled) {
-            unreadNotificationCount = 0
-            return@LaunchedEffect
-        }
-        notificationLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            unreadNotificationCount = runCatching {
-                notificationEnvironment
-                    .mobileHomeFeedHttpClient()
-                    .get("$MOBILE_NOTIFICATION_MESSAGE_URL?limit=20")
-                    .json<MobileNotificationMessageOverview>()
-                    .totalUnreadCount
-            }.getOrDefault(0)
-        }
-    }
 
     /** 右侧详情独立持有返回栈；栏内导航保留上级，从左侧重新选项时清空。 */
     val paneStateHolder = rememberSaveableStateHolder()
@@ -481,7 +437,6 @@ fun ZhihuMain(
         BottomBarTab(Home, "首页", Icons.Filled.Home, Icons.Outlined.Home),
         BottomBarTab(Follow, "关注", Icons.Filled.Group, Icons.Outlined.Group),
         BottomBarTab(HotList, "热榜", Icons.Filled.Whatshot, Icons.Outlined.Whatshot),
-        BottomBarTab(NotificationTab, "消息", Icons.Filled.ChatBubble, Icons.Outlined.ChatBubbleOutline),
         BottomBarTab(Daily, "日报", Icons.Filled.Newspaper, Icons.Outlined.Newspaper),
         BottomBarTab(OnlineHistory, "历史", Icons.Filled.History, Icons.Outlined.History),
         BottomBarTab(MyCollections, "收藏夹", Icons.Filled.Bookmarks, Icons.Outlined.Bookmarks),
@@ -497,7 +452,6 @@ fun ZhihuMain(
                 Home -> listOf(MainTabPage.HomePage)
                 Follow -> listOf(MainTabPage.FollowPage)
                 HotList -> listOf(MainTabPage.HotListPage)
-                NotificationTab -> listOf(MainTabPage.NotificationPage)
                 Daily -> listOf(MainTabPage.DailyPage)
                 OnlineHistory -> listOf(MainTabPage.OnlineHistoryPage)
                 MyCollections -> listOf(MainTabPage.MyCollectionsPage)
@@ -704,7 +658,7 @@ fun ZhihuMain(
                                 enter = slideInVertically(Motion.enterTween()) { it },
                                 exit = slideOutVertically(Motion.exitTween()) { it },
                             ) {
-                                // 仿官方底栏：整宽平铺、与页面同色、顶部发丝线；中间「＋」为发布入口。
+                                // 仿官方底栏：整宽平铺、与页面同色、顶部发丝线。
                                 // background 必须声明在 padding 之前：底栏底色要一路铺到系统手势区。
                                 Column(
                                     modifier = Modifier
@@ -722,14 +676,7 @@ fun ZhihuMain(
                                             .height(ZhihuSizes.NavigationBarHeight),
                                         verticalAlignment = Alignment.CenterVertically,
                                     ) {
-                                        val publishSlotIndex = bottomBarItems.size / 2
-                                        bottomBarItems.forEachIndexed { index, tab ->
-                                            if (index == publishSlotIndex) {
-                                                PublishBottomBarSlot {
-                                                    haptics.tick()
-                                                    navigate(WritePin())
-                                                }
-                                            }
+                                        bottomBarItems.forEach { tab ->
                                             val tabIsSelected = currentBottomDestination
                                                 ?.let { it::class == tab.destination::class } == true
                                             BottomBarSlot(
@@ -739,11 +686,6 @@ fun ZhihuMain(
                                                     "未登录"
                                                 } else {
                                                     null
-                                                },
-                                                badgeCount = if (tab.destination === NotificationTab) {
-                                                    unreadNotificationCount
-                                                } else {
-                                                    0
                                                 },
                                                 onClick = {
                                                     haptics.tick()
@@ -755,12 +697,6 @@ fun ZhihuMain(
                                                     }
                                                 },
                                             )
-                                        }
-                                        if (publishSlotIndex >= bottomBarItems.size) {
-                                            PublishBottomBarSlot {
-                                                haptics.tick()
-                                                navigate(WritePin())
-                                            }
                                         }
                                     }
                                 }
@@ -1116,7 +1052,6 @@ private fun MainTabsPager(
                     parentPagerState = pagerState,
                     isActive = pagerState.currentPage == pageIndex,
                 )
-                MainTabPage.NotificationPage -> NotificationScreen(isMainTab = true)
                 MainTabPage.HotListPage -> HotListScreen(
                     innerPadding = innerPadding,
                     scrollToTopTrigger = scrollToTopTrigger,
@@ -1153,7 +1088,6 @@ private fun RowScope.BottomBarSlot(
     tab: BottomBarTab,
     isSelected: Boolean,
     labelOverride: String? = null,
-    badgeCount: Int = 0,
     onClick: () -> Unit,
 ) {
     val label = labelOverride ?: tab.label
@@ -1171,60 +1105,17 @@ private fun RowScope.BottomBarSlot(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box {
-            Icon(
-                imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
-                contentDescription = label,
-                tint = contentColor,
-                modifier = Modifier.size(ZhihuSizes.BottomBarIconSize),
-            )
-            if (badgeCount > 0) {
-                Badge(
-                    containerColor = contentFirstColors.badge,
-                    contentColor = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 10.dp, y = (-6).dp),
-                ) {
-                    Text(
-                        text = if (badgeCount > 99) "99+" else "$badgeCount",
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-            }
-        }
+        Icon(
+            imageVector = if (isSelected) tab.selectedIcon else tab.unselectedIcon,
+            contentDescription = label,
+            tint = contentColor,
+            modifier = Modifier.size(ZhihuSizes.BottomBarIconSize),
+        )
         Text(
             text = label,
             style = ZhihuTypography.BottomNavLabel,
             color = contentColor,
         )
-    }
-}
-
-/** 官方底栏中间的蓝色「＋」发布槽位。 */
-@Composable
-private fun RowScope.PublishBottomBarSlot(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxHeight()
-            .clickable(onClick = onClick)
-            .testTag("nav_publish"),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(width = 34.dp, height = 31.dp)
-                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Add,
-                contentDescription = "发布",
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(20.dp),
-            )
-        }
     }
 }
 

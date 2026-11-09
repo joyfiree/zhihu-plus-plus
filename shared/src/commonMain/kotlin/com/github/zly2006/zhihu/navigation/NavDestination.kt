@@ -170,16 +170,6 @@ data object Daily : TopLevelDestination {
         get() = "Daily"
 }
 
-/**
- * 底部导航的「消息」tab 目标。
- *
- * 与 [Notification] 区分：后者是可深链的独立 route，本对象只表示主 pager 中的一个 tab 位置。
- */
-data object NotificationTab : TopLevelDestination {
-    override val name: String
-        get() = "Notification"
-}
-
 @Serializable
 data object Notification : NavDestination {
     @Serializable
@@ -278,6 +268,8 @@ data class Question(
     val questionId: Long,
     val title: String = "loading...",
     val readingQueueSourceId: String? = null,
+    /** 从首页卡片等入口进入时，希望直接定位到的回答 id（为空则从第一条开始）。 */
+    val initialAnswerId: Long? = null,
 ) : NavDestination {
     override fun hashCode(): Int = questionId.hashCode()
 
