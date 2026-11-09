@@ -71,16 +71,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withLink
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.github.zly2006.zhihu.markdown.SELECTED_MATH_FONT_KEY
-import com.github.zly2006.zhihu.markdown.TiqianBrandTitle
-import com.github.zly2006.zhihu.markdown.isTiqianMarkdownRendererAvailable
 import com.github.zly2006.zhihu.navigation.Account
 import com.github.zly2006.zhihu.navigation.Daily
 import com.github.zly2006.zhihu.navigation.Follow
@@ -109,7 +101,6 @@ import com.github.zly2006.zhihu.ui.components.MIN_ANSWER_SWITCH_SENSITIVITY
 import com.github.zly2006.zhihu.ui.components.SettingItem
 import com.github.zly2006.zhihu.ui.components.SettingItemDropdownOptions
 import com.github.zly2006.zhihu.ui.components.SettingItemGroup
-import com.github.zly2006.zhihu.ui.components.SettingItemOverall
 import com.github.zly2006.zhihu.ui.components.SettingItemWithSwitch
 import com.github.zly2006.zhihu.ui.components.ZhihuSlider
 import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
@@ -125,7 +116,6 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
-const val DUO3_CARD_LARGE_TITLE_PREFERENCE_KEY = "duo3_card_large_title"
 const val DUO3_TIQIAN_MARKDOWN_PREFERENCE_KEY = "duo3_tiqian_markdown"
 const val DUO3_TIQIAN_MATH_FONT_PREFERENCE_KEY = "duo3_tiqian_math_font"
 const val PREF_FONT_SIZE = "contentFontSize"
@@ -1493,213 +1483,6 @@ fun AppearanceSettingsScreen(
                     highlightedKey = settingKey,
                     bringIntoViewRequester = requesterFor("enable_predictive_back"),
                 )
-            }
-            // ── 123duo3 UI 改进 ─────────────────────────────────────────────────
-
-            // 先声明所有子开关状态，以便主开关可以批量操作
-            val duo3All = remember { mutableStateOf(settings.getBoolean("duo3_all", false)) }
-            val duo3CardAppearance = remember { mutableStateOf(settings.getBoolean("duo3_card_appearance", false)) }
-            val duo3CardLayout = remember { mutableStateOf(settings.getBoolean("duo3_card_layout", true)) }
-            val duo3CardLargeTitle = remember {
-                mutableStateOf(settings.getBoolean(DUO3_CARD_LARGE_TITLE_PREFERENCE_KEY, false))
-            }
-            val duo3ArticleBar = remember { mutableStateOf(settings.getBoolean("duo3_article_bar", false)) }
-            val duo3ArticleActions = remember { mutableStateOf(settings.getBoolean("duo3_article_actions", false)) }
-            val duo3TiqianMarkdown = remember {
-                mutableStateOf(settings.getBoolean(DUO3_TIQIAN_MARKDOWN_PREFERENCE_KEY, false))
-            }
-            val duo3TiqianMathFont = remember {
-                mutableStateOf(settings.getString(DUO3_TIQIAN_MATH_FONT_PREFERENCE_KEY, "lete"))
-            }
-
-            fun enableAllSubs() {
-                if (isTiqianMarkdownRendererAvailable) {
-                    settings.putBoolean(DUO3_TIQIAN_MARKDOWN_PREFERENCE_KEY, true)
-                    duo3TiqianMarkdown.value = true
-                }
-                settings.putBoolean("duo3_home_account", true)
-                settings.putBoolean("duo3_card_appearance", true)
-                settings.putBoolean("duo3_card_layout", true)
-                settings.putBoolean("duo3_article_bar", true)
-                settings.putBoolean("duo3_article_actions", true)
-                settings.putBoolean("showRefreshFab", false)
-                settings.putBoolean("buttonSkipAnswer", false)
-                duo3HomeAccount.value = true
-                duo3CardAppearance.value = true
-                duo3CardLayout.value = true
-                duo3ArticleBar.value = true
-                duo3ArticleActions.value = true
-                // 123duo3 改动中会移除 FAB。
-                showRefreshFab.value = false
-                buttonSkipAnswer.value = false
-                val updatedSelection = if (Home.name !in selectedBottomBarItemKeys.value) {
-                    selectedBottomBarItemKeys.value + Account.name
-                } else {
-                    selectedBottomBarItemKeys.value
-                }
-                persistBottomBarSelection(updatedSelection)
-            }
-
-            fun disableAllSubs() {
-                if (isTiqianMarkdownRendererAvailable) {
-                    settings.putBoolean(DUO3_TIQIAN_MARKDOWN_PREFERENCE_KEY, false)
-                    duo3TiqianMarkdown.value = false
-                }
-                settings.putBoolean("duo3_home_account", false)
-                settings.putBoolean("duo3_card_appearance", false)
-                settings.putBoolean("duo3_card_layout", false)
-                settings.putBoolean("duo3_article_bar", false)
-                settings.putBoolean("duo3_article_actions", false)
-                duo3HomeAccount.value = false
-                duo3CardAppearance.value = false
-                duo3CardLayout.value = false
-                duo3ArticleBar.value = false
-                duo3ArticleActions.value = false
-                persistBottomBarSelection(selectedBottomBarItemKeys.value)
-            }
-
-            SettingItemGroup(
-                title = "123Duo3 的 UI/UX 改进（beta）",
-                settingKey = "123Duo3",
-                highlightedKey = settingKey,
-                bringIntoViewRequester = requesterFor("123Duo3"),
-                header = {
-                    SettingItemOverall(
-                        title = { Text("启用所有修改并关闭浮动按钮") },
-                        checked = duo3All.value,
-                        onCheckedChange = {
-                            duo3All.value = it
-                            settings.putBoolean("duo3_all", it)
-                            if (it) {
-                                enableAllSubs()
-                            } else {
-                                disableAllSubs()
-                            }
-                        },
-                    )
-                },
-                footer = {
-                    Text(
-                        text = buildAnnotatedString {
-                            append("以上设置项可能随时更改，或并入主线。\n欢迎")
-                            withLink(LinkAnnotation.Url("https://github.com/zly2006/zhihu-plus-plus/issues")) {
-                                withStyle(
-                                    MaterialTheme.typography.bodyMedium
-                                        .copy(
-                                            color = MaterialTheme.colorScheme.primary,
-                                            textDecoration = TextDecoration.Underline,
-                                            fontWeight = FontWeight.Medium,
-                                        ).toSpanStyle(),
-                                ) {
-                                    append("提交 Issue")
-                                }
-                            }
-                            append(" 讨论本次 UI/UX 修改和反馈问题。")
-                        },
-                    )
-                },
-            ) {
-                if (isTiqianMarkdownRendererAvailable) {
-                    SettingItemWithSwitch(
-                        modifier = Modifier.testTag(APPEARANCE_SETTINGS_TIQIAN_MARKDOWN_TAG),
-                        title = { TiqianBrandTitle(prefix = "正文：使用", suffix = " Markdown 渲染器") },
-                        description = { Text("使用「提椠」段落书写器排版正文：段落两端对齐，改进中西混排间距、代码、表格、公式与脚注等样式，接近纸质书的排版效果。作用于文章、想法与问题详情。实验功能。") },
-                        checked = duo3TiqianMarkdown.value,
-                        onCheckedChange = {
-                            duo3TiqianMarkdown.value = it
-                            settings.putBoolean(DUO3_TIQIAN_MARKDOWN_PREFERENCE_KEY, it)
-                        },
-                        settingKey = DUO3_TIQIAN_MARKDOWN_PREFERENCE_KEY,
-                        highlightedKey = settingKey,
-                        bringIntoViewRequester = requesterFor(DUO3_TIQIAN_MARKDOWN_PREFERENCE_KEY),
-                    )
-                    AnimatedVisibility(visible = duo3TiqianMarkdown.value, enter = settingRowEnter, exit = settingRowExit) {
-                        SettingItemWithSwitch(
-                            title = { Text("正文：使用非衬线数学字体") },
-                            description = { Text("默认公式使用非衬线的 Lete Sans Math；关闭后改用衬线的 STIX Two Math。") },
-                            checked = duo3TiqianMathFont.value == "lete",
-                            onCheckedChange = {
-                                val fontId = if (it) "lete" else "stix"
-                                duo3TiqianMathFont.value = fontId
-                                settings.putString(DUO3_TIQIAN_MATH_FONT_PREFERENCE_KEY, fontId)
-                            },
-                        )
-                    }
-                }
-
-                // 首页搜索区与底栏已按产品设计稿固定为「消息框 + 搜索 + 搜索按钮」和「首页 / 我的」，
-                // 这个开关只剩账号页快捷入口的作用，文案随之收敛，避免出现点了没有反应的设置项。
-                SettingItemWithSwitch(
-                    title = { Text("账号页：显示快捷入口") },
-                    description = {
-                        Text("在「我的」页顶部用快捷入口展示收藏夹、关注订阅、通知与浏览历史；关闭后这些入口收进设置分组。")
-                    },
-                    checked = duo3HomeAccount.value,
-                    onCheckedChange = {
-                        duo3HomeAccount.value = it
-                        settings.putBoolean("duo3_home_account", it)
-                        val updatedSelection = if (it && Home.name !in selectedBottomBarItemKeys.value) {
-                            selectedBottomBarItemKeys.value + Account.name
-                        } else {
-                            selectedBottomBarItemKeys.value
-                        }
-                        persistBottomBarSelection(updatedSelection)
-                    },
-                )
-
-                SettingItemWithSwitch(
-                    title = { Text("信息流卡片：外观更改") },
-                    description = { Text("卡片圆角增大，移除阴影；修改背景与卡片颜色。") },
-                    checked = duo3CardAppearance.value,
-                    onCheckedChange = {
-                        duo3CardAppearance.value = it
-                        settings.putBoolean("duo3_card_appearance", it)
-                    },
-                )
-
-                SettingItemWithSwitch(
-                    title = { Text("信息流卡片：更改内容排版") },
-                    description = { Text("作者移至底部；图片不与底部小字并列；摘要最多显示 4 行（原 3 行），规范字体样式。") },
-                    checked = duo3CardLayout.value,
-                    onCheckedChange = {
-                        duo3CardLayout.value = it
-                        settings.putBoolean("duo3_card_layout", it)
-                    },
-                )
-
-                AnimatedVisibility(visible = duo3CardLayout.value, enter = settingRowEnter, exit = settingRowExit) {
-                    SettingItemWithSwitch(
-                        title = { Text("信息流卡片：使用更大的标题字体") },
-                        description = { Text("默认关闭，标题与官方一致为 16sp；开启后放大一档。") },
-                        checked = duo3CardLargeTitle.value,
-                        onCheckedChange = {
-                            duo3CardLargeTitle.value = it
-                            settings.putBoolean(DUO3_CARD_LARGE_TITLE_PREFERENCE_KEY, it)
-                        },
-                    )
-                }
-
-                SettingItemWithSwitch(
-                    title = { Text("文章阅读页：更改整体顶/底栏框架") },
-                    description = { Text("更改标题栏样式；优化顶/底栏隐藏逻辑。") },
-                    checked = duo3ArticleBar.value,
-                    onCheckedChange = {
-                        duo3ArticleBar.value = it
-                        settings.putBoolean("duo3_article_bar", it)
-                    },
-                )
-
-                AnimatedVisibility(visible = duo3ArticleBar.value, enter = settingRowEnter, exit = settingRowExit) {
-                    SettingItemWithSwitch(
-                        title = { Text("文章阅读页：更改操作栏样式") },
-                        description = { Text("底栏操作按钮用药丸包裹；分隔赞同/反对按钮并添加动画。") },
-                        checked = duo3ArticleActions.value,
-                        onCheckedChange = {
-                            duo3ArticleActions.value = it
-                            settings.putBoolean("duo3_article_actions", it)
-                        },
-                    )
-                }
             }
             // ── 交互反馈 ────────────────────────────────────────────────────────
             SettingItemGroup(

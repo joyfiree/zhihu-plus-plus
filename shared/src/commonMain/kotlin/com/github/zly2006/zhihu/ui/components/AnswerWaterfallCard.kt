@@ -670,6 +670,25 @@ private fun DiscussPill(onClick: () -> Unit, colors: ContentFirstColors) {
     }
 }
 
+/**
+ * 把评论 HTML 干净化成一行预览文本。
+ *
+ * 热评接口返回的 content 是富文本：`<p>` 包裹段落、`<img class="comment_img">`
+ * 表示图片、`[...]` 形式的表情占位符。卡片里只能显示纯文本，
+ * 否则会直接看到 HTML 标签或无法渲染的占位符。
+ */
+private fun plainCommentPreview(html: String): String = html
+    .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), " ")
+    .replace(Regex("<img[^>]*>", RegexOption.IGNORE_CASE), "")
+    .replace(Regex("<[^>]+>"), "")
+    .replace(Regex("\\[\\S{1,4}]"), "{表情}")
+    .replace("&nbsp;", " ")
+    .replace("&lt;", "<")
+    .replace("&gt;", ">")
+    .replace("&amp;", "&")
+    .replace(Regex("\\s+"), " ")
+    .trim()
+
 /** 热评卡（target-spec §3.3 ⑧）：功能底 + 8dp 圆角，头像 20dp / 昵称 13sp / 内容 14sp 两行。 */
 @Composable
 private fun AnswerHotComment(
@@ -703,7 +722,9 @@ private fun AnswerHotComment(
             )
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = comment.content,
+                    // 热评接口返回的是 HTML（含 <p> 与表情占位符）；直接当纯文本渲染会把标签和
+                    // 表情占位符原样露出来，这里先去标签再渲染。
+                    text = plainCommentPreview(comment.content),
                     style = ZhihuTypography.AnswerVoteLine,
                     color = colors.secondaryText,
                     maxLines = 2,
