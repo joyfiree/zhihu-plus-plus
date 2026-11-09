@@ -1388,6 +1388,9 @@ private fun CommentItem(
                 Column {
                     val settings = rememberSettingsStore()
                     val fontSizePercent = remember { settings.getInt(PREF_FONT_SIZE, 100) }
+                    // 行高百分比的基准是「字号的 1.0 倍」：评论正文 15sp 对应 170%
+                    // 下正好是常规的 25.5sp。不能拿 22sp（已含 1.47 倍行距）再乘一次百分比，
+                    // 否则默认设置下会得到 ~37sp 的行高，正文看起来又空又散。
                     val lineHeightPercent = remember { settings.getInt(PREF_LINE_HEIGHT, 170) }
                     SelectionContainer(
                         modifier = Modifier.commentSelectionWorkaround(),
@@ -1396,7 +1399,7 @@ private fun CommentItem(
                             text = string,
                             // 评论正文跟随用户设置的字号/行高，基准用与回答一致的 15sp/22。
                             fontSize = 15.sp * fontSizePercent / 100,
-                            lineHeight = 22.sp * fontSizePercent / 100 * lineHeightPercent / 100,
+                            lineHeight = 15.sp * fontSizePercent / 100 * lineHeightPercent / 100,
                             inlineContent = inlineContent,
                         )
                     }

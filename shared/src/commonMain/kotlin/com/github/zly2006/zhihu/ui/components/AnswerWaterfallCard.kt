@@ -38,6 +38,8 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
@@ -72,9 +74,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import com.fleeksoft.ksoup.Ksoup
 import com.github.zly2006.zhihu.data.DataHolder
 import com.github.zly2006.zhihu.data.OfficialBadge
 import com.github.zly2006.zhihu.data.VoteUpState
@@ -82,11 +87,13 @@ import com.github.zly2006.zhihu.data.officialBadge
 import com.github.zly2006.zhihu.markdown.RenderMarkdown
 import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.AnswerEndorsementChip
+import com.github.zly2006.zhihu.ui.commentEmojiInlineKey
 import com.github.zly2006.zhihu.ui.designsystem.ContentFirstColors
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSizes
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
 import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
+import com.github.zly2006.zhihu.ui.rememberCommentEmojiInlineContent
 import com.github.zly2006.zhihu.util.formatCompactCount
 import com.github.zly2006.zhihu.util.formatFullDateTime
 import kotlinx.coroutines.delay
@@ -671,23 +678,61 @@ private fun DiscussPill(onClick: () -> Unit, colors: ContentFirstColors) {
 }
 
 /**
- * 把评论 HTML 干净化成一行预览文本。
+ * 热评预览：接口返回 HTML，需要去掉标签同时把 `[xx]` 表情探成图。
  *
- * 热评接口返回的 content 是富文本：`<p>` 包裹段落、`<img class="comment_img">`
- * 表示图片、`[...]` 形式的表情占位符。卡片里只能显示纯文本，
- * 否则会直接看到 HTML 标签或无法渲染的占位符。
+ * 两件事必须在同一遍里做：先把文本切成「普通文本 / 表情占位符」两类片段，
+ * 普通片段 append，表情片段 appendInlineContent；否则占位符会以文字形式残留在预览里。
  */
-private fun plainCommentPreview(html: String): String = html
-    .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), " ")
-    .replace(Regex("<img[^>]*>", RegexOption.IGNORE_CASE), "")
-    .replace(Regex("<[^>]+>"), "")
-    .replace(Regex("\\[\\S{1,4}]"), "{表情}")
-    .replace("&nbsp;", " ")
-    .replace("&lt;", "<")
-    .replace("&gt;", ">")
-    .replace("&amp;", "&")
-    .replace(Regex("\\s+"), " ")
-    .trim()
+@Composable
+private fun rememberHotCommentPreview(html: String): Pair<AnnotatedString, Map<String, InlineTextContent>> {
+    val plain = remember(html) {
+        Ksoup
+            .parseBodyFragment(html)
+            .body()
+            .clone()
+            .also { body ->
+                body.select("a.comment_img").forEach { it.remove() }
+                body.select("a.comment_gif").forEach { it.remove() }
+                body.select("a.comment_sticker").forEach { it.remove() }
+            }.text()
+            .replace(Regex("\\s+"), " ")
+            .trim()
+    }
+
+    // 先切片段：每个片段是「文本 + 可选的表情 key」。
+    val segments = remember(plain) {
+        val regex = Regex("\\[[^\\]]{1,12}]")
+        val result = mutableListOf<Pair<String, String?>>()
+        var cursor = 0
+        for (match in regex.findAll(plain)) {
+            if (match.range.first > cursor) {
+                result.add(plain.substring(cursor, match.range.first) to null)
+            }
+            result.add(match.value to commentEmojiInlineKey(match.value))
+            cursor = match.range.last + 1
+        }
+        if (cursor < plain.length) {
+            result.add(plain.substring(cursor) to null)
+        }
+        result
+    }
+
+    val emojiKeys = remember(segments) { segments.mapNotNull { it.second }.toSet() }
+    val inlineContent = rememberCommentEmojiInlineContent(emojiKeys)
+
+    val text = remember(segments) {
+        buildAnnotatedString {
+            segments.forEach { (piece, emojiKey) ->
+                if (emojiKey != null) {
+                    appendInlineContent(emojiKey, piece)
+                } else {
+                    append(piece)
+                }
+            }
+        }
+    }
+    return text to inlineContent
+}
 
 /** 热评卡（target-spec §3.3 ⑧）：功能底 + 8dp 圆角，头像 20dp / 昵称 13sp / 内容 14sp 两行。 */
 @Composable
@@ -721,14 +766,14 @@ private fun AnswerHotComment(
                 overflow = TextOverflow.Ellipsis,
             )
             Row(verticalAlignment = Alignment.Bottom) {
+                val (previewText, previewInline) = rememberHotCommentPreview(comment.content)
                 Text(
-                    // 热评接口返回的是 HTML（含 <p> 与表情占位符）；直接当纯文本渲染会把标签和
-                    // 表情占位符原样露出来，这里先去标签再渲染。
-                    text = plainCommentPreview(comment.content),
+                    text = previewText,
                     style = ZhihuTypography.AnswerVoteLine,
                     color = colors.secondaryText,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    inlineContent = previewInline,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(Modifier.width(ZhihuSpacing.Small))
