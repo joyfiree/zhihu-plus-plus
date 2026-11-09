@@ -1175,6 +1175,7 @@ private fun NavDestination.isAccountDetailDestination(): Boolean = when (this) {
     Account.RecommendSettings.BlockedFeedHistory,
     Account.IdentityManagement,
     is Account.SystemAndUpdateSettings,
+    Account.Settings,
     Account.SettingsSearch,
     Account.OpenSourceLicenses,
     Account.DeveloperSettings,
@@ -1231,6 +1232,9 @@ private fun NavGraphBuilder.accountSettings(
     }
     composable<Account.ReadingSettings> {
         ReadingSettingsScreen()
+    }
+    composable<Account.Settings> {
+        SettingsScreen()
     }
     composable<Account.SettingsSearch> {
         SettingsSearchScreen()

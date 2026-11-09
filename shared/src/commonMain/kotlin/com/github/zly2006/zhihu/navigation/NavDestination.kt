@@ -148,6 +148,10 @@ data object Account : TopLevelDestination {
         val setting: String = "",
     ) : NavDestination
 
+    /** 应用设置总入口：「我的」页右上角齿轮进入，承载所有配置项。 */
+    @Serializable
+    data object Settings : NavDestination
+
     @Serializable
     data object SettingsSearch : NavDestination
 
