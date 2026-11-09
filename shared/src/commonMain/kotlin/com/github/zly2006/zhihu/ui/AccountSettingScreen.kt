@@ -118,8 +118,12 @@ import com.github.zly2006.zhihu.ui.subscreens.SystemUpdateState
 import com.github.zly2006.zhihu.ui.subscreens.rememberSystemUpdateChecker
 import com.github.zly2006.zhihu.ui.subscreens.rememberSystemUpdateState
 import com.github.zly2006.zhihu.util.Log
+import com.github.zly2006.zhihu.util.formatCompactCount
+import com.github.zly2006.zhihu.viewmodel.rememberPaginationEnvironment
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.compose.resources.painterResource
 import zhihu.shared.generated.resources.Res
 import zhihu.shared.generated.resources.ic_license_24dp
@@ -143,19 +147,18 @@ const val ACCOUNT_SETTINGS_DEVELOPER_TAG = "accountSettings.developer"
 const val ACCOUNT_SETTINGS_LICENSES_TAG = "accountSettings.licenses"
 const val ACCOUNT_SETTINGS_IDENTITY_MANAGEMENT_TAG = "accountSettings.identityManagement"
 
-private val heroHeight = 172.dp
 private val heroAvatarSize = 64.dp
 private val collapsedBarHeight = 48.dp
 private val collapsedBarTrigger = 48.dp
-private val shortcutCardHeight = 84.dp
-private val settingsRowMinHeight = 60.dp
+private val shortcutCardHeight = 80.dp
+private val settingsRowMinHeight = 56.dp
 private val settingsRowIconSize = 28.dp
 
 /**
  * 账号与设置入口页。
  *
- * 已登录时顶部是可折叠 Hero（头像、昵称、@ID、进主页 pill、扫码与更多菜单），Hero 滚出后浮出 48dp 小标题栏；
- * 下方依次是快捷入口卡、设置搜索、分组设置和页脚。未登录时 Hero 只保留登录入口，快捷入口卡隐藏。
+ * 已登录时顶部是可折叠 Hero（头像、昵称、@ID、回答/文章/粉丝/关注统计、进主页 pill、扫码与更多菜单），Hero 滚出后浮出 48dp 小标题栏；
+ * 下方依次是快捷入口卡、设置搜索、分组设置和页脚。未登录时 Hero 只保留登录入口，快捷入口卡与统计隐藏。
  * 开发者选项通过连续点击页脚版本号 5 次开启，退出登录走确认弹窗。
  *
  * 这个页面既作为底部栏 tab 展示，也被单独的路由/账号面板复用，所以 [innerPadding]、[onDismissRequest]、
@@ -210,6 +213,36 @@ fun AccountSettingScreen(
         }
     }
 
+    // /api/v4/me 的 self 只保证资料字段；回答/文章/粉丝/关注计数从成员资料接口补齐（PeopleScreen 同源）。
+    val statsEnvironment = rememberPaginationEnvironment(allowGuestAccess = false)
+    var profileCounts by remember { mutableStateOf<AccountProfileCounts?>(null) }
+    LaunchedEffect(data.login, data.urlToken, data.id, statsEnvironment) {
+        if (!data.login) {
+            profileCounts = null
+            return@LaunchedEffect
+        }
+        val token = data.urlToken?.takeIf { it.isNotBlank() } ?: data.id
+        if (token.isBlank()) return@LaunchedEffect
+        try {
+            val json = statsEnvironment.fetchJson(
+                "https://www.zhihu.com/api/v4/members/$token",
+                "answer_count,articles_count,follower_count,following_count",
+            )
+            profileCounts = json?.let { profile ->
+                AccountProfileCounts(
+                    answers = profile["answer_count"]?.jsonPrimitive?.intOrNull,
+                    articles = profile["articles_count"]?.jsonPrimitive?.intOrNull,
+                    followers = profile["follower_count"]?.jsonPrimitive?.intOrNull,
+                    following = profile["following_count"]?.jsonPrimitive?.intOrNull,
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("AccountSettingScreen", "Failed to load profile counts", e)
+        }
+    }
+
     val updateState by systemUpdateState.collectAsState()
     LaunchedEffect(updateState) {
         when (val state = updateState) {
@@ -240,6 +273,11 @@ fun AccountSettingScreen(
             Person(id = data.id, urlToken = data.urlToken ?: "", name = data.username),
         )
     }
+    val openProfileSection = { section: String ->
+        navigator.onNavigate(
+            Person(id = data.id, urlToken = data.urlToken ?: "", name = data.username, jumpTo = section),
+        )
+    }
     val openIdentityManagement = { navigator.onNavigate(Account.IdentityManagement) }
     val requestLogout = { showLogoutDialog = true }
 
@@ -252,13 +290,15 @@ fun AccountSettingScreen(
                 .testTag(ACCOUNT_SETTINGS_SCROLL_TAG)
                 .pageTurnViewportWithGuide(pageTurnTarget)
                 .verticalScroll(scrollState)
-                .padding(bottom = innerPadding.calculateBottomPadding() + ZhihuSpacing.Huge),
+                .padding(bottom = innerPadding.calculateBottomPadding() + ZhihuSpacing.ExtraLarge),
         ) {
             AccountHero(
                 data = data,
+                counts = profileCounts,
                 topInset = topInset,
                 scan = launchQrScanner,
                 onOpenProfile = openProfile,
+                onOpenSection = openProfileSection,
                 onLogin = requestLogin,
                 onIdentityManagement = openIdentityManagement,
                 onLogout = requestLogout,
@@ -435,9 +475,11 @@ fun AccountSettingScreen(
 @Composable
 private fun AccountHero(
     data: AccountSettingsAccountState,
+    counts: AccountProfileCounts?,
     topInset: Dp,
     scan: (() -> Unit)?,
     onOpenProfile: () -> Unit,
+    onOpenSection: (String) -> Unit,
     onLogin: () -> Unit,
     onIdentityManagement: () -> Unit,
     onLogout: () -> Unit,
@@ -447,55 +489,61 @@ private fun AccountHero(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(heroHeight + topInset)
             .background(gradient),
     ) {
-        if (data.login) {
-            AccountTopActions(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = topInset + ZhihuSpacing.ExtraSmall, end = ZhihuSpacing.Small),
-                scan = scan,
-                scanTestTag = ACCOUNT_SETTINGS_SCAN_TAG,
-                onIdentityManagement = onIdentityManagement,
-                onLogout = onLogout,
-            )
-        }
         Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
+                .fillMaxWidth()
                 .padding(horizontal = ZhihuSpacing.ScreenGutter)
-                .padding(bottom = ZhihuSpacing.Large),
+                .padding(top = topInset + ZhihuSpacing.Medium, bottom = ZhihuSpacing.Medium),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(ACCOUNT_SETTINGS_PROFILE_HEADER_TAG)
-                    .clickable(onClick = if (data.login) onOpenProfile else onLogin),
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AccountAvatar(data)
-                Spacer(Modifier.width(ZhihuSpacing.Large))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (data.login) data.username else "未登录",
-                        style = ZhihuTypography.ContentTitle,
-                        color = colors.primaryText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_PROFILE_NAME_TAG),
-                    )
-                    val urlToken = data.urlToken
-                    if (data.login && !urlToken.isNullOrBlank()) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(ACCOUNT_SETTINGS_PROFILE_HEADER_TAG)
+                        .clickable(onClick = if (data.login) onOpenProfile else onLogin),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AccountAvatar(data)
+                    Spacer(Modifier.width(ZhihuSpacing.Large))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "@$urlToken",
-                            style = ZhihuTypography.ContentSignature,
-                            color = colors.tertiaryText,
+                            text = if (data.login) data.username else "未登录",
+                            style = ZhihuTypography.ContentTitle,
+                            color = colors.primaryText,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag(ACCOUNT_SETTINGS_PROFILE_NAME_TAG),
                         )
+                        val urlToken = data.urlToken
+                        if (data.login && !urlToken.isNullOrBlank()) {
+                            Text(
+                                text = "@$urlToken",
+                                style = ZhihuTypography.ContentSignature,
+                                color = colors.tertiaryText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
+                if (data.login) {
+                    Spacer(Modifier.width(ZhihuSpacing.Small))
+                    AccountTopActions(
+                        scan = scan,
+                        scanTestTag = ACCOUNT_SETTINGS_SCAN_TAG,
+                        onIdentityManagement = onIdentityManagement,
+                        onLogout = onLogout,
+                    )
+                }
+            }
+            if (data.login) {
+                Spacer(Modifier.height(ZhihuSpacing.Small))
+                HeroStatRow(data = data, counts = counts, onOpenSection = onOpenSection)
             }
             Spacer(Modifier.height(ZhihuSpacing.Small))
             HeroPillButton(
@@ -506,6 +554,52 @@ private fun AccountHero(
                 onClick = if (data.login) onOpenProfile else onLogin,
             )
         }
+    }
+}
+
+private data class AccountProfileCounts(
+    val answers: Int? = null,
+    val articles: Int? = null,
+    val followers: Int? = null,
+    val following: Int? = null,
+)
+
+@Composable
+private fun HeroStatRow(
+    data: AccountSettingsAccountState,
+    counts: AccountProfileCounts?,
+    onOpenSection: (String) -> Unit,
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        HeroStat(formatCompactCount(counts?.answers ?: data.answerCount), "回答", Modifier.weight(1f)) { onOpenSection("回答") }
+        HeroStat(formatCompactCount(counts?.articles ?: data.articleCount), "文章", Modifier.weight(1f)) { onOpenSection("文章") }
+        HeroStat(formatCompactCount(counts?.followers ?: data.followerCount), "粉丝", Modifier.weight(1f)) { onOpenSection("粉丝") }
+        HeroStat(formatCompactCount(counts?.following ?: data.followingCount), "关注", Modifier.weight(1f)) { onOpenSection("关注") }
+    }
+}
+
+@Composable
+private fun HeroStat(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = modifier.clickable(onClick = onClick),
+        horizontalAlignment = Alignment.Start,
+    ) {
+        Text(
+            text = value,
+            style = ZhihuTypography.ContentAuthor.copy(fontWeight = FontWeight.Bold),
+            color = contentFirstColors.primaryText,
+            maxLines = 1,
+        )
+        Text(
+            text = label,
+            style = ZhihuTypography.BottomNavLabel,
+            color = contentFirstColors.tertiaryText,
+        )
     }
 }
 
@@ -547,13 +641,13 @@ private fun HeroPillButton(
     val containerColor = if (filled) contentFirstColors.accentFill else contentFirstColors.accent.copy(alpha = 0.12f)
     Surface(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier.height(34.dp),
         shape = ZhihuShapeTokens.Pill,
         color = containerColor,
         contentColor = if (filled) MaterialTheme.colorScheme.onPrimary else contentFirstColors.accent,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = label, style = MaterialTheme.typography.labelLarge)
@@ -570,7 +664,6 @@ private fun HeroPillButton(
 
 @Composable
 private fun AccountTopActions(
-    modifier: Modifier = Modifier,
     scan: (() -> Unit)?,
     scanTestTag: String? = null,
     onIdentityManagement: () -> Unit,
@@ -578,7 +671,6 @@ private fun AccountTopActions(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Row(
-        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(ZhihuSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -696,7 +788,7 @@ private fun AccountShortcutCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = ZhihuSpacing.ScreenGutter)
-            .padding(top = ZhihuSpacing.Large)
+            .padding(top = ZhihuSpacing.Medium)
             .clip(MaterialTheme.shapes.large)
             .background(contentFirstColors.functionalSurface)
             .height(shortcutCardHeight),
@@ -741,7 +833,7 @@ private fun SettingsSearchPill(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = ZhihuSpacing.ScreenGutter)
-            .padding(top = ZhihuSpacing.Large),
+            .padding(top = ZhihuSpacing.Medium),
     ) {
         Surface(
             onClick = onClick,
@@ -784,7 +876,7 @@ private fun SettingsSection(
             color = contentFirstColors.tertiaryText,
             modifier = Modifier.padding(
                 start = ZhihuSpacing.ExtraSmall,
-                top = ZhihuSpacing.Large,
+                top = ZhihuSpacing.Medium,
                 bottom = ZhihuSpacing.Small,
             ),
         )
@@ -884,7 +976,7 @@ private fun AccountFooter(
     onAgpl: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(top = ZhihuSpacing.Huge),
+        modifier = Modifier.fillMaxWidth().padding(top = ZhihuSpacing.ExtraLarge),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(

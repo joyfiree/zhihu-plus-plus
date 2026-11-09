@@ -2,6 +2,56 @@
 
 分支 `refactor/md3-ui`。实现按 `reports/ui-redesign/account-page-spec.md`。
 
+> **v2（2026-11-09 第二轮：补统计行 + 压缩留白）** 以 §0 为准；§1–§8 是 v1（第一轮重做）的记录，仅作历史背景，其中「172dp Hero / 60dp 行高 / 16dp 间距」等数值已被 §0 取代。
+
+## 0. v2 更新（统计数据行 + 留白压缩）
+
+### 0.1 Hero 数据统计行
+
+- 数据源：登录会话 `session.self` 就是 `/api/v4/me` 返回的完整 JsonObject（`data/ZhihuDataTypes.kt` 的 `fetchVerifiedZhihuSession` 中 `self = account`），含 `answer_count / articles_count / follower_count / following_count`。
+- `ui/UiSupportFiles.kt`：`AccountSettingsAccountState` 新增 `answerCount / articleCount / followerCount / followingCount`；`rememberAccountSettingsAccountState()` 从 `session.self` 解析（`(self[key] as? JsonPrimitive)?.intOrNull ?: 0`，缺失按 0，`JsonNull` 不会抛异常）；进页 `refreshAndSaveProfile()` 会把含新 self 的 session 落盘，派生状态自动刷新，无需额外请求。
+- Hero 结构改为：头像行（头像 + 昵称/@ID + 右侧扫码/更多）→ 统计行（回答/文章/粉丝/关注）→「查看主页」pill。
+  - 数字 17sp Bold（`ZhihuTypography.ContentAuthor.copy(fontWeight = Bold)`），标签 12sp 三级色（`BottomNavLabel`）；四列等宽（`weight(1f)`）左对齐，列间空隙均匀；大数字用既有 `formatCompactCount()` 压缩成「N 万」。
+  - 每项点击 → `Person(id, urlToken, name, jumpTo = "回答"/"文章"/"粉丝"/"关注")`，命中 `PeopleScreen` 的 `PEOPLE_SCREEN_TITLES`。
+  - 未登录：统计行连同扫码/更多一起隐藏，不会出现 0 假数据；登录但会话尚无 self（旧会话/离线未刷新成功）时按 0 展示，刷新成功后自动纠正。
+
+### 0.2 留白压缩（v1 → v2）
+
+| 位置 | v1 | v2 |
+|---|---|---|
+| Hero 高度 | 固定 172dp + status inset | 内容驱动、不写死高度：登录态约 status + 175dp（12 顶 + 64 头像行 + 8 + 37 统计 + 8 + 34 pill + 12 底），未登录约 status + 130dp；系统大字号下随内容自适应、不裁剪 |
+| Hero 顶/底 padding | 内容底部对齐、底部 16dp | 顶部 status+12dp、底部 12dp |
+| 扫码 / 更多按钮 | 右上角独立一行 | 与头像/昵称同一行右侧（40dp 圆底），省出一整行高度 |
+| Hero → 快捷卡 | 16dp | 12dp |
+| 快捷卡高度 | 84dp | 80dp |
+| 快捷卡 → 搜索胶囊 | 16dp | 12dp |
+| 搜索胶囊 → 首个分组标题 | 16dp | 12dp |
+| 分组标题上距（组间） | 16dp | 12dp |
+| 设置行最小高度 | 60dp | 56dp（仍满足 ≥56dp 触控下限；36dp 图标底座 / 28dp 图标不变） |
+| 页脚上距 / 内容底部留白 | 32dp / 32dp | 24dp / 24dp（底部另加外层 bottom inset） |
+
+- 1080×2400（420dpi）首屏估算：Hero 约 200dp（含状态栏）+ 12 + 80 + 12 + 44 + 12 + 组标题 26 + 首行 56 ≈ 440dp，远小于首屏可用高度（约 830dp），可看到 Hero（含统计）+ 快捷卡 + 搜索 + 至少前两个分组。
+
+### 0.3 保持不变的回归契约
+
+- 18 个 `ACCOUNT_SETTINGS_*` 常量/入口、退出登录确认弹窗、扫码、进页刷新 profile、`pageTurnViewportWithGuide`、48dp 折叠小标题栏（滚动 48dp 触发）、页脚（5 连击开发者 / 长按复制版本号 / 检查更新 / GitHub / AGPL）、函数签名与全部参数（`innerPadding`/`unreadCount`/`showUnreadBadge`/`onDismissRequest`/`refreshAccountProfileOnEnter`/`isActive`）。
+- `ACCOUNT_SETTINGS_PROFILE_HEADER_TAG` 仍只包住「头像 + 昵称/@ID」点击区（不含右侧扫码/更多）；`PROFILE_NAME_TAG`、`SCAN_TAG`（仅 Hero 一份，折叠栏不重复打 tag）等位置不变。
+
+### 0.4 v2 验证
+
+- `:shared:compileKotlinJvm` ✅、`:app:assembleLiteDebug` ✅、`:app:compileLiteDebugAndroidTestKotlin` ✅、`:shared:ktlintCommonMainSourceSetCheck` 0 告警。
+- 说明：未运行全仓 `ktlintFormat`，因为同时有并行任务正在编辑 `QuestionScreen.kt`/`AnswerWaterfallCard.kt`/`Dimens.kt`/`Type.kt`，全仓格式化会改写他人工作树；对本人两个文件跑了等价的 ktlint 检查（0 告警）。
+- 需真机验证点：
+  1. 统计数字与网页端一致（回答/文章/粉丝/关注），进页刷新后更新；点击四项分别进入自己主页的「回答/文章/粉丝/关注」tab。
+  2. 1080×2400 首屏能完整看到 Hero（含统计）+ 4 列快捷卡 + 设置搜索 + 第一个分组标题与首个设置行。
+  3. 深/浅色下 Hero 渐变、统计数字/标签对比度、inline 扫码/更多按钮、长昵称省略且不压按钮。
+  4. 系统大字号 1.15x / 1.3x 下 Hero 自适应无溢出；滚动 48dp 后折叠小标题栏出现时机与遮挡。
+  5. 未登录 Hero 无统计行/扫码/更多，登录入口正常。
+
+---
+
+## v1 记录（第一轮重做，2026-11-09）
+
 ## 1. 改动范围
 
 - 只改 `shared/src/commonMain/kotlin/com/github/zly2006/zhihu/ui/AccountSettingScreen.kt`：全量重写为单文件，删除旧 M3 卡片堆叠、旧「发想法」卡、duo3 快捷块分支与连带 import/状态；未新增实现文件。

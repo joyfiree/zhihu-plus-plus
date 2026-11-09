@@ -57,7 +57,9 @@ import com.github.zly2006.zhihu.viewmodel.getOrFetchContentDetail
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 data class PinLikeResult(
@@ -354,6 +356,12 @@ fun rememberZhihuMainPreferenceState(
     readSnapshot: () -> ZhihuMainPreferenceSnapshot,
 ): ZhihuMainPreferenceState = remember { ZhihuMainPreferenceState(readSnapshot) }
 
+/**
+ * 账号页头部资料快照。
+ *
+ * [answerCount] 等计数来自登录会话的 `session.self`（`/api/v4/me` 返回的完整 JsonObject），
+ * 字段缺失时按 0 展示；[rememberAccountSettingsAccountState] 的派生状态会随 profile 刷新自动更新。
+ */
 data class AccountSettingsAccountState(
     val login: Boolean = false,
     val hasRequiredCookie: Boolean = true,
@@ -361,6 +369,10 @@ data class AccountSettingsAccountState(
     val avatarUrl: String? = null,
     val id: String = "",
     val urlToken: String? = null,
+    val answerCount: Int = 0,
+    val articleCount: Int = 0,
+    val followerCount: Int = 0,
+    val followingCount: Int = 0,
 )
 
 @Composable
@@ -370,6 +382,7 @@ fun rememberAccountSettingsAccountState(): State<AccountSettingsAccountState> {
     return remember(accounts) {
         derivedStateOf {
             val session = accounts.value.session
+            val self = session.self as? JsonObject
             AccountSettingsAccountState(
                 login = session.login,
                 hasRequiredCookie = session.cookies["d_c0"]
@@ -381,6 +394,10 @@ fun rememberAccountSettingsAccountState(): State<AccountSettingsAccountState> {
                     ?.id
                     .orEmpty(),
                 urlToken = session.profile?.urlToken,
+                answerCount = (self?.get("answer_count") as? JsonPrimitive)?.intOrNull ?: 0,
+                articleCount = (self?.get("articles_count") as? JsonPrimitive)?.intOrNull ?: 0,
+                followerCount = (self?.get("follower_count") as? JsonPrimitive)?.intOrNull ?: 0,
+                followingCount = (self?.get("following_count") as? JsonPrimitive)?.intOrNull ?: 0,
             )
         }
     }
