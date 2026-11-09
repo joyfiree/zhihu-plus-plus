@@ -149,6 +149,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -414,6 +415,27 @@ fun QuestionScreen(
         }
     }
     val hasNextAnswer = currentAnswerIndex >= 0 && currentAnswerIndex < viewModel.displayItems.lastIndex
+
+    // 从首页卡片等入口进入时，定位到对应的回答，而不是从第一条开始。
+    val initialAnswerId = question.initialAnswerId
+    var initialAnswerLocated by rememberSaveable(question.questionId) { mutableStateOf(false) }
+    LaunchedEffect(initialAnswerId, viewModel.displayItems.size, viewModel.isEnd) {
+        if (initialAnswerLocated || initialAnswerId == null) return@LaunchedEffect
+        val targetIndex = viewModel.displayItems.indexOfFirst { answerIdOf(it) == initialAnswerId }
+        if (targetIndex >= 0) {
+            // 列表第 0 项是问题头部；contentPadding 已包含悬浮工具栏高度，先粗定位。
+            listState.scrollToItem(targetIndex + 1)
+            // 首屏数据刚到位时 LazyList 按估算高度定位，等布局稳定后再校正一次，避免停在上一两条回答的尾部。
+            delay(120)
+            listState.scrollToItem(targetIndex + 1)
+            initialAnswerLocated = true
+        } else if (viewModel.isEnd) {
+            initialAnswerLocated = true
+        } else if (viewModel.displayItems.size <= 20) {
+            // 首页卡片对应的回答通常在第一页；若尚未命中，再补一页继续查找。
+            viewModel.loadMore(paginationEnvironment)
+        }
+    }
 
     fun scrollToNextAnswer() {
         val index = currentAnswerIndex
