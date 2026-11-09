@@ -830,8 +830,8 @@ fun CommentScreen(
                                                     tint = actionChipIconColor,
                                                 )
                                                 Text(
-                                                    "查看 ${commentItem.item.childCommentCount} 条子评论",
-                                                    style = MaterialTheme.typography.labelMedium,
+                                                    "查看 ${commentItem.item.childCommentCount} 条回复",
+                                                    style = ZhihuTypography.FeedMeta,
                                                     modifier = Modifier.padding(vertical = 1.dp, horizontal = 4.dp),
                                                 )
                                             }
@@ -924,7 +924,7 @@ fun CommentScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Text(
-                                                text = "评论 ${viewModel.allData.size}",
+                                                text = "评论 ${viewModel.totalCount}",
                                                 style = ZhihuTypography.FeedTitle,
                                                 color = contentFirstColors.primaryText,
                                             )
@@ -1037,7 +1037,6 @@ fun CommentScreen(
                 // 作者关闭评论后没有可发送的内容，不再保留输入栏。
                 if (viewModel.commentClosedMessage != null) return@Column
                 Surface(
-                    tonalElevation = 2.dp,
                     modifier = Modifier.fillMaxWidth(),
                     color = commentInputBarColor,
                 ) {
@@ -1150,19 +1149,20 @@ fun CommentScreen(
                                         if (commentFieldValue.text.isEmpty()) {
                                             Text(
                                                 if (replyToComment != null) {
-                                                    "回复 ${replyToComment?.item?.author?.name}..."
+                                                    "回复 ${replyToComment?.item?.author?.name}…"
                                                 } else {
-                                                    "写下你的评论..."
+                                                    // 官方输入栏占位是「理性发言，友善互动」。
+                                                    "理性发言，友善互动"
                                                 },
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                style = ZhihuTypography.FeedSummary,
+                                                color = contentFirstColors.tertiaryText,
                                             )
                                         }
                                         inner()
                                     }
                                 },
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                textStyle = ZhihuTypography.FeedSummary.copy(
+                                    color = contentFirstColors.primaryText,
                                 ),
                             )
 

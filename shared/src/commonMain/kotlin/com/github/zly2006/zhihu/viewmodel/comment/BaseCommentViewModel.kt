@@ -55,6 +55,15 @@ abstract class BaseCommentViewModel(
     override val isEnd: Boolean
         get() = commentClosedMessage != null || super.isEnd
 
+    /**
+     * 评论总数（服务端 `paging.totals`）。
+     *
+     * 评论区标题要显示「评论 263」这种真实总数；用 `allData.size` 只会拿到已加载的几十条，
+     * 与官方对不上。首页还没回来时回退到已加载数量。
+     */
+    val totalCount: Int
+        get() = lastPaging?.totals?.takeIf { it > 0 } ?: allData.size
+
     override fun refresh(environment: PaginationEnvironment) {
         commentClosedMessage = null
         super.refresh(environment)
