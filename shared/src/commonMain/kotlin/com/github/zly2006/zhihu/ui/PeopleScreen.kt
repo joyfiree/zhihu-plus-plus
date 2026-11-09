@@ -841,9 +841,7 @@ fun PeopleScreen(
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 8.dp),
+            modifier = Modifier.padding(innerPadding),
         ) {
             HorizontalPager(
                 state = pagerState,
@@ -2062,10 +2060,11 @@ private fun PeopleCompactCard(
             .fillMaxWidth()
             .padding(bottom = ZhihuSpacing.Small)
             .testTag(itemTag)
+            .padding(horizontal = ZhihuSpacing.ScreenGutter)
             .clip(ZhihuShapeTokens.Card)
             .background(colors.functionalSurface)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = ZhihuSpacing.Medium)
+            .padding(horizontal = ZhihuSpacing.Large)
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.Top,
     ) {

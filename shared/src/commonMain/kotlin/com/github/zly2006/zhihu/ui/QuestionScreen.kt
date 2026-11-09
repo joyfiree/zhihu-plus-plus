@@ -652,6 +652,7 @@ fun QuestionScreen(
                     voteUpState = answerId?.let { voteStates[it] } ?: VoteUpState.Neutral,
                     voteUpCount = answerId?.let { voteCounts[it] } ?: fallbackMetrics.voteUp ?: 0,
                     commentCount = answer?.commentCount ?: fallbackMetrics.comment ?: 0,
+                    favoriteCount = (answer?.favlistsCount ?: 0).takeIf { it > 0 } ?: fallbackMetrics.favorite ?: 0,
                     isFavorited = answerId?.let { favoritedAnswers[it] } ?: false,
                     isAuthorFollowed = authorToken?.let { authorFollowStates[it] } ?: (answer?.author?.isFollowing ?: false),
                     hotComment = answerId?.let { hotComments[it] },
@@ -762,6 +763,8 @@ fun QuestionScreen(
                 voteUpCount = currentAnswerId?.let { voteCounts[it] } ?: currentAnswerItem.cardMetrics.voteUp ?: 0,
                 isFavorited = currentAnswerId?.let { favoritedAnswers[it] } ?: false,
                 commentCount = currentAnswer?.commentCount ?: currentAnswerItem.cardMetrics.comment ?: 0,
+                favoriteCount = (currentAnswer?.favlistsCount ?: 0).takeIf { it > 0 }
+                    ?: currentAnswerItem.cardMetrics.favorite ?: 0,
                 onFollowAuthor = { currentAuthorToken?.let { token -> toggleAuthorFollow(token) } },
                 onVoteUp = {
                     currentAnswerId?.let { id ->
@@ -1287,6 +1290,7 @@ private fun AnswerStickyBar(
     voteUpCount: Int,
     isFavorited: Boolean,
     commentCount: Int,
+    favoriteCount: Int,
     onFollowAuthor: () -> Unit,
     onVoteUp: () -> Unit,
     onVoteDown: () -> Unit,
@@ -1373,7 +1377,7 @@ private fun AnswerStickyBar(
             }
             AnswerActionGroup(
                 modifier = Modifier.weight(1f),
-                count = null,
+                count = favoriteCount,
                 label = "收藏",
                 tag = "sticky_answer_favorite",
                 tint = if (isFavorited) colors.favorited else colors.tertiaryText,

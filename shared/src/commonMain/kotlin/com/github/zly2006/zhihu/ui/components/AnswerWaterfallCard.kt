@@ -136,6 +136,7 @@ fun AnswerWaterfallCard(
     voteUpState: VoteUpState,
     voteUpCount: Int,
     commentCount: Int,
+    favoriteCount: Int,
     isFavorited: Boolean,
     isAuthorFollowed: Boolean,
     hotComment: DataHolder.Comment?,
@@ -224,6 +225,7 @@ fun AnswerWaterfallCard(
                 voteUpCount = voteUpCount,
                 isFavorited = isFavorited,
                 commentCount = commentCount,
+                favoriteCount = favoriteCount,
                 colors = colors,
                 onVoteUp = onVoteUp,
                 onVoteDown = onVoteDown,
@@ -510,6 +512,7 @@ private fun AnswerActionRow(
     voteUpCount: Int,
     isFavorited: Boolean,
     commentCount: Int,
+    favoriteCount: Int,
     colors: ContentFirstColors,
     onVoteUp: () -> Unit,
     onVoteDown: () -> Unit,
@@ -552,7 +555,7 @@ private fun AnswerActionRow(
         }
         AnswerActionGroup(
             modifier = Modifier.weight(1f),
-            count = null,
+            count = favoriteCount,
             label = "收藏",
             tag = "answer_action_favorite:${answerId ?: 0}",
             tint = if (isFavorited) colors.favorited else colors.tertiaryText,

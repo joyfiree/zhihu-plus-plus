@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -251,10 +252,11 @@ private data class AccountProfileCounts(
 )
 
 /**
- * 资料头部：头像、昵称、知乎号同排对齐（官方同款），右上角只有扫码与设置入口。
+ * 资料头部，按官方「我的」页排布：
+ * 头像靠左，右侧是数据统计（获赞/被关注/关注同排等宽），昵称与知乎号在头像下方。
  *
- * 昵称与知乎号和头像垂直居中对齐，避免旧版「头像靠左、昵称靠上、@ID 再占一行」的错位感；
- * 统计数字紧跟在资料行下面，点击直接进自己主页的对应 tab。
+ * 旧版把昵称挤在头像右侧、统计又拉满全宽，导致昵称字号偏大、与头像不协调，
+ * 且整块看起来像表格而不像个人资料。
  */
 @Composable
 private fun AccountHeader(
@@ -272,53 +274,23 @@ private fun AccountHeader(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = ZhihuSpacing.ScreenGutter)
-            .padding(top = topInset + ZhihuSpacing.Medium),
+            .padding(top = topInset + ZhihuSpacing.Small),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(ACCOUNT_SETTINGS_PROFILE_HEADER_TAG)
-                    .clickable(onClick = if (data.login) onOpenProfile else onLogin),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AccountAvatar(data)
-                Spacer(Modifier.width(ZhihuSpacing.Large))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (data.login) data.username else "未登录",
-                        style = ZhihuTypography.ContentTitle,
-                        color = colors.primaryText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.testTag(ACCOUNT_SETTINGS_PROFILE_NAME_TAG),
-                    )
-                    val urlToken = data.urlToken
-                    val subtitle = if (data.login) {
-                        urlToken?.takeIf { it.isNotBlank() }?.let { "知乎号 @$it" } ?: "查看并编辑个人主页"
-                    } else {
-                        "登录后同步你的创作与收藏"
-                    }
-                    Text(
-                        text = subtitle,
-                        style = ZhihuTypography.ContentSignature,
-                        color = colors.tertiaryText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
-            }
+        // 右上角工具行：扫码 + 设置，不占用资料区的排版位。
+        Row(
+            modifier = Modifier.fillMaxWidth().height(40.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             if (data.login && onScan != null) {
-                Spacer(Modifier.width(ZhihuSpacing.Small))
                 AccountHeaderAction(
                     icon = Icons.Default.QrCodeScanner,
                     contentDescription = "扫码",
                     modifier = Modifier.testTag(ACCOUNT_SETTINGS_SCAN_TAG),
                     onClick = onScan,
                 )
+                Spacer(Modifier.width(ZhihuSpacing.Small))
             }
-            Spacer(Modifier.width(ZhihuSpacing.Small))
             AccountHeaderAction(
                 icon = Icons.Default.Settings,
                 contentDescription = "设置",
@@ -327,24 +299,122 @@ private fun AccountHeader(
             )
         }
 
-        if (data.login) {
-            Spacer(Modifier.height(ZhihuSpacing.Large))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                HeroStat(formatCompactCount(counts?.answers ?: data.answerCount), "回答", Modifier.weight(1f)) {
-                    onOpenSection("回答")
-                }
-                HeroStat(formatCompactCount(counts?.articles ?: data.articleCount), "文章", Modifier.weight(1f)) {
-                    onOpenSection("文章")
-                }
-                HeroStat(formatCompactCount(counts?.followers ?: data.followerCount), "粉丝", Modifier.weight(1f)) {
-                    onOpenSection("粉丝")
-                }
-                HeroStat(formatCompactCount(counts?.following ?: data.followingCount), "关注", Modifier.weight(1f)) {
-                    onOpenSection("关注")
+        // 头像 + 统计并排：头像 64dp，右侧统计等宽占满剩余宽度。
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .testTag(ACCOUNT_SETTINGS_PROFILE_HEADER_TAG)
+                    .clickable(onClick = if (data.login) onOpenProfile else onLogin),
+            ) {
+                AccountAvatar(data)
+            }
+            if (data.login) {
+                Spacer(Modifier.width(ZhihuSpacing.Large))
+                Row(modifier = Modifier.weight(1f)) {
+                    HeaderStat(formatCompactCount(counts?.followers ?: data.followerCount), "被关注") {
+                        onOpenSection("粉丝")
+                    }
+                    HeaderStatDivider()
+                    HeaderStat(formatCompactCount(counts?.following ?: data.followingCount), "关注") {
+                        onOpenSection("关注")
+                    }
+                    HeaderStatDivider()
+                    HeaderStat(formatCompactCount(counts?.answers ?: data.answerCount), "回答") {
+                        onOpenSection("回答")
+                    }
                 }
             }
         }
+
+        // 昵称 + 知乎号在头像下方，字号回到 20sp，与头像量级平衡。
+        Spacer(Modifier.height(ZhihuSpacing.Medium))
+        Text(
+            text = if (data.login) data.username else "未登录",
+            style = ZhihuTypography.QuestionHeaderTitle,
+            color = colors.primaryText,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .testTag(ACCOUNT_SETTINGS_PROFILE_NAME_TAG)
+                .clickable(onClick = if (data.login) onOpenProfile else onLogin),
+        )
+        val urlToken = data.urlToken
+        val subtitle = if (data.login) {
+            urlToken?.takeIf { it.isNotBlank() }?.let { "知乎号 @$it" } ?: "查看并编辑个人主页"
+        } else {
+            "登录后同步你的创作与收藏"
+        }
+        Text(
+            text = subtitle,
+            style = ZhihuTypography.ContentSignature,
+            color = colors.tertiaryText,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+
+        if (data.login) {
+            Spacer(Modifier.height(ZhihuSpacing.Medium))
+            Row(
+                modifier = Modifier
+                    .clip(ZhihuShapeTokens.Pill)
+                    .clickable(onClick = onOpenProfile)
+                    .padding(horizontal = ZhihuSpacing.Medium, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "编辑资料",
+                    style = ZhihuTypography.FeedMeta,
+                    color = colors.accent,
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = colors.accent,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
     }
+}
+
+/** 头像右侧的单项统计：数字 17sp Bold、标签 12sp 三级色，居中排列。 */
+@Composable
+private fun RowScope.HeaderStat(
+    value: String,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.weight(1f).clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = value,
+            style = ZhihuTypography.ContentAuthor.copy(fontWeight = FontWeight.Bold),
+            color = contentFirstColors.primaryText,
+            maxLines = 1,
+        )
+        Text(
+            text = label,
+            style = ZhihuTypography.BottomNavLabel,
+            color = contentFirstColors.tertiaryText,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun HeaderStatDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(20.dp)
+            .background(contentFirstColors.divider),
+    )
 }
 
 @Composable
