@@ -148,6 +148,7 @@ import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.reading.ReadingCommentOrder
 import com.github.zly2006.zhihu.reading.loadReadingPreferences
 import com.github.zly2006.zhihu.reading.saveReadingPreferences
+import com.github.zly2006.zhihu.theme.ZhihuTypography
 import com.github.zly2006.zhihu.ui.components.BounceOnChange
 import com.github.zly2006.zhihu.ui.components.PageTurnFab
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
@@ -159,6 +160,7 @@ import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.replaceSelection
 import com.github.zly2006.zhihu.ui.designsystem.Motion
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.ui.designsystem.rememberHapticController
 import com.github.zly2006.zhihu.ui.subscreens.PREF_FONT_SIZE
 import com.github.zly2006.zhihu.ui.subscreens.PREF_LINE_HEIGHT
@@ -1311,7 +1313,7 @@ private fun CommentItem(
                     Text(
                         text = commentData.author.name,
                         fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = ZhihuTypography.FeedAuthorName,
                         modifier = Modifier
                             .testTag("comment_author_${commentData.id}")
                             .clickable { navigator.onNavigate(authorPerson) },
@@ -1333,14 +1335,14 @@ private fun CommentItem(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             "回复",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = ZhihuTypography.FeedMeta,
+                            color = contentFirstColors.tertiaryText,
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = replyToAuthor.name,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            style = ZhihuTypography.FeedAuthorName,
                             modifier = Modifier
                                 .testTag("comment_reply_to_author_${commentData.id}")
                                 .clickable {
@@ -1392,8 +1394,9 @@ private fun CommentItem(
                     ) {
                         Text(
                             text = string,
-                            fontSize = MaterialTheme.typography.bodyLarge.fontSize * fontSizePercent / 100,
-                            lineHeight = 16.sp * fontSizePercent / 100 * lineHeightPercent / 100,
+                            // 评论正文跟随用户设置的字号/行高，基准用与回答一致的 15sp/22。
+                            fontSize = 15.sp * fontSizePercent / 100,
+                            lineHeight = 22.sp * fontSizePercent / 100 * lineHeightPercent / 100,
                             inlineContent = inlineContent,
                         )
                     }
@@ -1427,8 +1430,8 @@ private fun CommentItem(
 
             Text(
                 text = formattedTime,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = ZhihuTypography.FeedMeta,
+                color = contentFirstColors.tertiaryText,
             )
 
             val ipInfo = comment.item.commentTag
@@ -1440,8 +1443,8 @@ private fun CommentItem(
 
                 Text(
                     text = ipInfo,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = ZhihuTypography.FeedMeta,
+                    color = contentFirstColors.tertiaryText,
                 )
             }
 

@@ -59,7 +59,7 @@ object ZhihuShapeTokens {
     val Section = RoundedCornerShape(12.dp)
 
     /** 底部弹层：顶部圆角，底部贴边。 */
-    val BottomSheet = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    val BottomSheet = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
 
     /** 药丸形（筛选 chip、投票按钮）。 */
     val Pill = RoundedCornerShape(percent = 50)

@@ -153,7 +153,11 @@ fun CommentScreenComponent(
         MyModalBottomSheet(
             onDismissRequest = { dismissRootComments() },
             sheetState = rootSheetState,
+            // 官方 target-spec §3：评论卡用 #212429（深色）/ #F8F8FA（浅色），对应 surfaceContainerLow。
+            // 遮罩显式指定 60%：M3 默认 ScrimTokens.ContainerOpacity 只有 0.32，
+            // 深色下几乎看不出层次，就是「蒙版没了」的观感来源。
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
             properties = ModalBottomSheetProperties(
                 shouldDismissOnBackPress = true,
                 shouldDismissOnClickOutside = true,
@@ -205,6 +209,8 @@ fun CommentScreenComponent(
             },
             sheetState = childSheetState,
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            // 回复子层也要有遮罩：否则弹出时下面的评论列表与页面一起透出来，看着像一块没浮起来的内容。
+            scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
             properties = ModalBottomSheetProperties(
                 shouldDismissOnBackPress = true,
                 shouldDismissOnClickOutside = true,
