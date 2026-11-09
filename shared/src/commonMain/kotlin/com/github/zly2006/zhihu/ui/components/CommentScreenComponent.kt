@@ -20,12 +20,9 @@ package com.github.zly2006.zhihu.ui.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -118,12 +115,13 @@ fun CommentScreenComponent(
 
     @Composable
     fun DragHandleTitle(text: String) {
+        // 弹层顶部保持贴边：状态栏区域由 sheet 自己让出（见容器的
+        // statusBarsPadding），这里再加 padding 会把两个圆角顶到可视区之外，
+        // 常态看不到圆角，只有下拉时才露出来。
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                // 顶部让出状态栏：否则 sheet 会一路顶到屏幕最上方，
-                // 顶部円角直接压在状态栏上，下面页面的遮罩也就看不见了。
-                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp),
+                .padding(top = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // 明确的拖拽指示条：全屏高度的弹层也能一眼看出可以下滑关闭。

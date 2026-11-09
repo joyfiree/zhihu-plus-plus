@@ -692,12 +692,13 @@ fun CommentScreen(
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
-        // 评论内容区域
+        // 评论内容区域。
+        // 不在这里再套一层圆角 Surface：弹层容器（MyModalBottomSheet）已经提供了顶部圆角，
+        // 重复加一层会让内部再出现一条圆角边，且内容高度被多余包裹撑开。
         Surface(
             modifier = Modifier
                 .fillMaxSize()
                 .align(Alignment.BottomCenter),
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
             color = commentBackgroundColor,
         ) {
             Column(
@@ -919,8 +920,10 @@ fun CommentScreen(
                                         }
                                     }
                                     item("count_row") {
+                                        // 官方把「评论 N」与排序放在同一行：
+                                        // 左边计数、右边分段控件，中间留柔性空白。
                                         Row(
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
                                             Text(
@@ -929,16 +932,6 @@ fun CommentScreen(
                                                 color = contentFirstColors.primaryText,
                                             )
                                             Spacer(Modifier.weight(1f))
-                                        }
-                                    }
-                                    item("sorting") {
-                                        // 官方评论区的排序是右对齐的分段控件（最热 / 最新），
-                                        // 选中项反白底深字，未选中项为透明底。
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.End,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
                                             CommentSortSegment(
                                                 label = "最热",
                                                 selected = viewModel.sortOrder == CommentSortOrder.SCORE,
