@@ -26,7 +26,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,8 +42,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +57,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -64,6 +65,9 @@ import com.github.zly2006.zhihu.QRCodeScanActivity.Companion.LOGIN_PREFIX
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.theme.ZhihuTheme
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuSpacing
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.util.clipboardManager
 import com.github.zly2006.zhihu.util.enableEdgeToEdgeCompat
 import com.journeyapps.barcodescanner.ScanContract
@@ -257,16 +261,19 @@ private fun QRResultDialog(
             Column {
                 Text("扫描到的内容：")
                 Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
+                // 官方语言里没有「有色块的 M3 卡片」：小段内嵌内容用扁平的 functionalSurface 面板承载，
+                // 与设置页、搜索结果的内嵌块保持同一层底色，不再出现 surfaceVariant 的高饱和色块。
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(ZhihuShapeTokens.Thumbnail)
+                        .background(contentFirstColors.functionalSurface)
+                        .padding(ZhihuSpacing.Medium),
                 ) {
                     Text(
                         text = result,
-                        modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodyMedium,
+                        color = contentFirstColors.primaryText,
                     )
                 }
             }

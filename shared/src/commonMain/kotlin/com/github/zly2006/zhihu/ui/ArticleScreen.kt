@@ -525,7 +525,7 @@ fun ArticleScreen(
                                             modifier = Modifier
                                                 .size(if (expanded) 40.dp else 20.dp)
                                                 .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                                                .background(contentFirstColors.functionalSurface),
                                         )
                                     }
 
@@ -745,7 +745,7 @@ fun ArticleScreen(
                                         modifier = Modifier
                                             .size(24.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                                            .background(contentFirstColors.functionalSurface),
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(6.dp))

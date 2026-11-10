@@ -44,7 +44,4 @@ internal object ZhihuBrandPalette {
 
     /** 收藏：官方收藏星标的金黄色（MapFavorite）。 */
     val Favorite = Color(0xFFFA9D14)
-
-    /** 朗读进行中。 */
-    val Tts = Color(0xFF4CAF50)
 }

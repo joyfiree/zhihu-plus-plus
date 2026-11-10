@@ -60,7 +60,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -1093,11 +1092,14 @@ private fun QuestionWriteAnswerPill(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // 问题页全量使用 contentFirstColors：写回答胶囊用固定的品牌实心蓝 + 成对前景色，
+    // 不再取 colorScheme.primary/onPrimary（用户换种子色后会出现「深字压深蓝」的低对比组合）。
+    val colors = contentFirstColors
     Row(
         modifier = modifier
             .height(24.dp)
             .clip(ZhihuShapeTokens.Pill)
-            .background(MaterialTheme.colorScheme.primary)
+            .background(colors.accentFill)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = ZhihuSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
@@ -1105,14 +1107,14 @@ private fun QuestionWriteAnswerPill(
         Icon(
             imageVector = Icons.Filled.Edit,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimary,
+            tint = colors.onAccentFill,
             modifier = Modifier.size(12.dp),
         )
         Spacer(Modifier.width(2.dp))
         Text(
             text = "写回答",
             style = ZhihuTypography.AnswerMeta,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = colors.onAccentFill,
             maxLines = 1,
         )
     }

@@ -47,13 +47,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -111,6 +111,7 @@ import com.github.zly2006.zhihu.ui.components.pageTurnViewportWithGuide
 import com.github.zly2006.zhihu.ui.components.rememberPageTurnTarget
 import com.github.zly2006.zhihu.ui.components.rememberShareActionExecutor
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.util.formatCompactCount
 import com.github.zly2006.zhihu.util.jsonObject
 import com.github.zly2006.zhihu.util.twoDigitString
@@ -518,35 +519,43 @@ private fun PinActionBar(
                 .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            FilledTonalButton(
+            // 底部操作条不用两坨有色块的按钮：官方这里是无边框的图标 + 计数，
+            // 高亮只体现在图标/数字的颜色上（已赞用 liked）。
+            val actionColor = if (isLiked) contentFirstColors.liked else contentFirstColors.secondaryText
+            TextButton(
                 onClick = onLikeClick,
+                // M3 的 TextButton 自带 48dp 最小触控区，这里只补 testTag。
                 modifier = Modifier.testTag(PIN_SCREEN_LIKE_BUTTON_TAG),
             ) {
                 Icon(
-                    if (isLiked) Icons.Filled.ThumbUp else Icons.Outlined.OutlinedThumbUp,
+                    imageVector = if (isLiked) Icons.Filled.ThumbUp else Icons.Outlined.OutlinedThumbUp,
                     contentDescription = "赞",
                     modifier = Modifier.size(20.dp),
+                    tint = actionColor,
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    "$likeCount",
+                    text = "$likeCount",
                     style = MaterialTheme.typography.bodyMedium,
+                    color = actionColor,
                 )
             }
 
-            FilledTonalButton(
+            TextButton(
                 onClick = onCommentClick,
                 modifier = Modifier.testTag(PIN_SCREEN_COMMENT_BUTTON_TAG),
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.Comment,
+                    imageVector = Icons.AutoMirrored.Filled.Comment,
                     contentDescription = "评论",
                     modifier = Modifier.size(20.dp),
+                    tint = contentFirstColors.secondaryText,
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    "$commentCount",
+                    text = "$commentCount",
                     style = MaterialTheme.typography.bodyMedium,
+                    color = contentFirstColors.secondaryText,
                 )
             }
         }
@@ -870,7 +879,9 @@ private fun PinPollCard(
                         totalVoterCount = pollVoterCount,
                     )
                 } else {
-                    FilledTonalButton(
+                    // 投票项是「可点的一行选项」，不是有色块的按钮：用无边框文字按钮承载，
+                    // 左侧标题占满剩余宽度，右侧只在提交中显示进度文字。
+                    TextButton(
                         onClick = { onPollVote(poll.id, option.id) },
                         enabled = votingOptionId == null,
                         modifier = Modifier

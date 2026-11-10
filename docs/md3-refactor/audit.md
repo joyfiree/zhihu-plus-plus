@@ -1,6 +1,6 @@
 # MD3 重构硬编码审计（T0.3）
 
-> 生成时间：2026-10-31｜口径：`shared/src/commonMain`（动效含 `app/src/main`）｜执行者：AI Agent
+> 生成时间：2026-10-31｜复核：2026-11-10（`md3-ui-review-2026-11-09.md` 修复轮）｜口径：`shared/src/commonMain`（动效含 `app/src/main`）｜执行者：AI Agent
 
 ## 收敛总览
 
@@ -9,7 +9,7 @@
 | 硬编码色 `Color(0x…)` | 82 | 66 | 0 | 白名单以外清零 | 达标（66 处全部为种子/调色盘/徽章/默认值） |
 | 动效时长 `tween(数字)` | 35 | 0 | 0 | 0（Motion.kt 除外） | 达标 |
 | 圆角 `RoundedCornerShape(N.dp)` | 46 | 7 | 0 | 白名单以外收敛 | 达标（7 处单点档位已登记） |
-| 裸 `fontSize = N` | 29 | 2 | 0 | ≥ 80% | 达标（93%，2 处内容渲染豁免） |
+| 裸 `fontSize = N` | 29 | 2 | 0 | ≥ 80% | 达标（2 处内容渲染豁免，已复核无新增） |
 | 裸触觉调用 | 8 | 0 | 0 | 0（Haptics.kt 除外） | 达标 |
 
 ## 1. 配色（T1.1 / T1.2 / T1.3）
@@ -125,11 +125,17 @@
 
 | 文件:行 | 内容 | 归属 / 处理 |
 | --- | --- | --- |
-| `ui/CommentScreen.kt:1218` | `fontSize = 28.sp,` | 白名单：非 @Composable 的 AnnotatedString 构建器内联链接色，无法读取 CompositionLocal |
-| `ui/components/WriteContentEditor.kt:104` | `fontSize = 17.sp,` | 已 token 化 |
+| `ui/CommentScreen.kt:1199` | `fontSize = 28.sp,` | 白名单：表情选择器里单个 emoji 的渲染尺寸，属于内容渲染尺寸 |
+| `ui/components/WriteContentEditor.kt:104` | `fontSize = 17.sp,` | 白名单：编辑区正文基准字号，跟随用户阅读设置，不走 Typography |
 
 白名单理由：`CommentScreen` 的表情字号（28sp）与 `WriteContentEditor` 的编辑区字号（17sp）
 属于内容渲染尺寸，需与阅读/输入体验一起调整，不走 Typography。
+
+> 2026-11-10 复核：此前 `ui/CommentScreen.kt` 在嵌套子评论里还有两处
+> `ZhihuTypography.FeedAuthorName.copy(fontSize = 13.sp)` / `FeedMeta.copy(fontSize = 12.sp)`，
+> 本表当时未登记，导致「无裸字号」结论与代码漂移。这两处已提成语义角色
+> `ZhihuTypography.CommentChildAuthorName` / `CommentChildMeta` / `CommentChildBody`，
+> 并在 `DesignSystemTokensTest` 里锁住档位，现在裸字号确实只剩上表 2 处豁免。
 
 ## 5. 触觉（T4.3）
 

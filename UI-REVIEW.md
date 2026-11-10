@@ -7,6 +7,89 @@
 
 ---
 
+## 复核状态（2026-11-10）
+
+> 本清单成文于 2026-11-07。之后 `c1e17933`、`824e7714` 及 `refactor/md3-ui` 上的
+> `ce02b084` 修复轮处理了大部分条目。下表逐条核对当前 HEAD 源码，
+> **标注「已修」的条目不要再当待办**；只保留「未修 / 部分」作为后续工作。
+> 证据栏的 `path:line` 均指当前 HEAD。
+
+图例：✅ 已修｜🟡 部分｜⬜ 未修｜🚫 豁免（相关代码路径已删除）
+
+| # | 条目 | 状态 | 证据 / 说明 |
+| --- | --- | --- | --- |
+| 1 | 详情页标题 28sp、展开态不限行 | ✅ | `theme/Type.kt:85` `ContentTitle`=22sp；`ArticleScreen.kt:494` `maxLines = if (expanded) 2 else 1` |
+| 2 | 隐藏标题行仍可点 | ✅ | `TwoRowsTopAppBar.kt:108` `consumeInputWhenHidden` 在隐藏时于 Initial pass 吞掉指针事件；`:466` 挂到标题行 |
+| 3 | 到底提示不出现 / 触底空转 | ✅ | `HomeScreen.kt:694,1495`、`SearchScreen.kt:768` 均传 `isEnd = { viewModel.isEnd }` |
+| 4 | 卡片作者行死点击区 | ✅ | `FeedCard.kt:182,221` 两种外观统一走外层 `performClick` |
+| 5 | 无互动数据卡片缺「更多」菜单 | ✅ | `FeedCard.kt` 作者行已常驻，`FeedCardMenuBox` 不再被 `details`/`avatar` 条件包住（本轮修复） |
+| 6 | 卡片内容左右 28dp 双 gutter | ✅ | `FeedCard.kt:274` 内层改 `padding(vertical = ZhihuSpacing.Medium)`（本轮修复） |
+| 7 | 缩略图三套尺寸 | ✅ | `designsystem/Dimens.kt:95` 统一 `FeedThumbnailWidth/Height` |
+| 8 | 默认排版标题字重偏轻 | ✅ | `theme/Type.kt:88` `FeedTitle` = Bold |
+| 9 | 裸 `AsyncImage` | ✅ | `FeedCard.kt` 已无 `AsyncImage`，统一 `ZhihuNetworkImage` |
+| 10 | 摘要对比度不足 | ✅ | 手调官方 `onSurfaceVariant`（`OfficialZhihuScheme.kt`）已把浅色提到 `#535861`（约 7:1） |
+| 11 | 元信息行三档字号混杂 | ✅ | `theme/Type.kt` 新增 `FeedCardAuthorName`(13sp) / `FeedCardCount`(12sp)；`FeedCard.kt:366,382,558,575` 四处元信息行统一改走这两个角色（本轮修复） |
+| 12 | 首页品牌标题 28sp | ✅ | `HomeScreen.kt` 已无 `headlineMedium`，改用仿官方顶栏 |
+| 13 | duo3 搜索胶囊溢出 | 🚫 | `123duo3` 路径随 `824e7714` 删除，此条随之消失 |
+| 14 | 设置页 6dp 圆角白卡缝隙 | ✅ | `SettingItem.kt:88,211,411` 行默认 `RectangleShape`、容器 `Section` |
+| 15 | 设置分组标题全蓝 | ✅ | `SettingItem.kt:186` 改 `onSurfaceVariant` |
+| 16 | 外观设置单屏 50+ 行 | ⬜ | `subscreens/AppearanceSettingsScreen.kt:289` 仍挂 `TODO(UI-REVIEW.md #16)`；一级设置页已拆出「外观与阅读体验」等二级入口（AVD 已验证），但页内 11 组仍是一整屏。属于信息架构调整，本轮按注释说明延后 |
+| 17 | 底栏 36dp 压小触控目标 | ✅ | `ArticleScreen.kt:585` 用 `ZhihuSizes.AnswerActionRowHeight`(48dp) |
+| 18 | 底栏无背景层 | ✅ | `ArticleScreen.kt:695` `background(surface)` + `:697` `HorizontalDivider` |
+| 19 | 状态栏渐变无条件绘制 | 🚫 | duo3 分支随 `824e7714` 删除，`ArticleScreen.kt` 已无该渐变分支 |
+| 20 | 正文 16sp / 160% | ✅ | `theme/Type.kt:68` `bodyLarge = style(17, 24)` |
+| 21 | 正文图只占 80% 宽 | ✅ | `markdown/RenderMarkdown.kt:118,125` 已用 `fillMaxWidth()` |
+| 22 | BottomSheet 圆角不是 16dp | ✅ | `MyModalBottomSheet.kt:117,288` 默认 `ZhihuShapeTokens.BottomSheet` |
+| 23 | BottomSheet 缺导航栏 inset | ✅ | `MyModalBottomSheet.kt:394` `.navigationBarsPadding()` |
+| 24 | 评论输入行高贴死 | ✅ | `CommentScreen.kt` 已无 `lineHeight = 18.sp` 输入栏写法 |
+| 25 | 占位符与正文同字号同色 | ✅ | `CommentScreen.kt:1108` 官方文案「理性发言，友善互动」并降为次要色 |
+| 26 | 评论区 24dp 触控目标 | 🟡 | `CommentScreen.kt:1508,1540` 已补 `minimumInteractiveComponentSize()`（热区 48dp），视觉仍 32dp；同页 IconButton 仍有 24dp 视觉尺寸 |
+| 27 | 二级评论三套缩进 | ✅ | `CommentScreen.kt:208` `CommentIndent`=52dp；`:778`、`:1431` 共用；子评论不再写 40dp（本轮修复） |
+| 28 | 根层与子层两个 Sheet 并存 | ✅ | `CommentScreenComponent.kt:179` 子层打开时根层 `clearAndSetSemantics` |
+| 29 | 问题页评论数出现两次 | ✅ | `QuestionScreen.kt:654,765` 只在操作行/头部分别按语义展示一处 |
+| 30 | 用户页 96×56 透明热区 | ✅ | `PeopleScreen.kt:1677,1709` 工具行 44dp + 40dp 圆形按钮；96×72 只是缩略图尺寸 |
+| 31 | 关注按钮两态视觉相同 | ✅ | `PeopleScreen.kt:1960` 未关注=`accentFill`、已关注=`functionalSurface` |
+| 32 | 用户页切 Tab 丢滚动位置 | ✅ | `PeopleScreen.kt:854` 各子页独立 `rememberLazyListState` |
+| 33 | 统计数字与标签同字号同色 | ✅ | `AccountSettingScreen.kt:397,457` `ContentAuthor` Bold + `primaryText`，标签 `BottomNavLabel` + `tertiaryText` |
+| 34 | 多处 <48dp 图标按钮 | 🟡 | 评论相关已补最小触控约束；`AppearanceSettingsScreen.kt:456` 等仍有 32dp 视觉尺寸、`SearchScreen.kt` 仍有 18dp 图标 |
+| 35 | 搜索页前导图标 18dp | 🟡 | `SearchScreen.kt:280,573,582` 仍有 18dp 图标，但外层 `IconButton` 已是 48dp（`:277`） |
+| 36 | 首屏阅读区不足三分之一屏 | ✅ | `QuestionScreen.kt:896` `QuestionHeaderTitle`=20sp/2行 + 作者行收敛；`Dimens.kt:127` 折叠比例 0.618 |
+| 37 | 底部导航栏 80dp | ✅ | `designsystem/Dimens.kt:55` `NavigationBarHeight`=60dp；`ZhihuMain.kt:675` 使用 |
+| 38 | 卡片间距两处独立定义 | ✅ | `FeedCard.kt:204`、`PaginatedList.kt:243` 共用 `ZhihuSpacing.CardGap` |
+| 39 | `duo3CardAppearance` 死分支 | ✅ | 全库已无该标识（`824e7714` 删除） |
+| 40 | 卡片设置读取无 key | ✅ | `FeedCard.kt:261,264,467,470` 改 `rememberObservedSetting`（本轮修复） |
+| 41 | 动画绕过 Motion 令牌 | ✅ | 全库已无 `tween(数字)`（`Motion.kt` 除外） |
+| 42 | 翻页 FAB 无按压反馈 | ✅ | `DraggablePageTurnButtons.kt:248,264` `HapticController.tick()` |
+| 43 | 播放器/列表面板 Sheet 停半屏 | ✅ | `VotersSheet.kt`、`ShareDialogComponent.kt`、`HomeScreen.kt` 频道弹层均已 `skipPartiallyExpanded = true`（本轮修复） |
+| 44 | 播放列表 Sheet 高度写死 | ✅ | `ReadingPlayerBar.kt` 已无 560dp 常量 |
+| 45 | 页面底色不统一 | 🟡 | 主要页面统一到 `contentFirstColors` / `zhihuSurfaces`；账号页 `surfaceContainerHigh` 本轮已收敛，但个别内嵌块仍需截图复核 |
+| 46 | 分享弹层自绘 Sheet | ✅ | `ShareDialogComponent.kt:77` 改 `MyModalBottomSheet` |
+| 47 | 导出弹窗超长不可滚动 | ✅ | `ExportDialogComponent.kt:95` `.verticalScroll(rememberScrollState())` |
+| 48 | 编辑器未保存保护缺失等 | 🟡 | `WriteAnswerScreen.kt:151,379` 发布按钮空内容禁用、预览条件统一；草稿已存服务端（`:214`），但离开页仍无「未保存确认」 |
+| 49 | 工具栏无选区点格式 | ✅ | `MarkdownShotcutToolbar.kt:142` 选区/光标处理完整 |
+| 50 | 通知失败永久骨架屏 | ✅ | `NotificationScreen.kt:169` `errorMessage` 落到错误态 |
+| 51 | 收藏直达页无限转圈 | ✅ | `CollectionBrowseScreen.kt:301,308` 请求失败落 `ZhihuErrorState` |
+| 52 | 私信发送期间禁用整个输入框 | ✅ | `PrivateMessageScreen.kt:203` 只 `enabled = draft.isNotBlank() && !viewModel.isSending` 作用于发送按钮 |
+| 53 | 通知时间三套格式 | ✅ | `NotificationScreen.kt:527` 统一 `formatRelativeTime` |
+| 54 | 通知分类入口随列表滚走 | ✅ | `NotificationScreen.kt:176,219` `NotificationCategoryRow` 在 `Scaffold` 顶栏区，不随列表滚动 |
+| 55 | 列表页顶栏风格不统一 | ✅ | `NotificationScreen.kt:132` 改左对齐 `ZhihuTopAppBar`，与 `CollectionScreen.kt:109` 一致（本轮修复） |
+| 56 | 想法详情赞/评栏随正文滚走 | ✅ | `PinScreen.kt:380` `PinActionBar` 挂在 `Scaffold.bottomBar` |
+| 57 | 收藏删除弹窗复制两份 | ✅ | `components/ZhihuDialogs.kt:112` 抽 `CollectionDeleteDialog`，`CollectionScreen.kt:254` / `CollectionBrowseScreen.kt:395` 复用 |
+| 58 | 关注页两个子页整段复制 | ✅ | `FollowScreen.kt:121` `FOLLOW_TAB_TITLES` 文件级常量，`:231,292` 共用组件 |
+| 59 | 私信表情按钮永久禁用 | ✅ | `PrivateMessageScreen.kt` 已无 `enabled = false` 死控件 |
+| 60 | 身份管理失败都塞列表错误位 | 🟡 | `IdentityManagementScreen.kt:245,293` 仍以 `state.errorMessage` 为主，操作失败另有 `showLongMessage`，但两类失败未完全分流 |
+| 61 | 无障碍：图标重复朗读 | ✅ | `NotificationScreen.kt:445` `stateDescription = "未读"`；`MarkdownShotcutToolbar.kt:111` 工具栏按钮有可读 `contentDescription` |
+| 62 | 回答切换预览卡摘要传问题标题 | ⬜ | `AnswerNavigator.kt:281,296` `CachedAnswerContent.title` 仍为问题标题，`ArticleAnswerPreview.kt:86` 直接展示；预览卡缺回答摘要 |
+| 63 | 菜单里有开发期说明文案 | ✅ | 相关组件已无「开发中 / 敬请期待」类文案 |
+| 64 | 编辑器工具栏符号无可读含义 | ✅ | `MarkdownShotcutToolbar.kt:100-111` 每个 `ShortcutButton` 接收 `description` 并写入 `semantics` |
+
+统计：✅ 已修 54｜🟡 部分 6｜🚫 豁免 2｜⬜ 未修 2（合计 64）。
+
+**当前仍开放**：#26、#34、#35、#45、#48、#60 六项的部分问题，以及 #16（外观设置页内拆二级页）、#62（预览卡摘要）两项未开工。
+其中 #16 改动面最大，建议单独一轮处理；#62 需要先确认预览卡应展示「回答摘要」而非问题标题的产品契约。
+
+---
+
 ## 一、P0：影响正常使用
 
 ### 1. 回答页 / 问题页标题字号过大，且展开态没有行数上限

@@ -256,14 +256,22 @@ private fun FeedCardCardContent(
     showSourceLabel: Boolean,
 ) {
     val settings = rememberSettingsStore()
-    val fontSizePercent = remember { settings.getInt(PREF_FONT_SIZE, 100) }
-    val lineHeightPercent = remember { settings.getInt(PREF_LINE_HEIGHT, 170) }
+    // 必须走 rememberObservedSetting：裸 `remember { getInt(...) }` 没有 key，
+    // 用户改完字号/行高回到列表仍是旧值，非得杀进程才生效。
+    val fontSizePercent by rememberObservedSetting(settings, PREF_FONT_SIZE) {
+        getInt(PREF_FONT_SIZE, 100)
+    }
+    val lineHeightPercent by rememberObservedSetting(settings, PREF_LINE_HEIGHT) {
+        getInt(PREF_LINE_HEIGHT, 170)
+    }
     val navigator = LocalNavigator.current
     val visiblePinImages = pinImages.takeIf { showFeedThumbnail && !item.isFiltered }.orEmpty()
     val thumb = thumbnailUrl?.takeIf { it.isNotEmpty() && showFeedThumbnail && !item.isFiltered }
     val sourceLabel = item.feed?.sourceLabel.takeUnless { item.isFiltered }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(ZhihuSpacing.Medium)) {
+    // 外层已经按 horizontalPadding 留过左右边距，这里只补垂直内边距；
+    // 否则水平方向叠成 16+12=28dp，比顶栏和分割线缩进都宽，卡片内容看起来「没对齐」。
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = ZhihuSpacing.Medium)) {
         if (showSourceLabel && !sourceLabel.isNullOrBlank()) {
             Text(
                 text = sourceLabel,
@@ -355,7 +363,7 @@ private fun FeedCardCardContent(
                 Spacer(Modifier.width(6.dp))
                 Text(
                     text = authorName,
-                    style = ZhihuTypography.FeedAuthorName,
+                    style = ZhihuTypography.FeedCardAuthorName,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -371,7 +379,7 @@ private fun FeedCardCardContent(
             if (item.details.isNotEmpty()) {
                 Text(
                     text = item.details,
-                    style = ZhihuTypography.FeedMeta,
+                    style = ZhihuTypography.FeedCardCount,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -454,8 +462,14 @@ private fun FeedCardContent(
     showSourceLabel: Boolean,
 ) {
     val settings = rememberSettingsStore()
-    val fontSizePercent = remember { settings.getInt(PREF_FONT_SIZE, 100) }
-    val lineHeightPercent = remember { settings.getInt(PREF_LINE_HEIGHT, 170) }
+    // 必须走 rememberObservedSetting：裸 `remember { getInt(...) }` 没有 key，
+    // 用户改完字号/行高回到列表仍是旧值，非得杀进程才生效。
+    val fontSizePercent by rememberObservedSetting(settings, PREF_FONT_SIZE) {
+        getInt(PREF_FONT_SIZE, 100)
+    }
+    val lineHeightPercent by rememberObservedSetting(settings, PREF_LINE_HEIGHT) {
+        getInt(PREF_LINE_HEIGHT, 170)
+    }
     val navigator = LocalNavigator.current
     val visiblePinImages = pinImages.takeIf { showFeedThumbnail && !item.isFiltered }.orEmpty()
     val sourceLabel = item.feed?.sourceLabel.takeUnless { item.isFiltered }
@@ -511,61 +525,62 @@ private fun FeedCardContent(
             images = visiblePinImages,
             modifier = Modifier.padding(top = ZhihuSpacing.Small),
         )
-        if (item.details.isNotEmpty() || (item.avatarSrc != null && item.authorName != null)) {
+        // 作者行常驻：卡片样式下「更多菜单」就挂在这个 Row 末尾，之前用
+        // `details.isNotEmpty() || authorName != null` 包住，会让没有摘要也没有作者的条目彻底没有操作入口
+        // （分割线样式一直是常驻的，两种外观在这里不该分叉）。内部各自按空值跳过即可。
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = ZhihuSpacing.Small),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = ZhihuSpacing.Small),
+                modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    val avatarSrc = item.avatarSrc
-                    val authorName = item.authorName
-                    if (avatarSrc != null && authorName != null) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f, fill = false),
-                        ) {
-                            ZhihuNetworkImage(
-                                model = avatarSrc,
-                                contentDescription = "Avatar",
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .size(ZhihuSizes.AvatarSmall),
-                            )
-                            Spacer(Modifier.width(ZhihuSpacing.Small))
-                            Text(
-                                text = authorName,
-                                style = ZhihuTypography.FeedAuthorName,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                            val authorBadge = item.authorBadgeV2.officialBadge()
-                            if (authorBadge?.isUsefulInList == true) {
-                                Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
-                                AuthorBadge(authorBadge, compact = true)
-                            }
-                        }
-                        Spacer(Modifier.width(ZhihuSpacing.ExtraSmall + 2.dp))
-                    }
-                    if (item.details.isNotEmpty()) {
+                val avatarSrc = item.avatarSrc
+                val authorName = item.authorName
+                if (avatarSrc != null && authorName != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false),
+                    ) {
+                        ZhihuNetworkImage(
+                            model = avatarSrc,
+                            contentDescription = "Avatar",
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .size(ZhihuSizes.AvatarSmall),
+                        )
+                        Spacer(Modifier.width(ZhihuSpacing.Small))
                         Text(
-                            text = item.details,
-                            style = ZhihuTypography.FeedMeta,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = authorName,
+                            style = ZhihuTypography.FeedCardAuthorName,
+                            color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f, fill = false),
                         )
+                        val authorBadge = item.authorBadgeV2.officialBadge()
+                        if (authorBadge?.isUsefulInList == true) {
+                            Spacer(Modifier.width(ZhihuSpacing.ExtraSmall))
+                            AuthorBadge(authorBadge, compact = true)
+                        }
                     }
+                    Spacer(Modifier.width(ZhihuSpacing.ExtraSmall + 2.dp))
                 }
-                FeedCardMenuBox(item, showMenu, onShowMenuChange, menuItems, navigator)
+                if (item.details.isNotEmpty()) {
+                    Text(
+                        text = item.details,
+                        style = ZhihuTypography.FeedCardCount,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
+            FeedCardMenuBox(item, showMenu, onShowMenuChange, menuItems, navigator)
         }
     }
 }

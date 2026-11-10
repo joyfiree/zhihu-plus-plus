@@ -53,15 +53,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +75,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -1136,22 +1136,23 @@ private fun FollowingSubscriptionsPage(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // 官方分段 chip 语言：选中态只给一层「功能面」灰底 + 主文字色，不再用 primaryContainer 色块；
+            // 未选中保持纯文字，与评论排序、回答分类等其它分段控件同一套表达。
             PEOPLE_SCREEN_SUBSCRIPTION_TITLES.forEachIndexed { index, title ->
-                OutlinedButton(
-                    onClick = { selectedPage = index },
-                    modifier = Modifier.testTag("people_screen_subscription_tab_$index"),
-                    shape = ZhihuShapeTokens.Badge,
-                    colors = if (selectedPage == index) {
-                        ButtonDefaults.outlinedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                    } else {
-                        ButtonDefaults.outlinedButtonColors()
-                    },
-                ) {
-                    Text(title)
-                }
+                val selected = selectedPage == index
+                Text(
+                    text = title,
+                    style = ZhihuTypography.AnswerVoteLine.copy(
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    ),
+                    color = if (selected) contentFirstColors.primaryText else contentFirstColors.tertiaryText,
+                    modifier = Modifier
+                        .testTag("people_screen_subscription_tab_$index")
+                        .clip(ZhihuShapeTokens.Pill)
+                        .background(if (selected) contentFirstColors.functionalSurface else Color.Transparent)
+                        .clickable(role = Role.Button) { selectedPage = index }
+                        .padding(horizontal = ZhihuSpacing.Large, vertical = 6.dp),
+                )
             }
         }
 
@@ -1487,7 +1488,8 @@ private fun PeopleListItem(
                 )
             }
         }
-        OutlinedButton(
+        // 官方「查看」是纯文字按钮，描边按钮在这个列表里会形成一圈多余的框。
+        TextButton(
             onClick = {
                 navigator.onNavigate(
                     Person(
@@ -1964,7 +1966,7 @@ private fun FollowPill(
         Text(
             text = if (isFollowing) "取消关注" else "关注",
             style = MaterialTheme.typography.labelLarge,
-            color = if (isFollowing) colors.secondaryText else MaterialTheme.colorScheme.onPrimary,
+            color = if (isFollowing) colors.secondaryText else colors.onAccentFill,
         )
     }
 }

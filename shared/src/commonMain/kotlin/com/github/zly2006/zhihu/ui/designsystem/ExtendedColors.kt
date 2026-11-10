@@ -23,7 +23,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import com.github.zly2006.zhihu.theme.ZhihuBrandPalette
 import com.materialkolor.ktx.harmonize
@@ -31,27 +30,21 @@ import com.materialkolor.ktx.harmonize
 /**
  * MD3 之外的功能强调色（计划文档 4.1 节）。
  *
- * 这些颜色承载的是**内容语义**（赞同蓝、收藏橙、朗读绿），`ColorScheme` 没有对应角色。
+ * 这些颜色承载的是**内容语义**（赞同蓝、收藏橙），`ColorScheme` 没有对应角色。
  * 它们不再以字面量散落在页面里，而是由种子色 `harmonize` 推导后统一从这里取，
- * 保证换主题色后仍然协调，同时保留「点赞是蓝、收藏是橙、朗读中」的既有产品认知。
+ * 保证换主题色后仍然协调，同时保留「点赞是蓝、收藏是橙」的既有产品认知。
  */
 @Immutable
 data class ExtendedColors(
     /** 赞同 / 喜欢（正文操作栏、双击点赞）。 */
     val like: Color,
-    /** 赞同态的弱底色。 */
-    val likeContainer: Color,
     /** 收藏态（收藏按钮、收藏夹列表）。 */
     val favorite: Color,
-    /** 朗读进行中（TTS 按钮激活态）。 */
-    val tts: Color,
 )
 
 private val DefaultExtendedColors = ExtendedColors(
     like = Color(0xFF3671EE),
-    likeContainer = Color(0x1F3671EE),
     favorite = Color(0xFFF57C00),
-    tts = Color(0xFF4CAF50),
 )
 
 internal val LocalExtendedColors = staticCompositionLocalOf { DefaultExtendedColors }
@@ -72,11 +65,8 @@ internal fun extendedColorsFor(scheme: ColorScheme): ExtendedColors {
     val dark = scheme.surface.luminance() < 0.5f
     val like = ZhihuBrandPalette.Like.harmonize(scheme.primary).let { if (dark) it.lighten(0.12f) else it }
     val favorite = ZhihuBrandPalette.Favorite.harmonize(scheme.primary).let { if (dark) it.lighten(0.10f) else it }
-    val tts = ZhihuBrandPalette.Tts.harmonize(scheme.primary).let { if (dark) it.lighten(0.10f) else it }
     return ExtendedColors(
         like = like,
-        likeContainer = like.copy(alpha = if (dark) 0.24f else 0.12f).compositeOver(scheme.surface),
         favorite = favorite,
-        tts = tts,
     )
 }

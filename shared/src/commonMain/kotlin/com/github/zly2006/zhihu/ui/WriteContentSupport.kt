@@ -18,9 +18,9 @@
 package com.github.zly2006.zhihu.ui
 
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import com.github.zly2006.zhihu.ui.components.ZhihuAlertDialog
 import com.github.zly2006.zhihu.util.HttpStatusException
@@ -47,8 +47,10 @@ internal fun WriteOperationErrorDialog(
                 Text("确定")
             }
         },
+        // 弹窗的标准配对是「确认 = 实心 Button / 次要 = 无边框 TextButton」，
+        // 复制是次要动作，不该用带底色的填充按钮和确认抢同一层级。
         dismissButton = {
-            FilledTonalButton(onClick = { onCopy(message) }) {
+            TextButton(onClick = { onCopy(message) }) {
                 Text("复制")
             }
         },

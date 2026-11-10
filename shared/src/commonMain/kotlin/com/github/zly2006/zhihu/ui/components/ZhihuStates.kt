@@ -32,10 +32,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -165,7 +165,8 @@ fun ZhihuErrorState(
     val retry = onRetry
     val action: (@Composable () -> Unit)? = if (retry != null) {
         {
-            FilledTonalButton(onClick = retry) {
+            // 重试是「文字按钮」而不是有色块的按钮：官方语言里动作靠文字色表达，不靠底色块。
+            TextButton(onClick = retry) {
                 Text(text = retryText)
             }
         }

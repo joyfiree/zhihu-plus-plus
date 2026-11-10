@@ -36,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,7 +73,11 @@ fun ShareDialogContent(
     onSettingsClick: () -> Unit,
 ) {
     if (!showDialog) return
-    MyModalBottomSheet(onDismissRequest = onDismissRequest) {
+    // 分享动作是固定几行按钮，不需要半展开档位；直接展开到全部动作。
+    MyModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

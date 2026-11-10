@@ -58,6 +58,7 @@ import com.github.zly2006.zhihu.platform.rememberSettingsStore
 import com.github.zly2006.zhihu.ui.CommentScreen
 import com.github.zly2006.zhihu.ui.commentThreadKey
 import com.github.zly2006.zhihu.ui.consumePendingCommentId
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.viewmodel.CommentItem
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -158,10 +159,11 @@ fun CommentScreenComponent(
         MyModalBottomSheet(
             onDismissRequest = { dismissRootComments() },
             sheetState = rootSheetState,
-            // 官方 target-spec §3：评论卡用 #212429（深色）/ #F8F8FA（浅色），对应 surfaceContainerLow。
+            // 官方 target-spec §3：评论卡用功能面（深色 #212429 / 浅色 #F8F8FA），
+            // 这里取 contentFirstColors.functionalSurface，与评论页内部同一来源，不再另引 tonal 档位。
             // 遮罩显式指定 60%：M3 默认 ScrimTokens.ContainerOpacity 只有 0.32，
             // 深色下几乎看不出层次，就是「蒙版没了」的观感来源。
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = contentFirstColors.functionalSurface,
             scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
             properties = ModalBottomSheetProperties(
                 shouldDismissOnBackPress = true,
@@ -181,7 +183,6 @@ fun CommentScreenComponent(
             ) {
                 CommentScreen(
                     content = { content },
-                    onClose = { dismissRootComments() },
                     initialCommentId = pendingCommentId,
                     onChildCommentClick = { commentItem ->
                         if (commentItem.clickTarget != null) {
@@ -214,7 +215,7 @@ fun CommentScreenComponent(
                 childListResetToken += 1
             },
             sheetState = childSheetState,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = contentFirstColors.functionalSurface,
             // 回复子层也要有遮罩：否则弹出时下面的评论列表与页面一起透出来，看着像一块没浮起来的内容。
             scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f),
             properties = ModalBottomSheetProperties(
@@ -226,10 +227,6 @@ fun CommentScreenComponent(
         ) {
             CommentScreen(
                 content = { childTarget },
-                onClose = {
-                    pendingChildComment = null
-                    activeChildComment = null
-                },
                 activeCommentItem = activeChildComment,
                 onChildCommentClick = { },
                 commentInput = commentDrafts[childDraftKey].orEmpty(),

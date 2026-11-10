@@ -37,6 +37,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,7 +65,11 @@ fun VotersSheet(
     onNavigate: (Person) -> Unit,
 ) {
     if (!show) return
-    MyModalBottomSheet(onDismissRequest = onDismissRequest) {
+    // 赞同者列表内容高度固定，跳过「半展开」中间档：否则打开先停在半屏，用户还要再拉一次才能看全。
+    MyModalBottomSheet(
+        onDismissRequest = onDismissRequest,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

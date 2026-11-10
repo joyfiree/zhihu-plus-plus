@@ -41,10 +41,8 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -638,11 +636,12 @@ private fun TopicHeader(
                     Text(if (detail?.isFollowing == true) "已关注" else "关注话题", maxLines = 1)
                 }
             }
-            FilledTonalButton(
+            // 「发想法」与左侧「关注话题」并排：关注是主操作（实心按钮），发想法用无边框文字按钮，
+            // 避免两个有色块并排抢视觉重心（M3 的 TextButton 自带 48dp 最小触控区）。
+            TextButton(
                 onClick = onWritePin,
                 enabled = detail?.topicId != null,
                 modifier = Modifier.weight(2f).testTag(TOPIC_WRITE_PIN_BUTTON_TAG),
-                colors = ButtonDefaults.filledTonalButtonColors(),
             ) {
                 Text("发想法", maxLines = 1)
             }

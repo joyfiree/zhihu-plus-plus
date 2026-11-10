@@ -52,11 +52,6 @@ data class ZhihuIdentityChangeResult(
     val session: ZhihuAccountSession,
 )
 
-class ZhihuIdentityApiException(
-    message: String,
-    val statusCode: Int,
-) : IllegalStateException(message)
-
 internal fun io.ktor.client.request.HttpRequestBuilder.applyIdentityHeaders(session: ZhihuAccountSession) {
     accept(ContentType.Application.Json)
     header(HttpHeaders.UserAgent, ZHIHU_ANDROID_IDENTITY_USER_AGENT)
@@ -93,9 +88,8 @@ internal suspend fun HttpResponse.identitySuccessBody(operation: String): String
             ?.content
             ?: json["message"]?.jsonPrimitive?.content
     }.getOrNull()
-    throw ZhihuIdentityApiException(
-        message = serverMessage?.let { "$operation 失败：$it" } ?: "$operation 失败（HTTP ${status.value}）",
-        statusCode = status.value,
+    throw IllegalStateException(
+        serverMessage?.let { "$operation 失败：$it" } ?: "$operation 失败（HTTP ${status.value}）",
     )
 }
 

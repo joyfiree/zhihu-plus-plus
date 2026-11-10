@@ -391,8 +391,7 @@ fun BottomSheet(
                 // consumeWindowInsets(top = offset) 随下拉一点点吃掉，视觉上就是内容原地不动。
                 .windowInsetsPadding(
                     contentWindowInsets().only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
-                )
-                .navigationBarsPadding()
+                ).navigationBarsPadding()
                 .graphicsLayer {
                     val progress = predictiveBackProgress.value
                     val predictiveBackScaleX = calculatePredictiveBackScaleX(progress)

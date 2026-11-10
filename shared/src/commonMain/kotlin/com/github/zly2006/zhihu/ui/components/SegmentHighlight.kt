@@ -29,12 +29,12 @@ import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.github.zly2006.zhihu.data.SegmentInfoMeta
 import com.github.zly2006.zhihu.navigation.SegmentCommentHolder
 import com.github.zly2006.zhihu.platform.rememberPlainTextClipboard
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.util.SegmentHighlightSpan
 import com.github.zly2006.zhihu.util.json
 import com.github.zly2006.zhihu.viewmodel.PaginationEnvironment
@@ -326,29 +327,35 @@ private fun SegmentActionSheet(
                         .fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    FilledTonalButton(
+                    // 操作行是「图标 + 计数」的轻量动作，不带色块：与 PinActionBar 一样用无边框文字按钮，
+                    // 已赞态只把图标/数字染成品牌色。
+                    TextButton(
                         onClick = onLikeClick,
                         modifier = Modifier.weight(1f),
                     ) {
                         Icon(
                             imageVector = if (highlight.meta.isLike) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
                             contentDescription = null,
+                            tint = if (highlight.meta.isLike) contentFirstColors.liked else contentFirstColors.secondaryText,
                         )
                         Text(
                             text = highlight.meta.likeCount.toString(),
+                            color = if (highlight.meta.isLike) contentFirstColors.liked else contentFirstColors.secondaryText,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
-                    FilledTonalButton(
+                    TextButton(
                         onClick = onCommentClick,
                         modifier = Modifier.weight(1f),
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.Comment,
                             contentDescription = null,
+                            tint = contentFirstColors.secondaryText,
                         )
                         Text(
                             text = highlight.meta.commentCount.toString(),
+                            color = contentFirstColors.secondaryText,
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }

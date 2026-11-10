@@ -57,6 +57,13 @@ data class ContentFirstColors(
     val fadeMask: Color,
     /** 实心品牌蓝填充（官方搜索按钮等大面积色块，深色下仍用 `#1772F6`）。 */
     val accentFill: Color,
+    /**
+     * [accentFill] 上的前景色。
+     *
+     * 必须和 [accentFill] 成对使用：`accentFill` 是固定品牌值，而 `colorScheme.onPrimary` 会随
+     * 用户自选种子色变化，浅色种子下会出现「深字压深蓝」的低对比组合。
+     */
+    val onAccentFill: Color,
     /** 已赞同态。 */
     val liked: Color,
     /** 已收藏态。 */
@@ -75,6 +82,7 @@ private val LightContentFirstColors = ContentFirstColors(
     floatingSurface = Color(0xE6FFFFFF),
     fadeMask = Color(0xFFFFFFFF),
     accentFill = Color(0xFF1772F6),
+    onAccentFill = Color(0xFFFFFFFF),
     liked = Color(0xFF1772F6),
     favorited = Color(0xFFFA9D14),
 )
@@ -91,6 +99,7 @@ private val DarkContentFirstColors = ContentFirstColors(
     floatingSurface = Color(0xD9191B1F),
     fadeMask = Color(0xFF191B1F),
     accentFill = Color(0xFF1772F6),
+    onAccentFill = Color(0xFFFFFFFF),
     liked = Color(0xFF558EFF),
     favorited = Color(0xFFFA9D14),
 )

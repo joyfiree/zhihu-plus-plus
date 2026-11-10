@@ -96,6 +96,12 @@ object ZhihuTypography {
     /** 首页卡片元信息（关注数、赞同/收藏/评论计数）：13sp / 18dp。 */
     val FeedMeta = style(13, 18, FontWeight.Medium)
 
+    /** 首页卡片作者名（官方 13sp）：比 FeedAuthorName(15sp) 低一档，只用于信息流卡片元信息行。 */
+    val FeedCardAuthorName = style(13, 18, FontWeight.Medium)
+
+    /** 首页卡片计数（官方 12sp）：与作者名同处元信息行但再低一档。 */
+    val FeedCardCount = style(12, 16, FontWeight.Medium)
+
     /** 首页分类 Tab 文字：17sp / 24dp；选中态在调用处 copy(fontWeight = Bold)。 */
     val TabTitle = style(17, 24)
 
@@ -134,4 +140,16 @@ object ZhihuTypography {
 
     /** 「欢迎参与讨论」胶囊文字：14sp / 20dp。 */
     val DiscussPillLabel = style(14, 20)
+
+    /** 一层评论的正文基准：15sp / 22dp（用户字号设置的乘数基数）。 */
+    val CommentBody = style(15, 22)
+
+    /** 嵌套子评论的作者名：13sp / 18dp、Medium（比一层评论低一档，形成层级感）。 */
+    val CommentChildAuthorName = style(13, 18, FontWeight.Medium)
+
+    /** 嵌套子评论的元信息（时间、计数）：12sp / 17dp。 */
+    val CommentChildMeta = style(12, 17)
+
+    /** 嵌套子评论的正文：14sp / 20dp（对应一层评论的 15sp）。 */
+    val CommentChildBody = style(14, 20)
 }

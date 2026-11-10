@@ -87,6 +87,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -451,7 +452,6 @@ private fun ClickableImageWithMenu(
 @Composable
 fun CommentScreen(
     content: () -> NavDestination,
-    onClose: (() -> Unit)? = null,
     initialCommentId: String? = null,
     activeCommentItem: CommentModel? = null,
     onChildCommentClick: (CommentModel) -> Unit,
@@ -567,10 +567,12 @@ fun CommentScreen(
             }
         }
     }
-    val commentBackgroundColor = MaterialTheme.colorScheme.surfaceContainerLow
-    val commentInputBarColor = MaterialTheme.colorScheme.surfaceContainer
-    val actionChipColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    val actionChipIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+    // 整页统一走 contentFirstColors：评论卡、输入栏、chip 只允许「功能面」这一档灰，
+    // 不再混用 surfaceContainerLow / Container / High 三档 tonal 色块（值相同也换了来源，避免同页两套色板）。
+    val commentBackgroundColor = contentFirstColors.functionalSurface
+    val commentInputBarColor = contentFirstColors.functionalSurface
+    val actionChipColor = contentFirstColors.functionalSurface
+    val actionChipIconColor = contentFirstColors.secondaryText
 
     commentPendingDeletion?.let { target ->
         ZhihuAlertDialog(
@@ -821,7 +823,7 @@ fun CommentScreen(
                                                 shape = RoundedCornerShape(50),
                                                 colors = ButtonDefaults.buttonColors(
                                                     containerColor = actionChipColor,
-                                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                                    contentColor = contentFirstColors.primaryText,
                                                 ),
                                                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
                                             ) {
@@ -999,7 +1001,7 @@ fun CommentScreen(
                             exit = shrinkVertically() + fadeOut(),
                         ) {
                             Surface(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                color = contentFirstColors.functionalSurface,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag(COMMENT_REPLY_BANNER_TAG),
@@ -1267,18 +1269,17 @@ private fun CommentItem(
     val navigator = LocalNavigator.current
     val commentData = comment.item
     val avatarSize = if (isChild) 28.dp else 36.dp
-    val bottomIndent = if (isChild) 40.dp else CommentIndent
     val authorNameStyle = if (isChild) {
-        ZhihuTypography.FeedAuthorName.copy(fontSize = 13.sp)
+        ZhihuTypography.CommentChildAuthorName
     } else {
         ZhihuTypography.FeedAuthorName
     }
     val metaStyle = if (isChild) {
-        ZhihuTypography.FeedMeta.copy(fontSize = 12.sp)
+        ZhihuTypography.CommentChildMeta
     } else {
         ZhihuTypography.FeedMeta
     }
-    val contentBaseSize = if (isChild) 14.sp else 15.sp
+    val contentBaseSize = if (isChild) ZhihuTypography.CommentChildBody.fontSize else ZhihuTypography.CommentBody.fontSize
     val authorPerson =
         Person(
             id = commentData.author.id,
@@ -1367,7 +1368,9 @@ private fun CommentItem(
                 // 收集所有使用的emoji
                 val emojisUsed = remember { mutableSetOf<String>() }
                 val openExternalUrl = rememberExternalUrlOpener()
-                val string = remember(commentData.content) {
+                // 链接色跟随主题蓝（深色下自动换成提亮值），不在 AnnotatedString 里写死固定天蓝。
+                val linkColor = contentFirstColors.accent
+                val string = remember(commentData.content, linkColor) {
                     emojisUsed.clear()
                     buildAnnotatedString {
                         val stripped = document.body().clone()
@@ -1378,6 +1381,7 @@ private fun CommentItem(
                             node = stripped,
                             onNavigate = navigator.onNavigate,
                             openExternalUrl = openExternalUrl::invoke,
+                            linkColor = linkColor,
                             componentUsed = emojisUsed,
                         )
                     }
@@ -1398,7 +1402,7 @@ private fun CommentItem(
                     ) {
                         Text(
                             text = string,
-                            // 评论正文跟随用户设置的字号/行高，基准用与回答一致的 15sp（子评论 14sp）。
+                            // 评论正文跟随用户设置的字号/行高，基准走语义角色（一层 15sp / 子层 14sp）。
                             fontSize = contentBaseSize * fontSizePercent / 100,
                             lineHeight = contentBaseSize * fontSizePercent / 100 * lineHeightPercent / 100,
                             inlineContent = inlineContent,
@@ -1424,7 +1428,7 @@ private fun CommentItem(
         FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = bottomIndent),
+                .padding(start = CommentIndent),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             // 时间
@@ -1501,6 +1505,7 @@ private fun CommentItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .heightIn(min = 32.dp)
+                    .minimumInteractiveComponentSize()
                     .testTag("comment_reply_button_${commentData.id}")
                     .clickable { onChildCommentClick(comment) },
             ) {
@@ -1532,6 +1537,7 @@ private fun CommentItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .heightIn(min = 32.dp)
+                    .minimumInteractiveComponentSize()
                     .testTag("comment_like_button_${commentData.id}")
                     .clickable(enabled = !isLikeLoading) {
                         haptics.tick()
@@ -1636,6 +1642,7 @@ fun AnnotatedString.Builder.dfsSimple(
     node: Node,
     onNavigate: (NavDestination) -> Unit,
     openExternalUrl: (String) -> Unit,
+    linkColor: Color,
     componentUsed: MutableSet<String>? = null,
 ) {
     when (node) {
@@ -1649,7 +1656,7 @@ fun AnnotatedString.Builder.dfsSimple(
                         withLink(
                             LinkAnnotation.Clickable(
                                 href,
-                                TextLinkStyles(style = SpanStyle(color = Color(0xff66CCFF))),
+                                TextLinkStyles(style = SpanStyle(color = linkColor)),
                             ) {
                                 resolveContent(href)?.let(onNavigate) ?: openExternalUrl(href)
                             },
@@ -1660,7 +1667,7 @@ fun AnnotatedString.Builder.dfsSimple(
                 }
 
                 else -> node.childNodes().forEach {
-                    dfsSimple(it, onNavigate, openExternalUrl, componentUsed)
+                    dfsSimple(it, onNavigate, openExternalUrl, linkColor, componentUsed)
                 }
             }
         }

@@ -56,7 +56,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
@@ -73,12 +72,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -90,7 +88,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUp
@@ -100,16 +97,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.github.zly2006.zhihu.platform.androidSettingsStore
+import com.github.zly2006.zhihu.theme.ZhihuTheme
+import com.github.zly2006.zhihu.theme.ZhihuTypography
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
+import com.github.zly2006.zhihu.ui.components.zhihuTopAppBarColors
 import com.github.zly2006.zhihu.ui.designsystem.Motion
+import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
+import com.github.zly2006.zhihu.ui.designsystem.contentFirstColors
 import com.github.zly2006.zhihu.util.enableEdgeToEdgeCompat
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 
+/**
+ * 全屏视频播放页。
+ *
+ * 页面刻意保持整体暗色：控件浮在视频画面上，只有黑色半透明 scrim 才能保证可读性，所以这里
+ * 不跟随主题的页面底色。但控件配色不允许写死色值——一律取自 [ZhihuTheme] 提供的
+ * `contentFirstColors` / `MaterialTheme`，压视频的图层只允许 `Color.Black.copy(alpha = ...)`，
+ * 其上的前景文字固定用白色。审阅时请不要把这里改回自造调色板。
+ */
 class VideoPlayerActivity : ComponentActivity() {
     private var player: MediaPlayer? = null
     private var videoId: Long = 0
@@ -131,56 +141,69 @@ class VideoPlayerActivity : ComponentActivity() {
 
         enableEdgeToEdgeCompat()
         setContent {
-            val toolbarColor = Color(0xFF1A1A2E).copy(alpha = 0.85f)
-            val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-            val isFastForwardingState = remember { mutableStateOf(false) }
+            ZhihuTheme {
+                // 全屏播放页刻意保持整体暗色：控件浮在视频画面上，只有黑色半透明 scrim 才能保证可读性，
+                // 所以这里不跟随主题的页面底色。但控件颜色只能取自主题令牌（contentFirstColors / MaterialTheme），
+                // 压视频的图层只允许 Color.Black.copy(alpha = ...)，其上的前景文字固定用白色。
+                // 审阅时请不要把这里改回自造调色板。
+                val toolbarScrim = Color.Black.copy(alpha = 0.55f)
+                val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+                val isFastForwardingState = remember { mutableStateOf(false) }
 
-            LaunchedEffect(isLandscape) {
-                val ctrl = WindowInsetsControllerCompat(window, window.decorView)
-                if (isLandscape) {
-                    ctrl.hide(WindowInsetsCompat.Type.systemBars())
-                    ctrl.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                } else {
-                    ctrl.show(WindowInsetsCompat.Type.systemBars())
-                }
-            }
-
-            Box(Modifier.fillMaxSize().background(Color.Black)) {
-                VideoPlayerView(
-                    videoUrl = videoUrl,
-                    savedPosition = savedPosition,
-                    isFastForwardingState = isFastForwardingState,
-                    onPlayerReady = { p -> player = p },
-                )
-                if (isLandscape) {
-                    LandscapeOverlay(onBack = { finish() })
-                } else {
-                    PortraitOverlay(toolbarColor, onBack = { finish() })
-                }
-
-                AnimatedVisibility(
-                    visible = isFastForwardingState.value,
-                    enter = fadeIn(tween(Motion.DURATION_SHORT)),
-                    exit = fadeOut(tween(Motion.DURATION_MEDIUM)),
-                    modifier = Modifier.align(Alignment.TopCenter),
-                ) {
-                    Surface(
-                        modifier = Modifier.padding(top = 56.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color.Black.copy(alpha = 0.35f),
-                    ) {
-                        Text(
-                            "2x",
-                            color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        )
+                LaunchedEffect(isLandscape) {
+                    val ctrl = WindowInsetsControllerCompat(window, window.decorView)
+                    if (isLandscape) {
+                        ctrl.hide(WindowInsetsCompat.Type.systemBars())
+                        ctrl.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    } else {
+                        ctrl.show(WindowInsetsCompat.Type.systemBars())
                     }
                 }
-            }
+                // ZhihuTheme 会按主题明暗反转系统栏图标；播放页始终黑底，这里固定回白色图标，
+                // 否则浅色主题下会出现「黑图标 + 黑视频」看不见的情况。
+                SideEffect {
+                    WindowInsetsControllerCompat(window, window.decorView).apply {
+                        isAppearanceLightStatusBars = false
+                        isAppearanceLightNavigationBars = false
+                    }
+                }
 
-            DisposableEffect(Unit) { onDispose { saveCurrentProgress() } }
+                Box(Modifier.fillMaxSize().background(Color.Black)) {
+                    VideoPlayerView(
+                        videoUrl = videoUrl,
+                        savedPosition = savedPosition,
+                        isFastForwardingState = isFastForwardingState,
+                        onPlayerReady = { p -> player = p },
+                    )
+                    if (isLandscape) {
+                        LandscapeOverlay(onBack = { finish() })
+                    } else {
+                        PortraitOverlay(toolbarScrim, onBack = { finish() })
+                    }
+
+                    AnimatedVisibility(
+                        visible = isFastForwardingState.value,
+                        enter = fadeIn(tween(Motion.DURATION_SHORT)),
+                        exit = fadeOut(tween(Motion.DURATION_MEDIUM)),
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    ) {
+                        Surface(
+                            modifier = Modifier.padding(top = 56.dp),
+                            shape = ZhihuShapeTokens.Thumbnail,
+                            color = Color.Black.copy(alpha = 0.35f),
+                        ) {
+                            Text(
+                                "2x",
+                                color = Color.White,
+                                style = ZhihuTypography.AnswerVoteLine.copy(fontWeight = FontWeight.Medium),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                            )
+                        }
+                    }
+                }
+
+                DisposableEffect(Unit) { onDispose { saveCurrentProgress() } }
+            }
         }
     }
 
@@ -217,12 +240,18 @@ class VideoPlayerActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PortraitOverlay(toolbarColor: Color, onBack: () -> Unit) {
-    val c = if (toolbarColor.luminance() > 0.5f) Color.Black else Color.White
-    TopAppBar(
-        title = { Text("视频播放", color = c) },
-        navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回", tint = c) } },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = toolbarColor, navigationIconContentColor = c, titleContentColor = c),
+private fun PortraitOverlay(toolbarScrim: Color, onBack: () -> Unit) {
+    // 顶栏是压住视频的黑色半透明 scrim，前景固定白色，不随主题明暗反转。
+    ZhihuTopAppBar(
+        title = { Text("视频播放") },
+        navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") } },
+        colors = zhihuTopAppBarColors(
+            containerColor = toolbarScrim,
+            scrolledContainerColor = toolbarScrim,
+            titleContentColor = Color.White,
+            navigationIconContentColor = Color.White,
+            actionIconContentColor = Color.White,
+        ),
         modifier = Modifier.statusBarsPadding(),
     )
 }
@@ -493,7 +522,7 @@ private fun VideoPlayerView(
                         }, modifier = Modifier.size(36.dp)) {
                             Icon(if (isPlayingState.value) Icons.Default.Pause else Icons.Default.PlayArrow, if (isPlayingState.value) "暂停" else "播放", tint = Color.White, modifier = Modifier.size(20.dp))
                         }
-                        Text("${formatTime(currentPosition)} / ${formatTime(duration)}", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                        Text("${formatTime(currentPosition)} / ${formatTime(duration)}", color = Color.White.copy(alpha = 0.8f), style = ZhihuTypography.ActionCount)
                         IconButton(onClick = {
                             val url = videoUrl
                             val pos = currentPosition
@@ -547,16 +576,29 @@ private fun VideoPlayerView(
                         Box {
                             Text(
                                 "${playbackSpeed}x",
+                                // 这个触发器直接压在黑色视频上，用白色明度表达「非 1x」即可；
+                                // 主题蓝只留给菜单内选中项（菜单底是功能面，不会蓝字压黑底）。
                                 color = if (playbackSpeed != 1f) Color.White else Color.White.copy(alpha = 0.6f),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
+                                style = ZhihuTypography.ActionCount,
                                 modifier = Modifier.padding(8.dp).clickable { speedMenuExpanded = true },
                             )
-                            DropdownMenu(expanded = speedMenuExpanded, onDismissRequest = { speedMenuExpanded = false }, modifier = Modifier.background(Color(0xFF2D2D2D), RoundedCornerShape(8.dp))) {
+                            DropdownMenu(
+                                expanded = speedMenuExpanded,
+                                onDismissRequest = { speedMenuExpanded = false },
+                                shape = ZhihuShapeTokens.Card,
+                                containerColor = contentFirstColors.functionalSurface,
+                            ) {
                                 floatArrayOf(0.75f, 1f, 1.25f, 1.5f, 2f).forEach { sp ->
                                     val sel = sp == playbackSpeed
                                     DropdownMenuItem(
-                                        text = { Text("${sp}x", color = if (sel) Color(0xFFA78BFA) else Color.White.copy(alpha = 0.75f), fontSize = 13.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal) },
+                                        text = {
+                                            Text(
+                                                "${sp}x",
+                                                color = if (sel) contentFirstColors.accent else contentFirstColors.primaryText,
+                                                style = ZhihuTypography.FeedMeta,
+                                                fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
+                                            )
+                                        },
                                         onClick = {
                                             playbackSpeed = sp
                                             safeSetSpeed(sp)
@@ -577,13 +619,14 @@ private fun VideoPlayerView(
                 controlsVisible = true
                 lockHintVisible = false
             }, shape = CircleShape, color = Color.Black.copy(alpha = 0.45f), modifier = Modifier.size(40.dp)) {
-                Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Lock, "解锁", tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp)) }
+                // 解锁图标同样压在黑色 scrim 上，用白色；不把主题蓝放到黑底上。
+                Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Lock, "解锁", tint = Color.White, modifier = Modifier.size(20.dp)) }
             }
         }
 
         if (dragSeekPreview != 0L && duration > 0) {
-            Surface(Modifier.align(Alignment.Center).padding(bottom = 80.dp), shape = RoundedCornerShape(8.dp), color = Color.Black.copy(alpha = 0.6f)) {
-                Text("${if (dragSeekPreview > 0) "+" else ""}${dragSeekPreview / 1000}s  ${formatTime((currentPosition + dragSeekPreview).coerceIn(0, duration))}", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            Surface(Modifier.align(Alignment.Center).padding(bottom = 80.dp), shape = ZhihuShapeTokens.Card, color = Color.Black.copy(alpha = 0.6f)) {
+                Text("${if (dragSeekPreview > 0) "+" else ""}${dragSeekPreview / 1000}s  ${formatTime((currentPosition + dragSeekPreview).coerceIn(0, duration))}", color = Color.White, style = ZhihuTypography.AnswerVoteLine.copy(fontWeight = FontWeight.Medium), modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
             }
         }
     }

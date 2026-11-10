@@ -71,6 +71,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -1267,7 +1268,7 @@ private fun HomeSearchActionButton(onClick: () -> Unit) {
         Text(
             text = "搜索",
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = colors.onAccentFill,
         )
     }
 }
@@ -1329,7 +1330,7 @@ private fun HomeCategoryTabRow(
             icon = Icons.Default.Menu,
             label = "频道编辑",
             tag = HOME_TAB_EDIT_TAG,
-            tint = MaterialTheme.colorScheme.onSurface,
+            tint = colors.primaryText,
             onClick = onEditChannels,
         )
         Spacer(Modifier.width(ZhihuSpacing.Small))
@@ -1342,6 +1343,9 @@ private fun HomeCategoryTabItem(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    // Tab 文字/下划线走 contentFirstColors：首页已经全量使用这套「内容优先」色板，
+    // 再混 colorScheme.onSurface 会让 Tab 行在深色下比同页标题亮一档。
+    val colors = contentFirstColors
     Box(
         modifier = Modifier
             .width(ZhihuSizes.HomeTabItemWidth)
@@ -1356,7 +1360,7 @@ private fun HomeCategoryTabItem(
             style = ZhihuTypography.TabTitle.copy(
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             ),
-            color = MaterialTheme.colorScheme.onSurface,
+            color = if (selected) colors.primaryText else colors.secondaryText,
         )
         if (selected) {
             Box(
@@ -1367,7 +1371,7 @@ private fun HomeCategoryTabItem(
                         width = ZhihuSizes.HomeTabIndicatorWidth,
                         height = ZhihuSizes.HomeTabIndicatorHeight,
                     ).clip(TabIndicatorShape)
-                    .background(MaterialTheme.colorScheme.onSurface),
+                    .background(colors.primaryText),
             )
         }
     }
@@ -1409,9 +1413,11 @@ private fun HomeChannelSheet(
     onToggle: (HomeCategoryTab, Boolean) -> Unit,
 ) {
     val colors = contentFirstColors
+    // 频道设置是一列固定开关，用不到「半展开」中间档，直接展开更省一次手势。
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = colors.page,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         modifier = Modifier.testTag(HOME_CHANNEL_SHEET_TAG),
     ) {
         Text(

@@ -51,7 +51,6 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -474,11 +473,13 @@ private fun AccountAvatar(data: AccountSettingsAccountState) {
         AsyncImage(
             model = data.avatarUrl,
             contentDescription = null,
-            modifier = baseModifier.background(MaterialTheme.colorScheme.primaryContainer),
+            // 头像加载前的占位与未登录态同用「功能面」，不再单引 primaryContainer 这一档 tonal 色块。
+            modifier = baseModifier.background(contentFirstColors.functionalSurface),
         )
     } else {
+        // 未登录头像位与页面其它弱底同源（功能面）：深色下不再比其它页面亮一档，切换页签时底色不跳变。
         Box(
-            modifier = baseModifier.background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            modifier = baseModifier.background(contentFirstColors.functionalSurface),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -659,7 +660,7 @@ private fun AccountGuestHint(
                 Text(
                     text = "登录知乎",
                     style = ZhihuTypography.FeedAuthorName.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = colors.onAccentFill,
                     modifier = Modifier
                         .testTag(ACCOUNT_SETTINGS_LOGIN_ITEM_TAG)
                         .clip(ZhihuShapeTokens.Pill)

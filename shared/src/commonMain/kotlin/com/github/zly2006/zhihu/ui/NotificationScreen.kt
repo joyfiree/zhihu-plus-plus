@@ -87,7 +87,7 @@ import com.github.zly2006.zhihu.platform.rememberExternalUrlOpener
 import com.github.zly2006.zhihu.platform.rememberUserMessageSink
 import com.github.zly2006.zhihu.ui.components.PaginatedList
 import com.github.zly2006.zhihu.ui.components.ProgressIndicatorFooter
-import com.github.zly2006.zhihu.ui.components.ZhihuCenterAlignedTopAppBar
+import com.github.zly2006.zhihu.ui.components.ZhihuTopAppBar
 import com.github.zly2006.zhihu.ui.designsystem.ZhihuShapeTokens
 import com.github.zly2006.zhihu.ui.designsystem.zhihuSurfaces
 import com.github.zly2006.zhihu.util.formatNotificationTime
@@ -127,7 +127,9 @@ fun NotificationScreen() {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            ZhihuCenterAlignedTopAppBar(
+            // 与「我的收藏夹」等列表页一致用左对齐：ZhihuTopAppBar 的文档约定居中栏只用于详情页，
+            // 消息页本身就是列出一组入口的列表页，不是单条内容详情。
+            ZhihuTopAppBar(
                 title = { Text("消息") },
                 navigationIcon = {
                     IconButton(onClick = navigator.onNavigateBack) {
@@ -483,13 +485,16 @@ fun NotificationItemView(
                     } else if (notification.content?.subTitle?.contains("评论了") == true) {
                         val document = Ksoup.parseBodyFragment(notification.content.abstractText)
                         val openExternalUrl = rememberExternalUrlOpener()
-                        val string = remember(notification.content.abstractText) {
+                        // 本页走手调官方 colorScheme（见 designsystem 分工），链接色跟随主题 primary。
+                        val linkColor = MaterialTheme.colorScheme.primary
+                        val string = remember(notification.content.abstractText, linkColor) {
                             emojisUsed.clear()
                             buildAnnotatedString {
                                 dfsSimple(
                                     node = document.body(),
                                     onNavigate = navigator.onNavigate,
                                     openExternalUrl = openExternalUrl::invoke,
+                                    linkColor = linkColor,
                                     componentUsed = emojisUsed,
                                 )
                             }

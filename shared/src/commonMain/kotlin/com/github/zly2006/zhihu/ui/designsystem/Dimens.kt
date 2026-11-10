@@ -37,9 +37,6 @@ object ZhihuSpacing {
     /** 页面左右内容边距（列表、设置页、正文统一 16dp）。 */
     val ScreenGutter = 16.dp
 
-    /** 首页底部内容为底栏预留的安全边距（官方 AXMainTabContainer 内容 paddingBottom=48dp）。 */
-    val BottomBarContentInset = 48.dp
-
     /** 信息流卡片之间的垂直间隙，骨架屏与真实卡片共用，避免两处各写一份而跳版。 */
     val CardGap = 5.dp
 }
@@ -53,16 +50,12 @@ object ZhihuSpacing {
 object ZhihuSizes {
     val MinTouchTarget = 48.dp
     val ListItemMinHeight = 56.dp
-    val TopAppBarHeight = 64.dp
-    val MediumTopAppBarHeight = 112.dp
-    val LargeTopAppBarHeight = 152.dp
 
     /** 底部导航栏高度（不含系统手势区）。官方实测 159px ≈ 60.6dp。 */
     val NavigationBarHeight = 60.dp
     val Icon = 24.dp
     val IconSmall = 20.dp
     val AvatarSmall = 24.dp
-    val AvatarMedium = 32.dp
     val AvatarLarge = 40.dp
     val DividerThickness = 1.dp
 
@@ -109,9 +102,6 @@ object ZhihuSizes {
 
     /** 回答卡作者头像（用户实测比对官方后由 36dp 调整为 32dp）。 */
     val AnswerAvatarSize = 32.dp
-
-    /** 回答卡作者名右侧的认证/徽章图标。 */
-    val AnswerBadgeSize = 18.dp
 
     /** 回答操作行图标与行高。 */
     val AnswerActionIconSize = 26.dp
